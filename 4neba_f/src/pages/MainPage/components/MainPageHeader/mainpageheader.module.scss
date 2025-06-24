@@ -1,0 +1,28 @@
+.mainPageHeader {
+  height: 149.2537vw;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4.975123vw;
+}
+.upperBody {
+  height: 133.084577vw;
+  width: 100%;
+  display: flex;
+  gap: 4.47761194vw;
+  justify-content: end;
+}
+.bottomBody {
+  height: 11.194vw;
+  width: 95.0248756vw;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 30px;
+  font-size: 3.482vw;
+  line-height: 4.246vw;
+  font-weight: 400;
+  color: #171717;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

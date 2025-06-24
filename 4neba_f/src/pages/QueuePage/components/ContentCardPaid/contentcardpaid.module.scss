@@ -1,0 +1,74 @@
+.contentCard {
+  width: 95.024vw;
+  height: fit-content;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+.afisha {
+  width: 95.024vw !important;
+  height: fit-content;
+  border-top-right-radius: 5px;
+  border-top-left-radius: 5px;
+  position: relative;
+}
+.paidAfisha {
+  width: 100%;
+  height: auto;
+  position: relative;
+  z-index: 0;
+}
+.afishaInfo {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  position: absolute;
+  top: 0;
+  justify-content: space-between;
+}
+.format {
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(43,43,43, 0.5);
+  margin-left: 3px;
+  margin-top: 3px;
+  height: fit-content;
+  width: fit-content;
+  padding: 4px 4px;
+  border-radius: 30px;
+
+}
+.afishaBottomInfo {
+  position: absolute;
+  right: 0;
+  bottom: 5px;
+}
+.time {
+  font-weight: 400;
+  font-size: 3.4825vw;
+  color: rgba(255, 255, 255, 0.8);
+}
+.bottomInfo {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  font-weight: 400;
+  font-size: 3.4825vw;
+  color: white;
+  background: #212121;
+  border-bottom-right-radius: 5px;
+  border-bottom-left-radius: 5px;
+  gap: 3px;
+}
+.name {
+  padding-left: 2.4875vw;
+  padding-top: 2.4875vw;
+}
+style.btnWrapper {
+  width: fit-content;
+  height: fit-content;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}

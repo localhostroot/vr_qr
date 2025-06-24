@@ -1,0 +1,65 @@
+.tableElement {
+  display: flex;
+  width: 100%;
+  border-radius: 5px;
+  font-family: "Manrope", serif;
+  align-items: stretch;
+}
+
+.backImg {
+  position: relative;
+  width: 46.268vw;
+  flex-shrink: 0;
+}
+
+.backImg img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  width: calc(100% - 46.268vw);
+  background: #212121;
+  justify-content: space-between;
+}
+.upperInfo {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2.48756vw;
+}
+.name {
+  display: flex;
+  flex-direction: column;
+  gap: 2.48756vw;
+  margin-left: 2.48756vw;
+}
+.filmName {
+  font-weight: 400;
+  color: white;
+  font-size: 3.48258vw;
+}
+.number {
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 2.985vw;
+}
+.time {
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 2.985vw;
+  margin-right: 2.48756vw;
+}
+.price {
+  margin-left: 2.48756vw;
+  margin-bottom: 2.48756vw;
+  font-weight: 400;
+  color: white;
+  font-size: 3.48258vw;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom: 1px solid white;
+  width: fit-content;
+}

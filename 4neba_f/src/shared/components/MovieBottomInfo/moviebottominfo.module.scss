@@ -1,0 +1,117 @@
+.movieBottomInfo {
+  width: 95.0248vw;
+  display: flex;
+  flex-direction: column;
+  gap: 4.9751vw;
+}
+.upperInfo {
+  display: flex;
+  flex-direction: column;
+  font-weight: 400;
+  font-size: 5.9701vw;
+  color: white;
+  font-family: "Manrope", serif;
+  gap: 2.4875vw;
+}
+.price {
+  padding-right: 2px;
+  padding-left: 2px;
+  border-bottom: 1px solid white;
+  width: fit-content;
+  margin-bottom: 2.4875vw;
+}
+.btns {
+  display: flex;
+  justify-content: space-between;
+}
+.toQueue {
+  width: 70.6467vw;
+  height: 11.19vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 400;
+  font-size: 3.99vw;
+  background: rgba(255,255,255, 0.9);
+  border-radius: 30px;
+  color: #171717;
+  font-family: "Montserrat", serif;
+}
+.btnAdd {
+  width: 21.6417vw;
+  height: 11.19vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255, 0.37);
+  border-radius: 30px;
+}
+.bottomInfo {
+  width: 95.0248vw;
+  height: fit-content;
+  background: #212121;
+  border-radius: 5px;
+  font-family: "Montserrat", serif;
+  display: flex;
+  flex-direction: column;
+  gap: 2.98507vw;
+}
+.upper {
+  margin-top: 3.7313vw;
+  margin-left: 3.7313vw;
+  margin-right: 3.7313vw;
+}
+.middle {
+  margin-left: 3.7313vw;
+  margin-right: 3.7313vw;
+  display: flex;
+  flex-direction: column;
+  gap: 3.2338vw;
+}
+.filmName {
+  display: flex;
+  gap: 13.4328vw;
+}
+.infoUpperPar {
+  display: flex;
+  flex-direction: column;
+  gap: 3.2338vw;
+}
+.par {
+  font-weight: 500;
+  font-size: 4.2288vw;
+  color: rgba(255,255,255, 0.65);
+}
+.parDescr {
+  font-weight: 500;
+  font-size: 3.7313vw;
+  color: rgba(255,255,255, 0.95);
+}
+.titleWithBtn {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  height: fit-content;
+}
+.home {
+  border-bottom-left-radius: 5px;
+  width: 7.4627vw;
+  height: 7.4627vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #212121;
+}
+.home img {
+  width: 6vw;
+  height: auto;
+}
+.name {
+  height: 100%;
+  display: flex;
+  align-self: start;
+}
+.linkContainer {
+  align-self: end;
+}

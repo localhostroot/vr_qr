@@ -1,0 +1,33 @@
+.leftUpperBody {
+  display: flex;
+  flex-direction: column;
+  gap: 3.7313vw;
+  height: 100%;
+  width: fit-content;
+  justify-content: end;
+}
+.name {
+  font-weight: 500;
+  font-size: 7.4627vw;
+  line-height: 9.097vw;
+  color: #ffffff;
+}
+.initInstructions {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2437vw;
+}
+.firstParagraph {
+  color: rgba(255,255,255, 0.95);
+  width: 53.4825vw;
+  font-weight: 400;
+  line-height: 4.246vw;
+  font-size: 3.4825vw;
+}
+.secondParagraph {
+  color: rgba(255,255,255, 0.65);
+  width: 55.97014vw;
+  font-weight: 300;
+  line-height: 4.246vw;
+  font-size: 3.4825vw;
+}
