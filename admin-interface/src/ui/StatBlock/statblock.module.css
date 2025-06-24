@@ -1,0 +1,100 @@
+.statsContainer {
+    display: flex;
+    flex-direction: column;
+    width: 90%;
+    align-self: center;
+    gap: 3vw;
+    button {
+        width: fit-content;
+    }
+    .funcsBtn{
+        display: flex;
+        flex-direction: column;
+        gap: 2vw;
+    }
+    .funcs {
+        display: flex;
+        gap: 2vw;
+        align-items: center;
+    }
+    .movieList {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 20px;
+        text-align: center;
+    }
+}
+
+.statsContainerTablet {
+    display: flex;
+    flex-direction: column;
+    width: 90%;
+    align-self: center;
+    gap: 3vw;
+    button {
+        width: fit-content;
+    }
+    .funcs {
+        display: flex;
+        gap: 2vw;
+        align-items: center;
+    }
+    .movieList {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        text-align: center;
+    }
+}
+.statsContainerPhone {
+    display: flex;
+    flex-direction: column;
+    width: 90%;
+    align-self: center;
+    gap: 5vw;
+    button {
+        width: fit-content;
+    }
+    .funcsBtn{
+        display: flex;
+        flex-direction: column;
+        gap: 2vw;
+    }
+    .funcs {
+        display: flex;
+        gap: 2vw;
+        align-items: center;
+    }
+    .movieList {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+}
+input[type="date"] {
+    background-color: #2e2e2e;
+    color: #fff;
+    border: 1px solid #444;
+    padding: 5px;
+    border-radius: 5px;
+    font-size: 14px;
+    width: fit-content;
+    box-sizing: border-box;
+}
+
+input[type="date"]:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+input[type="date"]::placeholder {
+    color: #999;
+}
+
+input[type="date"]:disabled {
+    background-color: #333;
+    color: #666;
+    border-color: #666;
+}

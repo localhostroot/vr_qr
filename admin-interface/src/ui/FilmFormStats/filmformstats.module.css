@@ -1,0 +1,46 @@
+.filmFormStats {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    border: 1px solid #444;
+    border-radius: 5px;
+    background-color: #333;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    margin-bottom: 20px;
+}
+
+.filmFormStats h3 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.3em;
+    color: #fff;
+}
+
+.filmFormStats > div {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}
+
+.filmFormStats label {
+    font-size: 1.1em;
+    margin-bottom: 5px;
+    color: #eee;
+}
+
+.filmFormStats input[type="text"],
+.filmFormStats input[type="file"] {
+    padding: 8px;
+    border: 1px solid #555;
+    border-radius: 3px;
+    background-color: #444;
+    color: #fff;
+    font-size: 1em;
+}
+
+.filmFormStats input[type="text"]:focus,
+.filmFormStats input[type="file"]:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}

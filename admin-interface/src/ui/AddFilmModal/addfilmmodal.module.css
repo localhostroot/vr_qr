@@ -1,0 +1,59 @@
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.addFilmModal {
+    background-color: #222;
+    color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    width: 95%;
+    max-width: 1600px;
+    height: 90%;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+}
+
+.addFilmModal h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.8em;
+}
+
+.addFilmModal > div {
+    flex: 1;
+    margin: 10px;
+}
+
+.closeButton {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 15px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 1em;
+    margin-top: 20px;
+    width: fit-content;
+}
+
+.closeButton:hover {
+    background-color: #0056b3;
+}
+
+.btnDiv {
+    display: flex;
+    gap: 20px;
+}

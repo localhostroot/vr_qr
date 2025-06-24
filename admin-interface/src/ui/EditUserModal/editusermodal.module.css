@@ -1,0 +1,85 @@
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    background-color: #222;
+    color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    width: 500px;
+    position: relative;
+}
+
+.modal .closeButton {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 1.5em;
+    cursor: pointer;
+}
+
+.modal .closeButton:hover {
+    color: #fff;
+}
+
+.modal h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.modal .error {
+    color: #ff4d4f;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.modal .formEl {
+    margin-bottom: 15px;
+}
+
+.modal label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #ccc;
+}
+
+.modal input[type="text"],
+.modal input[type="email"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin-top: 5px;
+    background-color: #333;
+    color: #fff;
+}
+
+.modal button {
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%;
+}
+
+.modal button:hover {
+    background-color: #0056b3;
+}

@@ -1,0 +1,99 @@
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1001;
+}
+
+.modalContent {
+    background-color: #222;
+    color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 1200px;
+}
+
+.videoGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.videoItem {
+    border: 1px solid #444;
+    border-radius: 5px;
+    padding: 10px;
+    height: 80px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+
+.videoItemPhone {
+    border: 1px solid #444;
+    border-radius: 5px;
+    padding: 1vw;
+    height: 7.7vh;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+
+.videoGridPhone {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12.32vh, 12.32vh));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.videoItem:hover {
+    background-color: #333;
+}
+
+.selected {
+    background-color: rgba(100, 149, 237, 0.3);
+    border-color: #6495ED;
+}
+
+.videoItem img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    margin-bottom: 5px;
+    border-radius: 3px;
+}
+
+.modalContent button {
+    background-color: #444;
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-right: 10px;
+}
+
+.modalContent button:hover {
+    background-color: #666;
+}
+
+.modalContent button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

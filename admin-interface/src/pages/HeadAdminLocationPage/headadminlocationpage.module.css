@@ -1,0 +1,31 @@
+.headAdminPage {
+    width: 90%;
+    overflow-x: hidden;
+    background-color: #171717;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 5vw;
+}
+.first {
+    display: flex;
+}
+.send {
+    display: flex;
+    flex-direction: column;
+}
+
+.headAdminPage button {
+    background-color: #333;
+    color: #fff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.headAdminPage button:hover {
+    background-color: #555;
+}

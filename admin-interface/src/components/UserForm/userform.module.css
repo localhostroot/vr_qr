@@ -1,0 +1,108 @@
+.userForm {
+    padding: 20px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    margin: 20px auto;
+    background-color: #222;
+    color: #fff;
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    grid-gap: 15px;
+    width: fit-content;
+    height: fit-content;
+}
+
+.userForm .error {
+    color: #ff4d4f;
+    margin-bottom: 10px;
+    width: 100%;
+    text-align: center;
+}
+
+.userForm .formEl {
+    margin-bottom: 0;
+}
+
+.userForm label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #ccc;
+}
+
+.userForm input[type="text"],
+.userForm input[type="password"],
+.userForm input[type="email"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin-top: 5px;
+    background-color: #333;
+    color: #fff;
+}
+
+.userForm button {
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.userForm button:hover {
+    background-color: #0056b3;
+}
+
+.userFormPhone {
+    width: 90%;
+    padding: 2.48vw;
+    border: 1px solid #333;
+    border-radius: 5px;
+    margin: 2.48vw auto;
+    background-color: #222;
+    color: #fff;
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    grid-gap: 2.48vw;
+    height: fit-content;
+}
+.userFormPhone input[type="text"],
+.userFormPhone input[type="password"],
+.userFormPhone input[type="email"] {
+    width: 100%;
+    padding: 1.24vw;
+    border: 1px solid #555;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin-top: 1.24vw;
+    background-color: #333;
+    color: #fff;
+    font-size: 2.48vw;
+}
+.userFormPhone .formEl {
+    margin-bottom: 0;
+}
+
+.userFormPhone label {
+    display: block;
+    margin-bottom: 1.24vw;
+    font-weight: bold;
+    color: #ccc;
+}
+.userFormPhone button {
+    background-color: #007bff;
+    color: #fff;
+    padding: 1.24vw 2vw;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 4vw;
+    width: 100%;
+    margin-top: 4vw;
+}

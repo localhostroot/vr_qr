@@ -1,0 +1,77 @@
+.userList {
+    width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #222;
+    color: #fff;
+    border: 1px solid #333;
+    border-radius: 5px;
+    .userList h2 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .userList .error {
+        color: #ff4d4f;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+
+    .userGrid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-gap: 20px;
+    }
+}
+
+
+.userListPhone {
+    width: 90%;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #222;
+    color: #fff;
+    border: 1px solid #333;
+    border-radius: 5px;
+    h2 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .error {
+        color: #ff4d4f;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+
+    .userGrid {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+}
+.userListTablet{
+    width: 50%;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #222;
+    color: #fff;
+    border: 1px solid #333;
+    border-radius: 5px;
+    h2 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .error {
+        color: #ff4d4f;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+
+    .userGrid {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+}
