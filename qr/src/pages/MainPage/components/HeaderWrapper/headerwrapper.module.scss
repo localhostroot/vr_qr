@@ -1,0 +1,41 @@
+
+.headerWrapper {
+  width: calc(100vw - 2.48756vw*2);
+  align-self: center;
+  display: flex;
+  justify-content: space-between;
+}
+.header {
+  color: white;
+  width: fit-content;
+  font-weight: 500;
+  font-size: 4.4776vw;
+}
+.linkContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: fit-content;
+  height: fit-content;
+  gap: 2vw;
+}
+.link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-radius: 30px;
+  padding: 1vw 3vw;
+  background: rgba(255, 255, 255, 0.1);
+}
+.queue {
+  position: absolute;
+  top: 0.5vw;
+  right: 2.5vw;
+  width: 1vw;
+  height: 1vw;
+  font-weight: 700;
+  background-color: red;
+  border-radius: 50%;
+}

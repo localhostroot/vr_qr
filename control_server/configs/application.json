@@ -1,0 +1,41 @@
+{
+	"controlServer": "ws://192.168.1.90:11000/",
+	"downloadGalleryConfig": true,
+  "localFilesMode": false,
+	"location": "TEST:1",
+	"userID": "1",
+	"id": "3",
+	"ID": "2",
+	"version": "0.9.2",
+	"preset": {
+		"renderScale": 1.6,
+		"videoRenderScale": 1.6,
+    "resetTimeout": 60,
+    "blockScreen":{
+			"unlockableStateText": "Для начала просмотра наведите\n и удерживайте красную точку\n на кнопке ниже",
+			"lockedStateText": "Сеанс завершен",
+			"unlockableStateButton": {
+				"label": "Начать просмотр"
+			}
+		},
+		"gazePointer": {
+			"clickDelay": 2.0,
+			"size": 0.8,
+			"color": "#FF0000"
+		},
+		"gallery": {
+      "backgroundVideo": {  "id": "bg", "url": "https://demo.vr360.pro/vrp-rgo/bg.mp4" },
+      "returnButton": { "label": "Меню"  },
+      "size": [800,300],
+			"bgColor": "#005555120"
+		},
+		"player": {
+      "ui": {
+			"returnButton": { "label": "Назад"  },
+			"ShowReturnButton": true,
+			"ShowTimeline": true,
+			"Angle": 55
+      }
+    }
+  }
+}

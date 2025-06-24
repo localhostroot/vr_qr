@@ -1,0 +1,40 @@
+.categoriesElement {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #444;
+    border-radius: 5px;
+    padding: 15px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    background-color: #333;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.3s ease;
+}
+
+.categoriesElement:hover {
+    background-color: #444;
+}
+
+.categoriesElement h3 {
+    margin: 0;
+    font-size: 1.2em;
+    text-align: center;
+    margin-bottom: 10px;
+}
+.categoriesElementPhone {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #444;
+    border-radius: 5px;
+    padding: 5px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    background-color: #333;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.3s ease;
+    h3 {
+        font-size: 0.8em;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+}

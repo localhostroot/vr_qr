@@ -1,0 +1,76 @@
+.singleMovie {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+  align-items: center;
+  gap: 6.2189vw;
+}
+.upperInfo {
+  width: 100%;
+  height: fit-content;
+  position: relative;
+
+  .back {
+    position: relative;
+    width: 100%;
+    height: auto;
+    z-index: 0;
+  }
+}
+.btn {
+  position: absolute;
+  width: 9.4527vw;
+  height: 9.4527vw;
+  top: 9.9502vw;
+  left: 2.4875vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0,0,0, 0.6);
+  border-radius: 30px;
+}
+.btnReverse {
+  position: absolute;
+  width: 9.4527vw;
+  height: 9.4527vw;
+  top: 9.9502vw;
+  right: 2.4875vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0,0,0, 0.6);
+  border-radius: 30px;
+  transform: scaleX(-1);
+}
+
+.btnReturn {
+  position: absolute;
+  width: 9.4527vw;
+  height: 9.4527vw;
+  bottom: 2.4875vw;
+  right: 2.4875vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0,0,0, 0.6);
+  border-radius: 30px;
+}
+
+.time {
+  position: absolute;
+  bottom: 3.7313vw;
+  right: 2.4875vw;
+  font-weight: 400;
+  font-size: 3.4825vw;
+  background: rgba(0,0,0, 0.7);
+  padding: 3px 5px;
+  border-radius: 10px;
+  color: rgba(255,255,255, 0.8);
+  font-family: "Manrope", serif;
+}
+.serialInfo {
+  gap: 12.4378vw;
+  display: flex;
+  flex-direction: column;
+}

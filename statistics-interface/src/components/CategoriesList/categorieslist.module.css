@@ -1,0 +1,24 @@
+.categoriesList {
+    display: flex;
+    flex-direction: column;
+    width: 90%;
+    border: 2px solid #333;
+    border-radius: 10px;
+    padding: 20px;
+    box-sizing: border-box;
+    background-color: #222;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    margin: 0 auto;
+}
+.categoriesListPhone {
+    display: flex;
+    flex-direction: column;
+    width: 90%;
+    border: 2px solid #333;
+    border-radius: 10px;
+    padding: 5px;
+    box-sizing: border-box;
+    background-color: #222;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    margin: 0 auto;
+}

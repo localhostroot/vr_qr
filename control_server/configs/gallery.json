@@ -1,0 +1,73 @@
+{
+	"contents": {
+    "id": "base-folder",
+		"title": "VR кинотеатр Русского географического общества",
+		"backgroundVideo": {  "id": "bg", "url": "https://public.vr360.pro/media/bg.mp4" },
+    "folders": [
+      {
+        "title":   "Мир географии",
+        "titleRC": "Мир географии",
+        "id": "subfolder 1",
+        "autoplay": false,
+        "ui": {
+        "templateId": "rows",
+        "parameters":{
+          "thumbWidth": 160,
+          "thumbHeight": 100,
+          "itemsPerPage": 6,
+          "rows": 2
+          }
+        },
+        "thumb": {  "url": "https://public.vr360.pro/media/geo_01.jpg",  "id": "geo_01" },
+        "videos": [
+          { "title":    "",
+            "titleRC":  "",
+            "thumb": {  "url": "https://public.vr360.pro/media/geo_01_01.jpg", "id": "geo_01_01" },
+                        "url": "https://public.vr360.pro/media/geo_01_01.mp4", "id": "geo_01_01",
+            "projection": "p180",   "depth": "3dSBS",
+            "duration":   "702",    "dbContentId": "rgo_vdnh_mg0101"
+          },
+          { "title":    "",
+            "titleRC":  "",
+            "thumb": {  "url": "https://public.vr360.pro/media/geo_01_02.jpg", "id": "geo_01_02" },
+                        "url": "https://public.vr360.pro/media/geo_01_02.mp4", "id": "geo_01_02",
+            "projection": "p180",   "depth": "3dSBS",
+            "duration":   "711",    "dbContentId": "rgo_vdnh_mg0201"
+          }
+        ]
+      },
+      {
+        "title":   "Константиновская батарея",
+        "titleRC": "Константиновская батарея",
+        "id": "subfolder 3",
+        "autoplay": false,
+        "ui": {
+        "templateId": "rows",
+        "parameters":{
+          "thumbWidth": 160,
+          "thumbHeight": 100,
+          "itemsPerPage": 3,
+          "rows": 1
+          }
+        },
+        "thumb": {  "url": "https://public.vr360.pro/media/kb_00.jpg",  "id": "kb_00" },
+        "videos": [
+          { "title":    "",
+            "titleRC":  "",
+            "thumb": {  "url": "https://public.vr360.pro/media/kb_01.jpg", "id": "kb_01" },
+                        "url": "https://public.vr360.pro/media/kb_01.mp4", "id": "kb_01",
+            "projection": "p360",   "depth": "2d",
+            "duration":   "610",    "dbContentId": "rgo_vdnh_kb__01"
+          },
+          { "title":    "",
+            "titleRC":  "",
+            "thumb": {  "url": "https://public.vr360.pro/media/kb_02.jpg", "id": "kb_02" },
+                        "url": "https://public.vr360.pro/media/kb_02.mp4", "id": "kb_02",
+            "projection": "p360",   "depth": "2d",
+            "duration":   "272",    "dbContentId": "rgo_vdnh_kb__02"
+          }
+        ]
+      }   
+     ]
+  }
+}

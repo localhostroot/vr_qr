@@ -1,0 +1,37 @@
+.fixedNavigation {
+  position: fixed;
+  bottom: 3vw;
+  right: auto;
+  left: auto;
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11.194vw;
+  padding: 3.98vw calc(11.194vw / 2) 2.487vw;
+  border-radius: 30px;
+  background-color: rgba(0,0,0, 0.8);
+  z-index: 102;
+}
+.link {
+}
+.queue {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  color: red;
+  z-index: 1;
+  top: 2vw;
+  right: 20vw;
+}
+.paid {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  color: red;
+  z-index: 1;
+  top: 2vw;
+  right: 3.98vw;
+}
+

@@ -1,0 +1,79 @@
+.watch {
+  width: 90.049vw;
+  height: 10vw; 
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.9);
+  font-family: "Montserrat", serif;
+  font-weight: 500;
+  font-size: 3.4825vw;
+  color: #171717;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 3.731vw;
+  margin-bottom: 2.4875vw;
+  text-transform: uppercase; 
+}
+
+.playing {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 15%;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.playback {
+  font-size: 4vw;
+  text-transform: uppercase; 
+}
+
+.stop {
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.9);
+  font-family: "Montserrat", serif;
+  font-weight: 500;
+  font-size: 3.4825vw;
+  color: #171717;
+  padding: 5px 10px;
+  text-transform: uppercase; 
+}
+
+.takeGlasses {
+  width: 90.049vw;
+  height: 10vw; 
+  display: flex;
+  justify-content: space-between;
+  align-self: center;
+  margin-top: 3.731vw;
+  margin-bottom: 2.4875vw;
+  font-family: "Montserrat", serif;
+}
+
+.watchSmall {
+  width: 70%;
+  font-size: 3.4825vw; 
+  display: flex;
+  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid white;
+  text-transform: uppercase; 
+}
+
+.watchStop {
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.9);
+  font-family: "Montserrat", serif;
+  font-weight: 500;
+  font-size: 3.4825vw;
+  color: #171717;
+  padding: 5px 10px;
+  text-transform: uppercase; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
