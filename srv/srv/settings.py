@@ -26,6 +26,8 @@ ALLOWED_HOSTS = [
     'cinema.4-neba.ru',
     'cinema-free.4-neba.ru',
     '192.168.1.90',
+    '192.168.1.65',
+    'local.vr360.pro'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -37,6 +39,8 @@ CSRF_TRUSTED_ORIGINS = [
     'https://cinema-free.4-neba.ru',
     'http://localhost:3000',
     'http://192.168.1.90:3000',
+    'http://192.168.1.65:3000',
+    'https://local.vr360.pro'
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -48,6 +52,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://cinema-free.4-neba.ru",
     'http://localhost:3000',
     'http://192.168.1.90:3000',
+    'http://192.168.1.65:3000',
+    'https://local.vr360.pro'
 ]
 
 INSTALLED_APPS = [
