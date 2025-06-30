@@ -36,7 +36,8 @@ ALLOWED_HOSTS = [
     '192.168.1.90',
     '127.0.0.1',
     '192.168.1.65',
-    'local.vr360.pro'
+    'local.vr360.pro',
+    'db.local.vr360.pro'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
