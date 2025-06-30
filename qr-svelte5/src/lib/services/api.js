@@ -156,7 +156,7 @@ class ApiService {
 	 * @param {string} orderId - Order ID
 	 * @param {string} currentToken - Current token (optional)
 	 */
-	async getTokenByOrder(orderId, currentToken = null) {
+	async getTokenByOrder(orderId, currentToken = '') {
 		try {
 			let url = `api/tokens/get_token_by_order/?order_id=${orderId}`;
 			if (currentToken) {
