@@ -39,7 +39,9 @@ ALLOWED_HOSTS = [
     'localhost:3000',
     '192.168.1.65',
     'local.vr360.pro',
-    'db.local.vr360.pro'
+    'admin.local.vr360.pro',
+    'stats.local.vr360.pro',
+    'cinema.local.vr360.pro/',
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -49,7 +51,10 @@ CSRF_TRUSTED_ORIGINS = [
     'https://stats.4-neba.ru',
     'https://cinema.4-neba.ru',
     'https://cinema-free.4-neba.ru',
-    'https://local.vr360.pro'
+    'https://local.vr360.pro',
+    'https://admin.local.vr360.pro',
+    'https://stats.local.vr360.pro',
+    'https://cinema.local.vr360.pro/',
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -63,7 +68,10 @@ CORS_ALLOWED_ORIGINS = [
     'http://192.168.1.65',
     'http://localhost:3001',
     'http://localhost:3000',
-    'https://local.vr360.pro'
+    'https://local.vr360.pro',
+    'https://admin.local.vr360.pro',
+    'https://stats.local.vr360.pro',
+    'https://cinema.local.vr360.pro/',
 ]
 
 INSTALLED_APPS = [
