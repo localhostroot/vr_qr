@@ -31,7 +31,7 @@ ALLOWED_HOSTS = [
     'db.local.vr360.pro',
     'admin.local.vr360.pro',
     'stats.local.vr360.pro',
-    'cinema.local.vr360.pro/',
+    'cinema.local.vr360.pro',
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -47,7 +47,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://local.vr360.pro',
     'https://admin.local.vr360.pro',
     'https://stats.local.vr360.pro',
-    'https://cinema.local.vr360.pro/',
+    'https://cinema.local.vr360.pro',
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -63,7 +63,7 @@ CORS_ALLOWED_ORIGINS = [
     'https://local.vr360.pro',
     'https://admin.local.vr360.pro',
     'https://stats.local.vr360.pro',
-    'https://cinema.local.vr360.pro/',
+    'https://cinema.local.vr360.pro',
 ]
 
 INSTALLED_APPS = [

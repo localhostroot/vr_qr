@@ -54,7 +54,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://local.vr360.pro',
     'https://admin.local.vr360.pro',
     'https://stats.local.vr360.pro',
-    'https://cinema.local.vr360.pro/',
+    'https://cinema.local.vr360.pro',
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -71,7 +71,7 @@ CORS_ALLOWED_ORIGINS = [
     'https://local.vr360.pro',
     'https://admin.local.vr360.pro',
     'https://stats.local.vr360.pro',
-    'https://cinema.local.vr360.pro/',
+    'https://cinema.local.vr360.pro',
 ]
 
 INSTALLED_APPS = [
