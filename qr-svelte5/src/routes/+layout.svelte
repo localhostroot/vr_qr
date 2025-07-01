@@ -7,7 +7,9 @@
 	import Header from '$lib/components/Header.svelte';
 	import FixedNavigation from '$lib/components/FixedNavigation.svelte';
 	import Footer from '$lib/components/Footer.svelte';
-	import '../app.css';
+	// import '../app.css';
+
+	import { apiService } from '$lib/services/api.js';
 
 	// Setup localStorage synchronization - watch for changes and sync to localStorage
 	const sync = setupLocalStorageSync();
@@ -56,11 +58,16 @@
 			webSocketService.connect(wsUrl, 'getVr');
 		}
 	});
-	onDestroy(() => {
+
+	onDestroy(async () => {
 		if (browser) {
 			webSocketService.disconnect();
 		}
 	});
+
+	$effect(() => {
+		window.apiService = apiService;
+	})
 </script>
 
 <div class="app">

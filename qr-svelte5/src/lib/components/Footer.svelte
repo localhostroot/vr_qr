@@ -2,7 +2,7 @@
 	<div class="container">
 		<div class="footer-content">
 			<div class="logo-section">
-				<img src="/images/logo.svg" alt="VR Logo" />
+				<img src="/images/Logo.svg" alt="VR Logo" />
 				<span>VR Control Interface</span>
 			</div>
 			

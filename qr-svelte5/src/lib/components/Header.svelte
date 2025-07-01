@@ -8,7 +8,7 @@
 <header class="header">
 	<div class="container">
 		<div class="logo" onclick={() => goto('/')} role="button" tabindex="0">
-			<img src="/images/logo.svg" alt="VR Logo" />
+			<img src="/images/Logo.svg" alt="VR Logo" />
 			<span>VR Control</span>
 		</div>
 		
