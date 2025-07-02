@@ -1,230 +1,315 @@
 <script>
+  import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
+  import { browser } from '$app/environment';
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { icons } from '$lib/icons/icons.js';
+  import { useWebSocket } from '$lib/utils/websocket.js';
+  import ContentCardPaid from '$lib/components/ContentCardPaid.svelte';
 
   let paidFilms = $derived(globals.get('paidFilms'));
   let token = $derived(globals.get('token'));
   let tokenExpiry = $derived(globals.get('tokenExpiry'));
+  let currentClient = $derived(globals.get('currentClient'));
+  let clients = $derived(globals.get('clients'));
+  let isClientsLoading = $derived(globals.get('isClientsLoading'));
+  let clientsError = $derived(globals.get('clientsError'));
 
-  function addToQueue(film) {
-    const existsInQueue = globals.get('queue').some(item => item.id === film.id);
-    if (!existsInQueue) {
-      globals.update('queue', currentQueue => [...currentQueue, film]);
+  let modalVisible = false;
+  let clientData = null;
+  let userId = null;
+
+  // API configuration
+  const databaseApi = browser ? import.meta.env.VITE_DATABASE_API : '';
+  const getVrApi = browser ? import.meta.env.VITE_WEBSOCKET_API : '';
+  const getVrType = 'getVr';
+
+  // WebSocket connection
+  let wsManager = null;
+
+  // Client info from localStorage
+  $effect(() => {
+    if (currentClient) {
+      const clLocation = currentClient.location || null;
+      const id = currentClient.id || null;
+      userId = clLocation && id ? `${clLocation}/${id}` : null;
+      
+      // Find client data from the clients array
+      if (clients && Array.isArray(clients)) {
+        clientData = clients.find(client => 
+          client.location === clLocation && client.id === id
+        ) || null;
+      }
     }
-  }
+  });
 
-  // let isTokenValid = $derived(token && tokenExpiry && new Date(tokenExpiry) > new Date());
-  let isTokenValid = true;
+  const handleClick = () => {
+    if (userId) {
+      goto(`/vr/${userId}`);
+    } else {
+      goto('/vr');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!currentClient || !databaseApi) return;
+    
+    try {
+      await fetch(`${databaseApi}/send-request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clientId: currentClient.id,
+          location: currentClient.location,
+          type: 'reset'
+        })
+      });
+    } catch (error) {
+      console.error('Error sending reset request:', error);
+    }
+  };
+
+  const handleOpenModal = () => {
+    modalVisible = true;
+  };
+
+  const handleCloseModal = () => {
+    modalVisible = false;
+  };
+
+  onMount(() => {
+    // Scroll to top
+    if (browser) {
+      window.scrollTo(0, 0);
+    }
+
+    // Initialize WebSocket connection if we have the API
+    if (getVrApi) {
+      wsManager = useWebSocket(getVrApi, getVrType);
+      wsManager.connect();
+    }
+
+    return () => {
+      if (wsManager) {
+        wsManager.disconnect();
+      }
+    };
+  });
 </script>
 
-<div class="films-page">
-  <div class="content">
-    <h1>Оплаченные фильмы</h1>
+{#if !paidFilms || paidFilms.length === 0}
+  <div class="queuePage">
+    <!-- Empty state similar to React -->
+    <div class="info">
+      <div class="pageName">
+        Мои покупки
+      </div>
+      <div class="paymentBtn" on:click={handleClick}>
+        Вернуться
+      </div>
+    </div>
+  </div>
+{:else}
+  <div class="queuePage">
+    <!-- Top icons similar to React -->
+    <div class="iconsTop">
+      <div class="inst" on:click={handleClick}>
+        {@html icons.home || '🏠'}
+      </div>
+      <div class="inst" on:click={handleOpenModal}>
+        {@html icons.info || 'ℹ'}
+      </div>
+    </div>
     
-    {#if !isTokenValid}
-      <div class="no-token">
-        <div class="empty-icon">
-          {@html icons.paid}
-        </div>
-        <h2>Нет активного токена</h2>
-        <p>Для просмотра оплаченных фильмов необходимо приобрести доступ</p>
-        <button class="buy-access-btn">
-          Купить доступ
+    <!-- Info section -->
+    <div class="info">
+      <div class="pageName">
+        Мои покупки
+      </div>
+      <div class="paymentBtn" on:click={handleDelete}>
+        Сбросить
+      </div>
+    </div>
+    
+    <!-- Films queue -->
+    <div class="queue">
+      {#each paidFilms as film (film.film_id || film.id)}
+        <ContentCardPaid
+          item={film}
+          location={currentClient?.location}
+          clientId={currentClient?.id}
+          client={clientData}
+        />
+      {/each}
+    </div>
+  </div>
+{/if}
+
+<!-- Instruction Modal (placeholder for now) -->
+{#if modalVisible}
+  <div class="modal-backdrop" on:click={handleCloseModal}>
+    <div class="modal" on:click|stopPropagation>
+      <div class="modal-header">
+        <h3>Инструкция</h3>
+        <button class="close-btn" on:click={handleCloseModal}>
+          {@html icons.close || '✕'}
         </button>
       </div>
-    {:else if paidFilms && paidFilms.length > 0}
-      <div class="token-info">
-        <p>Токен действителен до: {new Date(tokenExpiry).toLocaleString()}</p>
+      <div class="modal-content">
+        <p>Здесь будет инструкция по использованию приложения.</p>
       </div>
-      
-      <div class="films-grid">
-        {#each paidFilms as film}
-          <div class="film-card">
-            {#if film.image}
-              <img src={film.image} alt={film.title} />
-            {/if}
-            <div class="film-info">
-              <h3>{film.title}</h3>
-              {#if film.description}
-                <p>{film.description}</p>
-              {/if}
-              {#if film.duration}
-                <span class="duration">{film.duration} мин</span>
-              {/if}
-              <div class="film-actions">
-                <button 
-                  class="add-to-queue-btn"
-                  onclick={() => addToQueue(film)}
-                >
-                  {@html icons.plus}
-                  Добавить в очередь
-                </button>
-              </div>
-            </div>
-          </div>
-        {/each}
-      </div>
-    {:else}
-      <div class="empty-films">
-        <div class="empty-icon">
-          {@html icons.play}
-        </div>
-        <h2>Нет оплаченных фильмов</h2>
-        <p>После оплаты фильмы появятся здесь</p>
-      </div>
-    {/if}
+    </div>
   </div>
-</div>
+{/if}
 
 <style>
-  .films-page {
+  .queuePage {
     min-height: calc(100vh - var(--navigation-height));
     background: var(--color-dark-primary);
     color: var(--color-white);
-    padding: var(--spacing-20);
+    padding: var(--spacing-20) 0;
     font-family: 'Montserrat', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
   }
 
-  .content {
-    max-width: 1200px;
-    margin: 0 auto;
+  .iconsTop {
+    display: flex;
+    justify-content: space-between;
+    width: 95.024vw;
+    padding: var(--spacing-10) 0;
+    margin-bottom: var(--spacing-10);
   }
 
-  h1 {
-    text-align: center;
-    margin-bottom: var(--spacing-20);
-    font-size: var(--font-20);
-    font-weight: var(--font-weight-600);
-  }
-
-  .token-info {
-    text-align: center;
-    margin-bottom: var(--spacing-20);
-    padding: var(--spacing-10);
-    background: var(--color-success-10);
-    border: 1px solid var(--color-success-30);
-    border-radius: var(--radius-5);
-    color: var(--color-green);
-  }
-
-  .films-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: var(--spacing-20);
-    margin-top: var(--spacing-20);
-  }
-
-  .film-card {
+  .inst {
     background: var(--color-white-10);
-    border-radius: var(--radius-10);
-    overflow: hidden;
-    transition: var(--transition-transform);
+    border: 1px solid var(--color-white-20);
+    border-radius: var(--radius-5);
+    padding: var(--spacing-10);
+    cursor: pointer;
+    transition: var(--transition-background);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
   }
 
-  .film-card:hover {
-    transform: var(--transform-hover-lift-5);
+  .inst:hover {
     background: var(--color-white-15);
   }
 
-  .film-card img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
+  .inst :global(svg) {
+    width: 24px;
+    height: 24px;
   }
 
-  .film-info {
-    padding: var(--spacing-15);
-  }
-
-  .film-info h3 {
-    margin: 0 0 var(--spacing-10) 0;
-    font-size: var(--font-12);
-    font-weight: var(--font-weight-600);
-  }
-
-  .film-info p {
-    margin: 0 0 var(--spacing-10) 0;
-    font-size: var(--font-9);
-    color: var(--color-white-70);
-  }
-
-  .duration {
-    font-size: var(--font-8);
-    color: var(--color-white-60);
-    background: var(--color-white-10);
-    padding: var(--spacing-3) var(--spacing-6);
-    border-radius: var(--radius-3);
-    display: inline-block;
-    margin-bottom: var(--spacing-10);
-  }
-
-  .film-actions {
-    margin-top: var(--spacing-10);
-  }
-
-  .add-to-queue-btn {
-    background: var(--color-success-20);
-    border: 1px solid var(--color-success-30);
-    color: var(--color-green);
-    padding: var(--spacing-7) var(--spacing-10);
-    border-radius: var(--radius-5);
-    cursor: pointer;
-    font-family: inherit;
+  .info {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: var(--spacing-5);
-    width: 100%;
-    justify-content: center;
-    transition: var(--transition-background);
-  }
-
-  .add-to-queue-btn:hover {
-    background: var(--color-success-30);
-  }
-
-  .add-to-queue-btn :global(svg) {
-    width: 16px;
-    height: 16px;
-  }
-
-  .no-token, .empty-films {
-    text-align: center;
-    padding: var(--spacing-40) var(--spacing-20);
-  }
-
-  .empty-icon {
+    width: 95.024vw;
     margin-bottom: var(--spacing-20);
-    opacity: 0.5;
+    padding: 0 var(--spacing-10);
   }
 
-  .empty-icon :global(svg) {
-    width: 80px;
-    height: 80px;
+  .pageName {
+    font-size: var(--font-16);
+    font-weight: var(--font-weight-600);
+    color: var(--color-white);
   }
 
-  .no-token h2, .empty-films h2 {
-    margin-bottom: var(--spacing-10);
-    color: var(--color-white-70);
-  }
-
-  .no-token p, .empty-films p {
-    color: var(--color-white-50);
-    margin-bottom: var(--spacing-20);
-  }
-
-  .buy-access-btn {
+  .paymentBtn {
     background: var(--color-info-20);
     border: 1px solid var(--color-info-30);
     color: var(--color-blue);
-    padding: var(--spacing-10) var(--spacing-20);
+    padding: var(--spacing-10) var(--spacing-15);
     border-radius: var(--radius-5);
     cursor: pointer;
     font-family: inherit;
-    font-size: var(--font-10);
+    font-weight: var(--font-weight-500);
     transition: var(--transition-background);
   }
 
-  .buy-access-btn:hover {
+  .paymentBtn:hover {
     background: var(--color-info-30);
+  }
+
+  .queue {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: var(--spacing-10);
+  }
+
+  /* Modal styles */
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal {
+    background: var(--color-dark-secondary);
+    border: 1px solid var(--color-white-20);
+    border-radius: var(--radius-10);
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: auto;
+    position: relative;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-20);
+    border-bottom: 1px solid var(--color-white-20);
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    font-size: var(--font-16);
+    font-weight: var(--font-weight-600);
+    color: var(--color-white);
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    color: var(--color-white-70);
+    cursor: pointer;
+    padding: var(--spacing-5);
+    font-size: var(--font-16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-color);
+  }
+
+  .close-btn:hover {
+    color: var(--color-white);
+  }
+
+  .modal-content {
+    padding: var(--spacing-20);
+    color: var(--color-white-80);
+    line-height: 1.6;
+  }
+
+  .modal-content p {
+    margin: 0;
   }
 </style>
