@@ -5,11 +5,11 @@ from .api import CategoryViewSet, MovieViewSet, PaymentViewSet, PaymentStatusVie
 
 router = routers.DefaultRouter()
 
-router.register('/api/category', CategoryViewSet, 'category')
-router.register('/api/movie', MovieViewSet, 'movie')
-router.register('/api/payments', PaymentViewSet, 'payments')
-router.register('/api/status', PaymentStatusViewSet, 'status')
-router.register('/api/tokens', TokenViewSet, basename='tokens')
+router.register('api/category', CategoryViewSet, 'category')
+router.register('api/movie', MovieViewSet, 'movie')
+router.register('api/payments', PaymentViewSet, 'payments')
+router.register('api/status', PaymentStatusViewSet, 'status')
+router.register('api/tokens', TokenViewSet, basename='tokens')
 urlpatterns = [
     path('', include(router.urls)),  
 ]
