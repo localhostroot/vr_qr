@@ -1,0 +1,149 @@
+/* Design System Variables */
+:root {
+  /* Navigation */
+  --navigation-height: 60px;
+
+  /* Colors - White/Light variants */
+  --color-white: #ffffff;
+  --color-white-90: rgba(255, 255, 255, 0.9);
+  --color-white-80: rgba(255, 255, 255, 0.8);
+  --color-white-70: rgba(255, 255, 255, 0.7);
+  --color-white-65: rgba(255, 255, 255, 0.65);
+  --color-white-60: rgba(255, 255, 255, 0.6);
+  --color-white-50: rgba(255, 255, 255, 0.5);
+  --color-white-37: rgba(255, 255, 255, 0.37);
+  --color-white-30: rgba(255, 255, 255, 0.3);
+  --color-white-20: rgba(255, 255, 255, 0.2);
+  --color-white-15: rgba(255, 255, 255, 0.15);
+  --color-white-10: rgba(255, 255, 255, 0.1);
+  --color-white-5: rgba(255, 255, 255, 0.05);
+
+  /* Colors - Dark variants */
+  --color-dark-primary: #171717;
+  --color-dark-secondary: #212121;
+  --color-dark-95: rgba(0, 0, 0, 0.95);
+  --color-dark-80: rgba(0, 0, 0, 0.8);
+  --color-dark-30: rgba(0, 0, 0, 0.3);
+
+  /* Colors - Accent */
+  --color-red: #ff4444;
+  --color-red-light: #ff6b6b;
+  --color-green: #90EE90;
+  --color-blue: #007bff;
+  --color-gray: #D9D9D9;
+  --color-gray-50: rgba(217, 217, 217, 0.5);
+
+  /* Colors - Semantic */
+  --color-success-10: rgba(0, 255, 0, 0.1);
+  --color-success-20: rgba(0, 255, 0, 0.2);
+  --color-success-30: rgba(0, 255, 0, 0.3);
+  --color-error-10: rgba(255, 0, 0, 0.1);
+  --color-error-20: rgba(255, 0, 0, 0.2);
+  --color-error-30: rgba(255, 0, 0, 0.3);
+  --color-info-10: rgba(0, 123, 255, 0.1);
+  --color-info-20: rgba(0, 123, 255, 0.2);
+  --color-info-30: rgba(0, 123, 255, 0.3);
+
+  /* Border Radius */
+  --radius-1: 1px;
+  --radius-3: 3px;
+  --radius-5: 5px;
+  --radius-10: 10px;
+  --radius-15: 15px;
+  --radius-25: 25px;
+  --radius-30: 30px;
+  --radius-full: 50%;
+
+  /* Spacing - Fixed units (rem) */
+  --spacing-2: 0.2rem;
+  --spacing-3: 0.3rem;
+  --spacing-5: 0.5rem;
+  --spacing-6: 0.6rem;
+  --spacing-7: 0.7rem;
+  --spacing-8: 0.8rem;
+  --spacing-10: 1rem;
+  --spacing-15: 1.5rem;
+  --spacing-20: 2rem;
+  --spacing-25: 2.5rem;
+  --spacing-30: 3rem;
+  --spacing-40: 4rem;
+
+  /* Spacing - Viewport units (vw) - rounded to nearest 0.5vw */
+  --spacing-vw-5: 0.5vw;
+  --spacing-vw-10: 1vw;
+  --spacing-vw-15: 1.5vw;
+  --spacing-vw-20: 2vw;
+  --spacing-vw-25: 2.5vw;
+  --spacing-vw-30: 3vw;
+  --spacing-vw-35: 3.5vw;
+  --spacing-vw-40: 4vw;
+  --spacing-vw-50: 5vw;
+  --spacing-vw-130: 13vw;
+
+  /* Font Sizes - Fixed (rem) */
+  --font-8: 0.8rem;
+  --font-9: 0.9rem;
+  --font-10: 1rem;
+  --font-11: 1.1rem;
+  --font-12: 1.2rem;
+  --font-15: 1.5rem;
+  --font-20: 2rem;
+
+  /* Font Sizes - Responsive using clamp */
+  --font-responsive-small: clamp(0.9rem, 2.5vw, 1.2rem);
+  --font-responsive-large: clamp(2rem, 4vw, 4rem);
+
+  /* Font Sizes - Viewport-based (vw) - rounded to nearest 0.5vw */
+  --font-vw-25: 2.5vw;
+  --font-vw-30: 3vw;
+  --font-vw-35: 3.5vw;
+  --font-vw-40: 4vw;
+  --font-vw-45: 4.5vw;
+  --font-vw-60: 6vw;
+
+  /* Font Weights */
+  --font-weight-400: 400;
+  --font-weight-500: 500;
+  --font-weight-600: 600;
+  --font-weight-bold: bold;
+
+  /* Transitions */
+  --transition-100: all 0.1s ease;
+  --transition-200: all 0.2s ease;
+  --transition-300: all 0.3s ease;
+  --transition-background: background 0.3s ease;
+  --transition-transform: transform 0.3s ease;
+
+  /* Effects */
+  --blur-backdrop: blur(10px);
+  --transform-hover-lift-2: translateY(-2px);
+  --transform-hover-lift-5: translateY(-5px);
+  --transform-scale-12: scale(1.2);
+
+  /* Z-Index */
+  --z-1: 1;
+  --z-100: 100;
+  --z-102: 102;
+  --z-1000: 1000;
+
+  /* Layout - Container max-widths */
+  --container-300: 300px;
+  --container-600: 600px;
+  --container-800: 800px;
+  --container-1200: 1200px;
+
+  /* Layout - Viewport widths (vw) - for mobile-first design */
+  --width-vw-80: 80vw;
+  --width-vw-217: 21.6417vw;
+  --width-vw-463: 46.268vw;
+  --width-vw-705: 70.6467vw;
+  --width-vw-950: 95.0248vw;
+
+  /* Layout - Heights */
+  --height-40: 40px;
+  --height-60: 60px;
+  --height-80: 80px;
+  --height-200: 200px;
+  --height-vw-75: 7.4627vw;
+  --height-vw-112: 11.19vw;
+}

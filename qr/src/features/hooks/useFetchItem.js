@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const useFetchItem = (apiEndpoint, id, itemType = 'movie') => {
+
     const [item, setItem] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -11,6 +12,9 @@ const useFetchItem = (apiEndpoint, id, itemType = 'movie') => {
             setLoading(true);
             setError(null);
             try {
+
+                console.log({apiEndpoint});
+
                 const response = await axios.get(apiEndpoint);
                 const foundItem = response.data.find(item => item.route_id === id);
 

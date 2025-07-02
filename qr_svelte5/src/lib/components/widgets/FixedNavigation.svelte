@@ -1,0 +1,126 @@
+<script>
+// @ts-nocheck
+
+  import { globals } from '$lib/stores/+stores.svelte.js';
+  import { page } from '$app/stores';
+  import { icons } from '$lib/icons/icons.js';
+
+  let currentPath = $derived($page.url.pathname);
+  let currentClient = $derived(globals.get('currentClient'));
+  let paidFilms = $derived(globals.get('paidFilms'));
+  let queue = $derived(globals.get('queue'));
+
+  const getUserId = currentClient => {
+    if (currentClient?.location && currentClient?.id) {
+      return `${currentClient.location}/${currentClient.id}`;
+    }
+    return null;
+  }
+
+  let userId = $derived(getUserId(currentClient));
+
+  let hideNavAndFooter = $derived(currentPath === '/');
+</script>
+
+{#if !hideNavAndFooter}
+<nav class="fixedNavigation">
+  <div>
+      <a href={userId ? `/vr/${userId}` : '/vr'}>
+          {@html currentPath.startsWith('/vr/') ? icons.mainActive : icons.main}
+      </a>
+  </div>
+  <div>
+      <a href="/queue">
+          {@html currentPath === '/queue' ? icons.basketActive : icons.basket}
+      </a>
+      {#if queue && queue.length > 0}
+          <div class="queue">{queue.length}</div>
+      {/if}
+  </div>
+  <div>
+      <a href="/films">
+          {@html currentPath === '/films' ? icons.playActive : icons.play}
+      </a>
+      {#if paidFilms && paidFilms.length > 0}
+          <div class="paid">{paidFilms.length}</div>
+      {/if}
+  </div>
+</nav>
+{/if}
+
+<style>
+  .fixedNavigation {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: var(--navigation-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    background-color: var(--color-dark-95);
+    backdrop-filter: var(--blur-backdrop);
+    border-top: 1px solid var(--color-white-10);
+    z-index: var(--z-1000);
+  }
+
+  .fixedNavigation > div {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    height: 100%;
+    transition: var(--transition-100);
+  }
+
+  .fixedNavigation > div:hover {
+    background-color: var(--color-white-5);
+  }
+
+  .fixedNavigation a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+  }
+
+  .queue {
+    position: absolute;
+    top: 8px;
+    right: 40%;
+    width: 16px;
+    height: 16px;
+    background-color: var(--color-red);
+    color: var(--color-white);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: var(--font-weight-bold);
+    z-index: var(--z-1);
+    min-width: 16px;
+  }
+
+  .paid {
+    position: absolute;
+    top: 8px;
+    right: 40%;
+    width: 16px;
+    height: 16px;
+    background-color: var(--color-red);
+    color: var(--color-white);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: var(--font-weight-bold);
+    z-index: var(--z-1);
+    min-width: 16px;
+  }
+</style>

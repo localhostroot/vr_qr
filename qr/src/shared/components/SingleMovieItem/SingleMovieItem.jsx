@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import Loader from "@/widgets/Loader/Loader.jsx";
 
 export const SingleMovieItem = ({ item, list, itemRouteId }) => {
+
     const navigate = useNavigate();
     const clientString = localStorage.getItem('client');
     const client = clientString ? JSON.parse(clientString) : null;
