@@ -1,9 +1,10 @@
 <script>
   import { page } from '$app/stores';
+  import { PUBLIC_APP_SUBFOLDER } from '$env/static/public';
   import { icons } from '$lib/icons/icons.js';
 
   let currentPath = $derived($page.url.pathname);
-  let hideNavAndFooter = $derived(currentPath === '/');
+  let hideNavAndFooter = $derived(PUBLIC_APP_SUBFOLDER ? currentPath === '/new' : currentPath === '/');
 </script>
 
 {#if !hideNavAndFooter}

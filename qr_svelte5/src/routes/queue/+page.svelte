@@ -6,6 +6,7 @@
   import ContentCardBig from '$lib/components/Queue/ContentCardBig.svelte';
   import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
   import { createPaykeeperPayment } from '$lib/utils/paykeeperPayment.js';
+  import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let queue = $derived(globals.get('queue'));
 
@@ -19,9 +20,9 @@
     const userId = clLocation && id ? `${clLocation}/${id}` : null;
 
     if (client) {
-      goto(`/vr/${userId}`);
+      goto(`${getSubfolder()}/vr/${userId}`);
     } else {
-      goto('/vr');
+      goto(`${getSubfolder()}/vr`);
     }
   }
 

@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let status = $state('loading');
 
@@ -18,9 +19,9 @@
 
   function handleContinue() {
     if (status === 'success') {
-      goto('/films/');
+      goto(`${getSubfolder()}/films/`);
     } else {
-      goto('/queue/');
+      goto(`${getSubfolder()}/queue/`);
     }
   }
 </script>

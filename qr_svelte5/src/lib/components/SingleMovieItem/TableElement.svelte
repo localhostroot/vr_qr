@@ -1,10 +1,11 @@
 <script>
   import { goto } from '$app/navigation';
+  import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let { item } = $props();
 
   function handleClick() {
-    goto(`/film/${item.route_id}`);
+    goto(`${getSubfolder()}/film/${item.route_id}`);
   }
 </script>
 

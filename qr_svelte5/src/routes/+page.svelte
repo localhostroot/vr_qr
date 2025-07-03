@@ -4,6 +4,7 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import Header from '$lib/components/widgets/Header.svelte';
+  import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let clients = $derived(globals.get('clients'));
   let isLoading = $derived(globals.get('isClientsLoading'));
@@ -11,7 +12,8 @@
   function selectClient(location, id) {
     const client = { location, id };
     globals.set('currentClient', client);
-    goto(`/vr/${location}/${id}`);
+
+    goto(`${getSubfolder()}/vr/${location}/${id}`);
   }
 
   onMount(() => {

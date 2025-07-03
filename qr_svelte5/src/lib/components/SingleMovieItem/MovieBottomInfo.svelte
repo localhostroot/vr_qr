@@ -4,6 +4,7 @@
   import { icons } from '$lib/icons/icons.js';
   import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
   import AddToQueueBtn from './AddToQueueBtn.svelte';
+  import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let { item } = $props();
 
@@ -28,15 +29,15 @@
 
   function handleClick() {
     if (isInPaidFilms()) {
-      goto('/films');
+      goto(`${getSubfolder()}/films`);
     } else {
-      goto('/queue');
+      goto(`${getSubfolder()}/queue`);
     }
   }
 
   function handleHomeClick() {
     const userId = getCurrentClient();
-    goto(`/vr/${userId}`);
+    goto(`${getSubfolder()}/vr/${userId}`);
   }
 
   const styles = {

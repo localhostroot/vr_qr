@@ -2,6 +2,7 @@
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { goto } from '$app/navigation';
   import { icons } from '$lib/icons/icons.js';
+  import { getSubfolder } from '$lib/utils/+helpers.svelte';
   
   let { library } = $props();
 
@@ -49,7 +50,7 @@
 
   function goToContent(item) {
 
-    goto(`/content/${item.route_id}`);
+    goto(`${getSubfolder()}/content/${item.route_id}`);
   }
 </script>
 

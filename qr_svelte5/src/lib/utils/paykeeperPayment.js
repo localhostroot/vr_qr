@@ -1,7 +1,9 @@
 import { browser } from '$app/environment';
-import { PUBLIC_DATABASE } from '$env/static/public';
+import { PUBLIC_DATABASE, PUBLIC_APP_SUBFOLDER } from '$env/static/public';
 import { globals } from '$lib/stores/+stores.svelte.js';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
+import { getSubfolder } from './+helpers.svelte';
+
 
 /**
  * Factory function for creating Paykeeper payment handlers
@@ -16,8 +18,12 @@ export function createPaykeeperPayment() {
   const paykeeperUrl = "https://4-neba.server.paykeeper.ru/create/";
   
   // Get success and fail URLs (only available in browser)
-  const getSuccessUrl = () => browser ? `${window.location.origin}/payment-result?success=true` : '';
-  const getFailUrl = () => browser ? `${window.location.origin}/payment-result?success=false` : '';
+
+  // предыдущие настройки в пэйкипере
+  // https://4-neba.ru/payment-result?success=true
+  // https://4-neba.ru/payment-result
+  const getSuccessUrl = () => browser ? `${window.location.origin}${getSubfolder()}/payment-result?success=true` : '';
+  const getFailUrl = () => browser ? `${window.location.origin}${getSubfolder()}/payment-result?success=false` : '';
 
   /**
    * Get current user ID from client data
@@ -71,6 +77,8 @@ export function createPaykeeperPayment() {
         }),
       });
 
+      console.log({createOrderResponse});
+
       if (!createOrderResponse.ok) {
         const errorData = await createOrderResponse.json();
         errorState = "Ошибка при создании заказа: " + (errorData.error || "Неизвестная ошибка");
@@ -81,6 +89,8 @@ export function createPaykeeperPayment() {
       const orderData = await createOrderResponse.json();
       const orderId = orderData.order_id;
       const totalAmount = orderData.amount;
+
+      console.log({orderData});
 
       // Store order data for later verification
       localStorage.setItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID, orderId);
@@ -109,8 +119,8 @@ export function createPaykeeperPayment() {
       addInput('fail_url', getFailUrl());
 
       // Submit form
-      document.body.appendChild(form);
-      form.submit();
+      // document.body.appendChild(form);
+      // form.submit();
 
     } catch (err) {
       console.error('Payment error:', err);

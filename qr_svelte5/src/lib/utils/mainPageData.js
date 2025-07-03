@@ -3,6 +3,7 @@ import { goto } from '$app/navigation';
 import { PUBLIC_DATABASE } from '$env/static/public';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 import axios from 'axios';
+import { getSubfolder } from './+helpers.svelte';
 
 export async function initializeMainPageData(location, id) {
   const clients = globals.get('clients');
@@ -13,7 +14,7 @@ export async function initializeMainPageData(location, id) {
   // Validate client and set localStorage
   const checkClientAndSetLocalStorage = () => {
     if (!location || !id) {
-      goto('/');
+      goto(`${getSubfolder()}/`);
       return false;
     }
 
@@ -35,7 +36,7 @@ export async function initializeMainPageData(location, id) {
       globals.set('currentClient', client);
       return true;
     } else {
-      goto('/');
+      goto(`${getSubfolder()}/`);
       return false;
     }
   };

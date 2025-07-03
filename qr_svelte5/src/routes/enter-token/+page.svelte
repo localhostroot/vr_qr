@@ -2,6 +2,7 @@
   import { goto } from '$app/navigation';
   import { PUBLIC_DATABASE } from '$env/static/public';
   import { globals } from '$lib/stores/+stores.svelte.js';
+  import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let token = $state('');
   let isLoading = $state(false);
@@ -55,7 +56,7 @@
         token = '';
 
         setTimeout(() => {
-          goto('/films/');
+          goto(`${getSubfolder()}/films/`);
         }, 2000);
       } else {
         error = data.error || 'Недействительный токен';
@@ -68,7 +69,7 @@
   }
 
   function handleBack() {
-    goto(-1);
+    history.back();
   }
 </script>
 

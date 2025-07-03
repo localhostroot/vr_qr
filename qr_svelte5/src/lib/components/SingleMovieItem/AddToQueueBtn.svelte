@@ -2,6 +2,7 @@
   import { goto } from '$app/navigation';
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { icons } from '$lib/icons/icons.js';
+  import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let { item, styles } = $props();
 
@@ -13,7 +14,7 @@
     event.stopPropagation();
     
     if (item.serial) {
-      goto(`/content/${item.id}`);
+      goto(`${getSubfolder()}/content/${item.id}`);
     } else {
       if (isAdded) {
         globals.update('queue', currentQueue => 

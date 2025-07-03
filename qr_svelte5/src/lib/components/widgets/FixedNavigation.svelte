@@ -4,6 +4,7 @@
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { page } from '$app/stores';
   import { icons } from '$lib/icons/icons.js';
+  import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let currentPath = $derived($page.url.pathname);
   let currentClient = $derived(globals.get('currentClient'));
@@ -25,21 +26,21 @@
 {#if !hideNavAndFooter}
 <nav class="fixedNavigation">
   <div>
-      <a href={userId ? `/vr/${userId}` : '/vr'}>
-          {@html currentPath.startsWith('/vr/') ? icons.mainActive : icons.main}
+      <a href={userId ? `{getSubfolder()}/vr/${userId}` : '/vr'}>
+          {@html currentPath.startsWith(`${getSubfolder()}/vr/`) ? icons.mainActive : icons.main}
       </a>
   </div>
   <div>
-      <a href="/queue">
-          {@html currentPath === '/queue' ? icons.basketActive : icons.basket}
+      <a href="{getSubfolder()}/queue">
+          {@html currentPath === `${getSubfolder()}` ? icons.basketActive : icons.basket}
       </a>
       {#if queue && queue.length > 0}
           <div class="queue">{queue.length}</div>
       {/if}
   </div>
   <div>
-      <a href="/films">
-          {@html currentPath === '/films' ? icons.playActive : icons.play}
+      <a href="{getSubfolder()}/films">
+          {@html currentPath === `${getSubfolder()}` ? icons.playActive : icons.play}
       </a>
       {#if paidFilms && paidFilms.length > 0}
           <div class="paid">{paidFilms.length}</div>

@@ -1,6 +1,7 @@
 <script>
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { icons } from '$lib/icons/icons.js';
+  import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let queue = $derived(globals.get('queue'));
   let paidFilms = $derived(globals.get('paidFilms'));
@@ -9,7 +10,7 @@
 <div class="headerWrapper">
   <div class="header">VR PLAYER</div>
   <div class="linkContainer">
-    <a href="/queue/">
+    <a href="{getSubfolder()}/queue/">
       <div class="link">
         {@html icons.basketActive}
         {#if queue && queue.length > 0}
@@ -17,7 +18,7 @@
         {/if}
       </div>
     </a>
-    <a href="/films/">
+    <a href="{getSubfolder()}/films/">
       <div class="link">
         {@html icons.playActive}
         {#if paidFilms && paidFilms.length > 0}

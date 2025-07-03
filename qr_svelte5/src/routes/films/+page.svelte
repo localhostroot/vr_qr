@@ -6,8 +6,10 @@
   import { icons } from '$lib/icons/icons.js';
   import { useWebSocket } from '$lib/utils/websocket.js';
   import ContentCardPaid from '$lib/components/ContentCardPaid.svelte';
+  import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let paidFilms = $derived(globals.get('paidFilms'));
+
   let token = $derived(globals.get('token'));
   let tokenExpiry = $derived(globals.get('tokenExpiry'));
   let currentClient = $derived(globals.get('currentClient'));
@@ -17,7 +19,7 @@
 
   let modalVisible = false;
   let clientData = null;
-  let userId = null;
+  let userId = '';
 
   // API configuration
   const databaseApi = browser ? import.meta.env.VITE_DATABASE_API : '';
@@ -45,9 +47,9 @@
 
   const handleClick = () => {
     if (userId) {
-      goto(`/vr/${userId}`);
+      goto(`${getSubfolder()}/vr/${userId}`);
     } else {
-      goto('/vr');
+      goto(`${getSubfolder()}/vr`);
     }
   };
 
@@ -106,7 +108,7 @@
       <div class="pageName">
         Мои покупки
       </div>
-      <div class="paymentBtn" on:click={handleClick}>
+      <div class="paymentBtn" onclick={handleClick}>
         Вернуться
       </div>
     </div>
@@ -115,10 +117,10 @@
   <div class="queuePage">
     <!-- Top icons similar to React -->
     <div class="iconsTop">
-      <div class="inst" on:click={handleClick}>
+      <div class="inst" onclick={handleClick}>
         {@html icons.home || '🏠'}
       </div>
-      <div class="inst" on:click={handleOpenModal}>
+      <div class="inst" onclick={handleOpenModal}>
         {@html icons.info || 'ℹ'}
       </div>
     </div>
@@ -128,7 +130,7 @@
       <div class="pageName">
         Мои покупки
       </div>
-      <div class="paymentBtn" on:click={handleDelete}>
+      <div class="paymentBtn" onclick={handleDelete}>
         Сбросить
       </div>
     </div>
@@ -149,11 +151,11 @@
 
 <!-- Instruction Modal (placeholder for now) -->
 {#if modalVisible}
-  <div class="modal-backdrop" on:click={handleCloseModal}>
-    <div class="modal" on:click|stopPropagation>
+  <div class="modal-backdrop" onclick={handleCloseModal}>
+    <div class="modal" onclick={(e) => e.stopPropagation()}>
       <div class="modal-header">
         <h3>Инструкция</h3>
-        <button class="close-btn" on:click={handleCloseModal}>
+        <button class="close-btn" onclick={handleCloseModal}>
           {@html icons.close || '✕'}
         </button>
       </div>

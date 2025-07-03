@@ -7,6 +7,7 @@
   import MovieBottomInfo from './MovieBottomInfo.svelte';
   import SerialTable from './SerialTable.svelte';
   import Loader from '$lib/components/widgets/Loader.svelte';
+  import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let { item, list, itemRouteId } = $props();
 
@@ -43,12 +44,12 @@
     }
 
     if (nextItem) {
-      goto(`/film/${nextItem.route_id}`);
+      goto(`${getSubfolder()}/film/${nextItem.route_id}`);
     }
   }
 
   function handleClickReturn() {
-    goto(`/content/${itemRouteId}`);
+    goto(`${getSubfolder()}/content/${itemRouteId}`);
   }
 
   function handleVrClick() {
@@ -60,7 +61,7 @@
     const userId = clLocation && id ? `${clLocation}/${id}` : null;
 
     if (item.serial) {
-      goto(userId ? `/vr/${userId}` : `/`);
+      goto(userId ? `${getSubfolder()}/vr/${userId}` : `/`);
     } else {
       handleClick();
     }

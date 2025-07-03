@@ -1,14 +1,15 @@
 <script>
   import { goto } from '$app/navigation';
   import AddToQueueBtn from '$lib/components/SingleMovieItem/AddToQueueBtn.svelte';
+  import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let { item } = $props();
 
   function handleClick() {
     if (item.series) {
-      goto(`/film/${item.route_id}`);
+      goto(`${getSubfolder()}/film/${item.route_id}`);
     } else {
-      goto(`/content/${item.route_id}`);
+      goto(`${getSubfolder()}/content/${item.route_id}`);
     }
   }
 </script>
