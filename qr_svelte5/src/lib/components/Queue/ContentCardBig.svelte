@@ -69,9 +69,9 @@
   }
 
   .format {
-    font-weight: 300;
+    font-weight: 600;
     color: var(--color-white-90);
-    background: rgba(43, 43, 43, 0.5);
+    background: var(--color-dark-50);
     margin-left: var(--spacing-3);
     margin-top: var(--spacing-3);
     height: fit-content;
@@ -79,6 +79,10 @@
     padding: 4px 4px;
     border-radius: var(--radius-5);
     font-size: var(--font-9);
+
+    backdrop-filter: blur(5px);
+
+    border: 1px solid var(--color-white-10);
   }
 
   .afishaBottomInfo {
@@ -88,12 +92,14 @@
   }
 
   .time {
-    font-weight: var(--font-weight-400);
+    font-weight: 400;
     font-size: var(--font-vw-35);
     color: var(--color-white-80);
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--color-dark-50);
     padding: var(--spacing-3) var(--spacing-5);
     border-radius: var(--radius-10);
+    backdrop-filter: blur(5px);
+    border: 1px solid var(--color-white-10);
   }
 
   .bottomInfo {

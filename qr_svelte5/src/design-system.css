@@ -23,6 +23,7 @@
   --color-dark-secondary: #212121;
   --color-dark-95: rgba(0, 0, 0, 0.95);
   --color-dark-80: rgba(0, 0, 0, 0.8);
+  --color-dark-50: rgba(0, 0, 0, 0.5);
   --color-dark-30: rgba(0, 0, 0, 0.3);
 
   /* Colors - Accent */
@@ -145,5 +146,5 @@
   --height-80: 80px;
   --height-200: 200px;
   --height-vw-75: 7.4627vw;
-  --height-vw-112: 11.19vw;
+  --height-vw-112: 11.2vw;
 }

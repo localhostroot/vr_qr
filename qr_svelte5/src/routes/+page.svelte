@@ -3,120 +3,107 @@
   import { icons } from '$lib/icons/icons.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import Header from '$lib/components/widgets/Header.svelte';
 
   let clients = $derived(globals.get('clients'));
   let isLoading = $derived(globals.get('isClientsLoading'));
 
   function selectClient(location, id) {
-      const client = { location, id };
-      globals.set('currentClient', client);
-      goto(`/vr/${location}/${id}`);
+    const client = { location, id };
+    globals.set('currentClient', client);
+    goto(`/vr/${location}/${id}`);
   }
 
   onMount(() => {
-      // This page should show selection of available VR clients
-      // The WebSocket connection should already be established from layout
+    // This page should show selection of available VR clients
+    // The WebSocket connection should already be established from layout
   });
 </script>
 
-<div class="selection-page">
-  <div class="header">
-      {@html icons.logo}
+{#if clients && clients.length > 0}
+  <div class="wrapper">
+    
+    <Header />
+    
+    <div class="vrList">
+      {#each clients as client, index}
+        <div class="vrItem" onclick={() => selectClient(client.location, client.id)}>
+          {@html icons.smallLogo}
+          <div class="number">{client.location}:{client.id}</div>
+        </div>
+      {/each}
+    </div>
   </div>
-  
-  <div class="content">
-      {#if isLoading}
-          <div class="loading">Загружаем доступные VR системы...</div>
-      {:else if clients && clients.length > 0}
-          <h2>Выберите VR систему:</h2>
-          <div class="clients-grid">
-              {#each clients as client}
-                  <button 
-                      class="client-card" 
-                      onclick={() => selectClient(client.location, client.id)}
-                  >
-                      <div class="client-name">{client.location} - {client.id}</div>
-                      <div class="client-status">{client.status || 'Доступно'}</div>
-                  </button>
-              {/each}
-          </div>
-      {:else}
-          <div class="no-clients">Нет доступных VR систем</div>
-      {/if}
+{:else if isLoading}
+  <div class="loading-wrapper">
+    <div class="loading">Загружаем доступные VR системы...</div>
   </div>
-</div>
+{:else}
+  <div class="loading-wrapper">
+    <div class="loading">Нет доступных VR систем</div>
+  </div>
+{/if}
 
 <style>
-  .selection-page {
-      min-height: calc(100vh - var(--navigation-height));
-      background: var(--color-dark-primary);
-      color: var(--color-white);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: var(--spacing-20);
-      font-family: 'Montserrat', sans-serif;
+  .wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    background: var(--color-dark-primary);
   }
 
-  .header {
-      margin-bottom: var(--spacing-30);
+  .vrList {
+    display: grid;
+    grid-template-columns: repeat(2, 45vw);
+    gap: 5vw;
+    margin-top: 10vh;
   }
 
-  .header :global(svg) {
-      max-width: 300px;
-      width: 80vw;
-      height: auto;
+  .vrItem {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+    height: fit-content;
   }
 
-  .content {
-      text-align: center;
-      width: 100%;
-      max-width: 600px;
+  .vrItem:hover {
+    transform: scale(1.05);
   }
 
-  .loading, .no-clients {
-      font-size: var(--font-12);
-      color: var(--color-white-70);
-      padding: var(--spacing-20);
+  .vrItem :global(svg) {
+    max-width: 100%;
+    height: auto;
   }
 
-  h2 {
-      font-size: var(--font-15);
-      margin-bottom: var(--spacing-20);
-      font-weight: var(--font-weight-500);
+  .number {
+    margin-top: 10px;
+    font-weight: bold;
+    color: #6C6C6C;
+    font-family: 'Montserrat', sans-serif;
   }
 
-  .clients-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: var(--spacing-10);
-      margin-top: var(--spacing-20);
+  .loading-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: var(--color-dark-primary);
   }
 
-  .client-card {
-      background: var(--color-white-10);
-      border: 1px solid var(--color-white-20);
-      border-radius: var(--radius-10);
-      padding: var(--spacing-15);
-      cursor: pointer;
-      transition: var(--transition-300);
-      color: var(--color-white);
-      font-family: inherit;
-  }
-
-  .client-card:hover {
-      background: var(--color-white-20);
-      transform: var(--transform-hover-lift-2);
-  }
-
-  .client-name {
-      font-size: var(--font-11);
-      font-weight: var(--font-weight-600);
-      margin-bottom: var(--spacing-5);
-  }
-
-  .client-status {
-      font-size: var(--font-9);
-      color: var(--color-white-70);
+  .loading {
+    font-size: var(--font-12);
+    color: var(--color-white-70);
+    padding: var(--spacing-20);
+    text-align: center;
+    font-family: 'Montserrat', sans-serif;
   }
 </style>

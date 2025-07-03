@@ -37,6 +37,7 @@
 </script>
 
 <div class="queue-page">
+
   <Header />
   <div class="iconsTop">
     <button class="inst" onclick={handleOpenModal}>
@@ -334,7 +335,7 @@
     flex-direction: column;
     width: 86.567vw;
     height: var(--height-vw-112);
-    background: var(--color-dark-95);
+    background: var(--color-dark-80);
     color: var(--color-white);
     font-weight: var(--font-weight-400);
     font-size: var(--font-vw-40);
@@ -348,6 +349,10 @@
 
   .payBtn:hover {
     background: var(--color-dark-primary);
+  }
+
+  .payBtn:active {
+    background: var(--color-dark-80);
   }
 
   .agreement {
