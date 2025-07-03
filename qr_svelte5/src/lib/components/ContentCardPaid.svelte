@@ -33,8 +33,11 @@
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // API URL from environment
-  const databaseApi = browser ? import.meta.env.VITE_DATABASE_API : '';
+  import { PUBLIC_DATABASE, PUBLIC_BACKEND } from '$env/static/public';
+  
+  // API URLs from environment
+  const databaseApi = PUBLIC_DATABASE;
+  const backendApi = PUBLIC_BACKEND;
 
   // Content card state logic
   const updateContentCardState = () => {
@@ -74,25 +77,63 @@
       }
 
       // Validate token and film access
-      const response = await fetch(`${databaseApi}/validate-token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token: token,
-          film_id: item.film_id,
-          id: item.id
-        })
-      });
-
+      let url = `${databaseApi}api/tokens/validate/?token=${token}`;
+      if (item.film_id) {
+        url += `&film_id=${item.film_id}`;
+      }
+      
+      const response = await fetch(url);
+      
       if (response.ok) {
-        const result = await response.json();
-        isValidToken = result.isValidToken || false;
-        isValidFilm = result.isValidFilm || false;
+        const data = await response.json();
+        
+        if (data.valid) {
+          isValidToken = true;
+          
+          if (item.film_id) {
+            const filmValid = data.film_valid || false;
+            isValidFilm = filmValid;
+            
+            if (!filmValid) {
+              // Remove film from paid films if not valid
+              const paidFilms = globals.get('paidFilms') || [];
+              const updatedPaidFilms = paidFilms.filter(film => film.film_id !== item.film_id);
+              globals.set('paidFilms', updatedPaidFilms);
+            }
+          } else {
+            isValidFilm = true;
+          }
+          
+          // Update token expiry if provided
+          if (data.expires_at) {
+            globals.set('tokenExpiry', data.expires_at);
+          }
+        } else {
+          isValidToken = false;
+          isValidFilm = false;
+          
+          if (item.film_id) {
+            // Remove film from paid films if token is invalid
+            const paidFilms = globals.get('paidFilms') || [];
+            const updatedPaidFilms = paidFilms.filter(film => film.film_id !== item.film_id);
+            globals.set('paidFilms', updatedPaidFilms);
+          }
+          
+          if (data.error && data.error.includes("истек")) {
+            globals.set('token', null);
+            globals.set('tokenExpiry', null);
+          }
+        }
       } else {
         isValidToken = false;
         isValidFilm = false;
+        
+        if (item.film_id) {
+          // Remove film from paid films on error
+          const paidFilms = globals.get('paidFilms') || [];
+          const updatedPaidFilms = paidFilms.filter(film => film.film_id !== item.film_id);
+          globals.set('paidFilms', updatedPaidFilms);
+        }
       }
     } catch (error) {
       console.error('Token validation error:', error);
@@ -103,35 +144,41 @@
     isLoading = false;
   };
 
-  // Send API request
+  // Send request via WebSocket
   const sendRequest = async (type, filmId = null) => {
-    if (!databaseApi || !clientId || !location) {
-      throw new Error('Missing required parameters');
-    }
+    return new Promise((resolve, reject) => {
+      const ws = new WebSocket(`${backendApi}`);
 
-    const url = `${databaseApi}/send-request`;
-    const body = {
-      clientId,
-      location,
-      type,
-      ...(filmId && { film_id: filmId }),
-      ...(token && { token })
-    };
+      ws.onopen = () => {
+        const message = JSON.stringify({
+          type: type,
+          clientId: clientId,
+          location: location,
+          videoId: filmId || null,
+          token: token || null
+        });
+        ws.send(message);
+      };
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body)
+      ws.onmessage = (event) => {
+        const response = JSON.parse(event.data);
+        if (response.type === 'requestResponse') {
+          if (response.success) {
+            resolve(response);
+          } else {
+            reject(new Error(response.message || 'Неизвестная ошибка'));
+          }
+        }
+      };
+
+      ws.onerror = (error) => {
+        reject(error);
+      };
+
+      ws.onclose = () => {
+        reject(new Error('Соединение закрыто без ответа'));
+      };
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Network request failed');
-    }
-
-    return response.json();
   };
 
   // Event handlers
