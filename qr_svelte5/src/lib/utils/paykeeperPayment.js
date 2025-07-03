@@ -22,6 +22,8 @@ export function createPaykeeperPayment() {
   // предыдущие настройки в пэйкипере
   // https://4-neba.ru/payment-result?success=true
   // https://4-neba.ru/payment-result
+  // колбэк оплаты отправляется на https://4-neba.ru/api/payments/payment_callback/
+
   const getSuccessUrl = () => browser ? `${window.location.origin}${getSubfolder()}/payment-result?success=true` : '';
   const getFailUrl = () => browser ? `${window.location.origin}${getSubfolder()}/payment-result?success=false` : '';
 
