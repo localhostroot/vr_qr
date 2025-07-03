@@ -8,7 +8,12 @@ export const APIController = (ws, req) => {
   const ipv4 = req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
   ws.on('message', (msg) => {
+
       const payload = JSON.parse(msg.toString());
+
+      console.log('message payload');
+      console.log(payload);
+
       const type = payload.type;
       if (type && type in APIHandler) {
           APIHandler[type](ws, req, payload, clients, ids);
@@ -82,8 +87,8 @@ export const VRController = (ws, req) => {
       console.warn("Не удалось получить location или userId из объекта ws.");
     }
 
-    console.log(`Текущие клиенты: `, clients);
-    console.log(`Текущие IDs: `, ids);
+    console.log(`Текущие клиенты: `, clients.map(client => `${client.ip}::${client.location}:${client.id}`).join('\n'));
+    console.log(`Текущие IDs: `, ids.map(id => `${id.location}:${id.id}`));
   });
 
   ws.on("error", (err) => {

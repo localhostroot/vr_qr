@@ -21,7 +21,6 @@ const router = (ws, req) => {
     routes.forEach((route) => {
 
       if (route.regex.test(req.url)) {
-        // console.log(req.url)
         route.controller(ws, req)
       }
     })

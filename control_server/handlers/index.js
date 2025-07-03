@@ -403,7 +403,10 @@ const onLogin = async (ws, req, payload, clients, ids) => {
         id: userId,
         location: location,
       });
-      console.log(`Клиент добавлен: `, clients[clients.length - 1]);
+
+      console.log(`Клиент добавлен:`);
+      console.log(clients[clients.length - 1].ip);
+      console.log(`${clients[clients.length - 1].location}:${clients[clients.length - 1].id}`);
     }
     ws.send(res);
   } else {
@@ -538,7 +541,9 @@ const onLogin = async (ws, req, payload, clients, ids) => {
       }
     }
 
-    console.log("Нашли клиента:", foundClient);
+    console.log("Нашли клиента:");
+    console.log(foundClient?.ip);
+    console.log(`${foundClient?.location}:${foundClient?.id}`);
 
     if (foundClient) {
       console.log(`Найден клиент с location: ${foundClient.location} и ID: ${foundClient.id}`);
@@ -574,6 +579,7 @@ const onLogin = async (ws, req, payload, clients, ids) => {
                   }
               });
 
+              console.log(msg);
               foundClient.ws.send(msg);
               console.log(`Отправлено сообщение videoChangeRequested для videoId ${pendingQueue}`);
 
