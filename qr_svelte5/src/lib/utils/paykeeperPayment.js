@@ -77,8 +77,6 @@ export function createPaykeeperPayment() {
         }),
       });
 
-      console.log({createOrderResponse});
-
       if (!createOrderResponse.ok) {
         const errorData = await createOrderResponse.json();
         errorState = "Ошибка при создании заказа: " + (errorData.error || "Неизвестная ошибка");
@@ -89,8 +87,6 @@ export function createPaykeeperPayment() {
       const orderData = await createOrderResponse.json();
       const orderId = orderData.order_id;
       const totalAmount = orderData.amount;
-
-      console.log({orderData});
 
       // Store order data for later verification
       localStorage.setItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID, orderId);
@@ -119,8 +115,8 @@ export function createPaykeeperPayment() {
       addInput('fail_url', getFailUrl());
 
       // Submit form
-      // document.body.appendChild(form);
-      // form.submit();
+      document.body.appendChild(form);
+      form.submit();
 
     } catch (err) {
       console.error('Payment error:', err);

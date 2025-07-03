@@ -3,18 +3,56 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { getSubfolder } from '$lib/utils/+helpers.svelte';
+  import { checkPaymentStatus } from '$lib/utils/paymentStatusChecker.js';
 
   let status = $state('loading');
+  let retryCount = $state(0);
+  const maxRetries = 10; // Try for about 30 seconds
+
+  async function processPaymentResult(isSuccess) {
+    if (!isSuccess) {
+      status = 'error';
+      return;
+    }
+
+    // For successful payments, we need to check the backend status
+    // with retry logic since there might be a delay in PayKeeper callback processing
+    let attempts = 0;
+    
+    while (attempts < maxRetries) {
+      retryCount = attempts + 1;
+      
+      try {
+        const result = await checkPaymentStatus();
+        
+        if (result.success) {
+          status = 'success';
+          return;
+        }
+        
+        // If no success yet, wait and retry
+        attempts++;
+        if (attempts < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
+        }
+      } catch (error) {
+        console.error('Error checking payment status:', error);
+        attempts++;
+        if (attempts < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      }
+    }
+    
+    // If we've exhausted retries, show error
+    status = 'error';
+  }
 
   onMount(() => {
     const urlParams = new URLSearchParams($page.url.search);
     const isSuccess = urlParams.get('success') === 'true';
     
-    if (isSuccess) {
-      status = 'success';
-    } else {
-      status = 'error';
-    }
+    processPaymentResult(isSuccess);
   });
 
   function handleContinue() {
@@ -30,7 +68,11 @@
   {#if status === 'loading'}
     <div class="loading-container">
       <div class="spinner"></div>
-      <p>Загрузка...</p>
+      {#if retryCount > 0}
+        <p>Проверка статуса платежа... ({retryCount}/{maxRetries})</p>
+      {:else}
+        <p>Загрузка...</p>
+      {/if}
     </div>
   {/if}
 
