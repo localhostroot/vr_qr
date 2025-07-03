@@ -1,0 +1,38 @@
+{
+	"controlServer": "wss://cinema.local.vr360.pro/control/",
+	"downloadGalleryConfig": false,
+  "localFilesMode": false,
+	"location": "AP:1",
+	"version": "0.9.2",
+	"preset": {
+		"renderScale": 1.6,
+		"videoRenderScale": 1.6,
+    "resetTimeout": 60,
+    "blockScreen":{
+			"unlockableStateText": "Для начала просмотра наведите\n и удерживайте красную точку\n на кнопке ниже",
+			"lockedStateText": "Сеанс завершен",
+			"unlockableStateButton": {
+				"label": "Начать просмотр"
+			}
+		},
+		"gazePointer": {
+			"clickDelay": 2.0,
+			"size": 0.8,
+			"color": "#FF0000"
+		},
+		"gallery": {
+      "backgroundVideo": {  "id": "bg", "url": "https://public.vr360.pro/vrp-rgo-tyva/bg.mp4" },
+      "returnButton": { "label": "Меню"  },
+      "size": [800,300],
+			"bgColor": "#005555120"
+		},
+		"player": {
+      "ui": {
+			"returnButton": { "label": "Назад"  },
+			"ShowReturnButton": true,
+			"ShowTimeline": true,
+			"Angle": 55
+      }
+    }
+  }
+}

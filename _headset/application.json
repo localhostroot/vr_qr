@@ -21,7 +21,7 @@
 			"color": "#FF0000"
 		},
 		"gallery": {
-      "backgroundVideo": {  "id": "bg", "url": "https://demo.vr360.pro/vrp-rgo/bg.mp4" },
+      "backgroundVideo": {  "id": "bg", "url": "https://public.vr360.pro/vrp-rgo/bg.mp4" },
       "returnButton": { "label": "Меню"  },
       "size": [800,300],
 			"bgColor": "#005555120"
