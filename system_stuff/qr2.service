@@ -1,0 +1,14 @@
+[Unit]
+Description=4neba QR App Main Frontend
+After=network.target
+
+[Service]
+User=root
+Type=simple
+Restart=on-failure
+ExecStart=/usr/bin/node /opt/qr_app/qr2/start-server.js
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
