@@ -26,7 +26,7 @@
 {#if !hideNavAndFooter}
 <nav class="fixedNavigation">
   <div>
-      <a href={userId ? `${getSubfolder()}/vr/${userId}` : '/vr'}>
+      <a href={currentClient?.location && currentClient?.id ? `${getSubfolder()}/vr/${currentClient.location}/${currentClient.id}` : '#'}>
           {@html currentPath.startsWith(`${getSubfolder()}/vr/`) ? icons.mainActive : icons.main}
       </a>
   </div>

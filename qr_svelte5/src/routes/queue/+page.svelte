@@ -17,12 +17,14 @@
     const client = clientString ? JSON.parse(clientString) : null;
     const clLocation = client?.location || null;
     const id = client?.id || null;
-    const userId = clLocation && id ? `${clLocation}/${id}` : null;
 
-    if (client) {
-      goto(`${getSubfolder()}/vr/${userId}`);
+    if (clLocation && id) {
+      goto(`${getSubfolder()}/vr/${clLocation}/${id}`);
     } else {
-      goto(`${getSubfolder()}/vr`);
+      // No valid client found - show error or redirect to error page
+      console.error('No valid client found for navigation');
+      // You could redirect to an error page or show a modal
+      alert('Ошибка: не найдена информация о VR устройстве. Отсканируйте QR код заново.');
     }
   }
 

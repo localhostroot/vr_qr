@@ -36,8 +36,13 @@ export async function initializeMainPageData(location, id) {
       globals.set('currentClient', client);
       return true;
     } else {
-      goto(`${getSubfolder()}/`);
-      return false;
+      // Client not found - could be network issue or invalid QR code
+      console.warn(`Client ${location}/${id} not found in available clients`);
+      // Still set the client info from URL params - it might be valid but WebSocket hasn't loaded yet
+      const client = { location, id };
+      localStorage.setItem(LOCAL_STORAGE_KEYS.CLIENT, JSON.stringify(client));
+      globals.set('currentClient', client);
+      return true; // Continue loading, the validation will happen when WebSocket connects
     }
   };
 

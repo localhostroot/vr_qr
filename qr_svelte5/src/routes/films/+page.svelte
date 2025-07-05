@@ -46,10 +46,11 @@
   });
 
   const handleClick = () => {
-    if (userId) {
-      goto(`${getSubfolder()}/vr/${userId}`);
+    if (currentClient?.location && currentClient?.id) {
+      goto(`${getSubfolder()}/vr/${currentClient.location}/${currentClient.id}`);
     } else {
-      goto(`${getSubfolder()}/vr`);
+      console.error('No valid client found for navigation');
+      alert('Ошибка: не найдена информация о VR устройстве. Отсканируйте QR код заново.');
     }
   };
 
