@@ -40,7 +40,7 @@ const persistedClient = loadFromLocalStorage(LOCAL_STORAGE_KEYS.CLIENT, null);
 
 let globalStorage = $state({
 
-  version: '0.12.6',
+  version: '0.12.7',
 
   // Queue management
   queue: persistedQueue,
