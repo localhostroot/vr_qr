@@ -58,7 +58,7 @@ export function createPaykeeperPayment() {
     }
 
     if (!queue || queue.length === 0) {
-      errorState = "Ваша очередь пуста. Добавьте фильмы для оплаты.";
+      errorState = "Ваша корзина пуста. Добавьте фильмы для оплаты.";
       return;
     }
 

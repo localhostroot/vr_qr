@@ -36,7 +36,7 @@
         Подробнее
       </button>
       <button class="btn-secondary" onclick={() => addToQueue(item)}>
-        В очередь
+        В корзину
       </button>
     </div>
   </div>
