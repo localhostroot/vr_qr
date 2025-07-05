@@ -2,13 +2,22 @@
   import { icons } from '$lib/icons/icons.js';
   
   let { isVisible } = $props();
+
+  let allowHide = $state(false)
+
+  $effect(() => {
+
+    if (!isVisible) setTimeout(() => {
+      allowHide = true;
+    }, 300)
+  })
   
   // Simple approach - just use CSS transitions based on isVisible
 </script>
 
 <div 
   class="start-screen" 
-  class:hidden={!isVisible}
+  class:hidden={allowHide}
 >
   <div class="content">
     <div class="title-line" class:exiting={!isVisible}>

@@ -1,5 +1,6 @@
 <script>
   import { page } from '$app/stores';
+  import { browser } from '$app/environment';
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { onMount } from 'svelte';
   import { initializeMainPageData } from '$lib/utils/mainPageData.js';
@@ -19,17 +20,39 @@
   let noveltyRef = $state();
   let pageInitialized = $state(false);
 
+  const checkSessionStorage = () => {
+    if (!browser) return true;
+    const hasLoadedBefore = sessionStorage.getItem('app_has_loaded') == 'true';
+
+    return !hasLoadedBefore;
+  }
+
+  let isInitialLoad = $state(checkSessionStorage());
+
+
   onMount(async () => {
+
     const result = await initializeMainPageData(location, id);
+
     if (result.isValid) {
+
       pageInitialized = true;
+      
+      // Mark app as loaded in this session
+      if (browser && isInitialLoad) {
+        sessionStorage.setItem('app_has_loaded', 'true');
+        // Hide start screen after animation
+        setTimeout(() => {
+          isInitialLoad = false;
+        }, 1200);
+      }
     }
   });
 
 </script>
 
-<!-- Start Screen - covers everything including navigation -->
-<StartScreen isVisible={isLibraryLoading || isClientsLoading || !pageInitialized} />
+<!-- Start Screen - only shows on initial app load -->
+<StartScreen isVisible={isInitialLoad && (isLibraryLoading || isClientsLoading || !pageInitialized)} />
 
 <!-- Main content - always rendered but hidden behind StartScreen when loading -->
 {#if library}

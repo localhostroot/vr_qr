@@ -13,6 +13,8 @@
 
   let imageLoading = $state(true);
 
+  let singleMovieItemLoading = $derived(globals.get('singleMovieItemLoading'))
+
   function handleClick() {
     history.back();
   }
@@ -72,19 +74,19 @@
     img.src = item.backImg;
 
     img.onload = () => {
-      imageLoading = false;
+      // imageLoading = false;
+      globals.set('singleMovieItemLoading', false);
     };
 
     img.onerror = () => {
       console.error("Не удалось загрузить изображение", item.backImg);
-      imageLoading = false;
+      // imageLoading = false;
+      globals.set('singleMovieItemLoading', false);
     };
   });
 </script>
 
-{#if imageLoading}
-  <Loader />
-{:else}
+{#if !singleMovieItemLoading}
   <div class="single-movie">
     <div class="upper-info">
       <img
@@ -142,7 +144,7 @@
   .back {
     position: relative;
     width: 100%;
-    height: 50vw;
+    aspect-ratio: 16/9; /* Fixed 16:9 aspect ratio */
     z-index: 0;
     object-fit: cover;
   }
@@ -156,7 +158,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background: var(--color-white-10);
+    background: var(--color-dark-50);
     border-radius: var(--radius-full);
     cursor: pointer;
     transition: var(--transition-100);
@@ -211,10 +213,10 @@
     right: 2.4875vw;
     font-weight: 400;
     font-size: 3.4825vw;
-    background: rgba(0,0,0, 0.7);
+    background: var(--color-dark-80);
     padding: 3px 5px;
     border-radius: 10px;
-    color: rgba(255,255,255, 0.8);
+    color: var(--color-white-80);
     font-family: "Manrope", serif;
   }
 

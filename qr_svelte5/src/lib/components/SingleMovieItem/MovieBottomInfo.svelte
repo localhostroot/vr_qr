@@ -73,32 +73,27 @@
 
 <div class="movie-bottom-info">
   <div class="upper-info">
-    <div class="name">
-      {item.name_short}
-    </div>
-    <div class="title-with-btn">
-      <div class="price">
-        {item.price}₽
-      </div>
+    <div class="name">{item.name_short}</div><div class="price">{item.price}₽</div>
+    <!-- <div class="title-with-btn">
       <div class="link-container">
         <div class="home" onclick={handleHomeClick}>
           {@html icons.mainActive}
         </div>
       </div>
+    </div> -->
+  </div>
+  <div class="btns">
+    <div 
+      class="to-queue" 
+      onclick={handleClick}
+      style={isQueueEmpty() && !isInPaidFilms() ? Object.entries(disabledStyles).map(([k, v]) => `${k}: ${v}`).join('; ') : ''}
+    >
+      {isInPaidFilms() ? 'К покупкам' : 'Перейти в корзину'}
     </div>
-    <div class="btns">
-      <div 
-        class="to-queue" 
-        onclick={handleClick}
-        style={isQueueEmpty() && !isInPaidFilms() ? Object.entries(disabledStyles).map(([k, v]) => `${k}: ${v}`).join('; ') : ''}
-      >
-        {isInPaidFilms() ? 'К покупкам' : 'Перейти в корзину'}
-      </div>
-      <AddToQueueBtn 
-        {item} 
-        styles={item.serial || isInPaidFilms() ? stylesNone : styles} 
-      />
-    </div>
+    <AddToQueueBtn 
+      {item} 
+      styles={item.serial || isInPaidFilms() ? stylesNone : styles} 
+    />
   </div>
   <div class="bottom-info">
     <div class="upper">
@@ -146,7 +141,8 @@
 
   .upper-info {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;  
+
     font-weight: 400;
     font-size: 5.9701vw;
     color: var(--color-white);
@@ -157,9 +153,8 @@
   .price {
     padding-right: 2px;
     padding-left: 2px;
-    border-bottom: 1px solid white;
+    border-bottom: 1px solid var(--color-white-80);
     width: fit-content;
-    margin-bottom: 2.4875vw;
   }
 
   .btns {

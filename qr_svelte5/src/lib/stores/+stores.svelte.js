@@ -40,7 +40,7 @@ const persistedClient = loadFromLocalStorage(LOCAL_STORAGE_KEYS.CLIENT, null);
 
 let globalStorage = $state({
 
-  version: '0.12.3',
+  version: '0.12.6',
 
   // Queue management
   queue: persistedQueue,
@@ -72,7 +72,9 @@ let globalStorage = $state({
   
   // Payment status
   isPaymentLoading: false,
-  paymentError: null
+  paymentError: null,
+
+  singleMovieItemLoading: true
 });
 
 function getGlobals() {

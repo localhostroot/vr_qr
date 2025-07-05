@@ -1,18 +1,31 @@
 <script>
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
+  import { browser } from '$app/environment';
   import { PUBLIC_DATABASE } from '$env/static/public';
   import axios from 'axios';
   import SingleMovieItem from '$lib/components/SingleMovieItem/SingleMovieItem.svelte';
+  import StartScreen from '$lib/components/widgets/StartScreen.svelte';
   import Loader from '$lib/components/widgets/Loader.svelte';
+  import { globals } from '$lib/stores/+stores.svelte';
 
   let item = $state(null);
   let list = $state([]);
   let isItemLoading = $state(true);
   let isListLoading = $state(true);
   let error = $state(null);
+  let pageInitialized = $state(false);
 
   let id = $derived($page.params.id);
+  const singleMovieItemLoading = $derived(globals.get('singleMovieItemLoading'))
+
+  const checkSessionStorage = () => {
+    if (!browser) return true;
+    const hasLoadedBefore = sessionStorage.getItem('app_has_loaded') == 'true';
+    return !hasLoadedBefore;
+  }
+
+  let isInitialLoad = $state(checkSessionStorage());
 
   async function fetchItem() {
     if (!id) return;
@@ -63,12 +76,24 @@
 
   let filmsList = $derived(setFilmList());
 
-  onMount(() => {
+  onMount(async () => {
     if (typeof window !== 'undefined') {
       window.scrollTo(0, 0);
     }
-    fetchItem();
-    fetchList();
+    
+    await Promise.all([fetchItem(), fetchList()]);
+    
+    // Mark page as initialized
+    pageInitialized = true;
+    
+    // Mark app as loaded in this session
+    if (browser && isInitialLoad) {
+      sessionStorage.setItem('app_has_loaded', 'true');
+      // Hide start screen after animation
+      setTimeout(() => {
+        isInitialLoad = false;
+      }, 1200);
+    }
   });
 
   $effect(() => {
@@ -79,15 +104,15 @@
       fetchItem();
     }
   });
+
 </script>
 
+<!-- Start Screen - only shows on initial app load -->
+<StartScreen isVisible={isInitialLoad && (singleMovieItemLoading || isItemLoading || isListLoading || !pageInitialized)} />
+
 <div class="content-descr-page">
-  {#if isItemLoading || isListLoading}
-    <Loader />
-  {:else if error}
-    <div class="error">
-      {error}
-    </div>
+  {#if !(isItemLoading || isListLoading) && error}
+    <div class="error">{error}</div>
   {:else if item}
     <SingleMovieItem 
       {item} 
@@ -112,13 +137,13 @@
 
   .error,
   .not-found {
-    color: white;
+    color: var(--color-white);
     text-align: center;
     padding: 2rem;
     font-family: 'Montserrat', sans-serif;
   }
 
   .error {
-    color: #ff6b6b;
+    color: var(--color-error);
   }
 </style>
