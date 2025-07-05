@@ -1,13 +1,18 @@
 <script>
-  let { scrollFunc } = $props();
+  import { icons } from "$lib/icons/icons";
 </script>
 
 <div class="mainPageHeader">
+
   <div class="upperBody">
+
     <div class="leftUpperBody">
-      <div class="name">
-        4 Neba VR
+
+      <div class="titleLine">
+        <div class="logo">{@html icons.smallLogo}</div>
+        <div class="name">4 Neba VR</div>
       </div>
+
       <div class="initInstructions">
         <div class="firstParagraph">
           учись и путешествуй в виртуальной реальности.
@@ -17,6 +22,7 @@
         </div>
       </div>
     </div>
+
     <div class="rightUpperBody">
       <div class="rectangle" style="width: 0.4975vw;"></div>
       <div class="rectangle" style="width: 0.995vw;"></div>
@@ -27,9 +33,6 @@
       <div class="rectangle" style="width: 8.209vw;"></div>
     </div>
   </div>
-  <div class="bottomBody" onclick={scrollFunc}>
-    Посмотреть фильмы
-  </div>
 </div>
 
 <style>
@@ -39,7 +42,7 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    min-height: calc(100vh - var(--navigation-height));
+    min-height: 18vh;
     box-sizing: border-box;
   }
 
@@ -49,20 +52,24 @@
     align-items: center;
     width: 100%;
     max-width: 1200px;
-
-    height: calc(100vh - var(--navigation-height) - 120px);
+    height: 24vh; /* Reduced height */
+    min-height: 100px; /* Minimum height for mobile */
   }
 
   .leftUpperBody {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    justify-content: end;
+    justify-content: space-between;
     height: 100%;
     min-height: 100%;
 
-    padding: 0 2em;
+    padding: 1em;
     box-sizing: border-box;
+  }
+
+  .titleLine {
+    display: flex;
   }
 
   .name {
@@ -71,6 +78,7 @@
     color: var(--color-white);
     margin-bottom: var(--spacing-10);
     line-height: 1.2;
+    margin-left: 0.5em;
   }
 
   .initInstructions {
@@ -106,19 +114,4 @@
     border-radius: var(--spacing-vw-5);
   }
 
-  .bottomBody {
-    background: var(--color-white-80);
-    padding: var(--spacing-10) var(--spacing-20);
-    border-radius: var(--radius-30);
-    color: var(--color-dark-80);
-    font-size: var(--font-11);
-    cursor: pointer;
-    transition: var(--transition-300);
-    margin-bottom: 2rem;
-  }
-
-  .bottomBody:hover {
-    background: var(--color-white-90);
-    transform: var(--transform-hover-lift-2);
-  }
 </style>

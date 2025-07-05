@@ -1,6 +1,5 @@
 <script>
-  import HeaderWrapper from './HeaderWrapper.svelte';
-  import CardsSlider from './CardsSlider.svelte';
+  import MovieGrid from './MovieGrid.svelte';
   
   let { library } = $props();
 
@@ -15,20 +14,17 @@
 
 <div
   bind:this={instance}
-  class="vrPlayer"
->
-  <HeaderWrapper />
-  <CardsSlider {library} />
+  class="vrPlayer">
+  <MovieGrid {library} />
 </div>
 
 <style>
   .vrPlayer {
     width: 100%;
     min-height: calc(100vh - var(--navigation-height));
-    background: var(--color-dark-30);
-    padding: var(--spacing-20);
+    background: var(--color-dark-primary);
+    padding: 0;
     box-sizing: border-box;
-    backdrop-filter: var(--blur-backdrop);
     display: flex;
     flex-direction: column;
     justify-content: flex-start;

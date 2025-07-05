@@ -3,9 +3,7 @@
 </script>
 
 <header class="header">
-  <div class="logo">
-    {@html icons.smallLogo}
-  </div>
+  <div class="logo">{@html icons.smallLogo}</div>
 </header>
 
 <style>

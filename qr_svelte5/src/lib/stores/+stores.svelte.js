@@ -39,6 +39,9 @@ const persistedTokenExpiry = browser ? localStorage.getItem(LOCAL_STORAGE_KEYS.T
 const persistedClient = loadFromLocalStorage(LOCAL_STORAGE_KEYS.CLIENT, null);
 
 let globalStorage = $state({
+
+  version: '0.12.2',
+
   // Queue management
   queue: persistedQueue,
   

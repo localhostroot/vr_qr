@@ -2,9 +2,11 @@
   import { page } from '$app/stores';
   import { PUBLIC_APP_SUBFOLDER } from '$env/static/public';
   import { icons } from '$lib/icons/icons.js';
+  import { globals } from '$lib/stores/+stores.svelte.js';
 
   let currentPath = $derived($page.url.pathname);
   let hideNavAndFooter = $derived(PUBLIC_APP_SUBFOLDER ? currentPath === '/new' : currentPath === '/');
+  let version = $derived(globals.get('version'));
 </script>
 
 {#if !hideNavAndFooter}
@@ -24,6 +26,7 @@
       <!-- Note: the original project had мир.svg and сбп.svg files, but they seem to be missing. -->
       <!-- You may need to add them to the icons.js file when available -->
   </div>
+  <div class="version">v{version}</div>
 </footer>
 {/if}
 
@@ -31,7 +34,7 @@
   .footer {
     background-color: #171717;
     width: 100%;
-    margin-top: 20vw;
+    margin-top: 5vw;
     position: relative;
     z-index: 101;
     display: flex;
@@ -42,7 +45,7 @@
     color: rgba(255,255,255, 0.6);
     font-size: 2.8vw;
     padding-bottom: 20vw;
-    gap: 7vw;
+    gap: 2vw;
   }
 
   .info {
@@ -68,5 +71,12 @@
   .logos :global(svg) {
     height: 10px;
     width: auto;
+  }
+
+  .version {
+    font-size: 2.5vw;
+    color: rgba(255,255,255, 0.4);
+    text-align: center;
+    margin-top: var(--spacing-10);
   }
 </style>

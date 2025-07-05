@@ -27,12 +27,22 @@
 <nav class="fixedNavigation">
   <div>
       <a href={currentClient?.location && currentClient?.id ? `${getSubfolder()}/vr/${currentClient.location}/${currentClient.id}` : '#'}>
-          {@html currentPath.startsWith(`${getSubfolder()}/vr/`) ? icons.mainActive : icons.main}
+          <div class="nav-item">
+            <div class="nav-icon">
+              {@html currentPath.startsWith(`${getSubfolder()}/vr/`) ? icons.mainActive : icons.main}
+            </div>
+            <div class="nav-label">Главная</div>
+          </div>
       </a>
   </div>
   <div>
       <a href="{getSubfolder()}/queue">
-          {@html currentPath === `${getSubfolder()}` ? icons.basketActive : icons.basket}
+          <div class="nav-item">
+            <div class="nav-icon">
+              {@html currentPath === `${getSubfolder()}` ? icons.basketActive : icons.basket}
+            </div>
+            <div class="nav-label">Корзина</div>
+          </div>
       </a>
       {#if queue && queue.length > 0}
           <div class="queue">{queue.length}</div>
@@ -40,7 +50,12 @@
   </div>
   <div>
       <a href="{getSubfolder()}/films">
-          {@html currentPath === `${getSubfolder()}` ? icons.playActive : icons.play}
+          <div class="nav-item">
+            <div class="nav-icon">
+              {@html currentPath === `${getSubfolder()}` ? icons.playActive : icons.play}
+            </div>
+            <div class="nav-label">Мои фильмы</div>
+          </div>
       </a>
       {#if paidFilms && paidFilms.length > 0}
           <div class="paid">{paidFilms.length}</div>
@@ -123,5 +138,33 @@
     font-weight: var(--font-weight-bold);
     z-index: var(--z-1);
     min-width: 16px;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  .nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-icon :global(svg) {
+    width: 20px;
+    height: 20px;
+  }
+
+  .nav-label {
+    font-size: 10px;
+    color: var(--color-white-70);
+    font-weight: 500;
+    font-family: 'Montserrat', sans-serif;
+    text-align: center;
+    line-height: 1;
   }
 </style>

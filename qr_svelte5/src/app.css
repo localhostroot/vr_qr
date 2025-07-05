@@ -32,8 +32,9 @@ code {
 }
 
 .content-wrapper {
+
   flex: 1;
-  padding-bottom: var(--navigation-height);
+  
   width: 100%;
   min-height: 100vh;
 }
