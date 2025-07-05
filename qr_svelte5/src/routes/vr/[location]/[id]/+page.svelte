@@ -13,6 +13,8 @@
   let library = $derived(globals.get('library'));
   let isLibraryLoading = $derived(globals.get('isLibraryLoading'));
   let isClientsLoading = $derived(globals.get('isClientsLoading'));
+
+  globals.set('currentClient', { location, id });
   
   let noveltyRef = $state();
   let pageInitialized = $state(false);
