@@ -5,7 +5,7 @@
   import Header from '$lib/components/widgets/Header.svelte';
   import ContentCardBig from '$lib/components/Queue/ContentCardBig.svelte';
   import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
-  import { createPaykeeperPayment } from '$lib/utils/paykeeperPayment.js';
+  import { createEnhancedPaykeeperPayment } from '$lib/utils/enhancedPaykeeperPayment.js';
   import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let queue = $derived(globals.get('queue'));
@@ -21,37 +21,63 @@
     if (clLocation && id) {
       goto(`${getSubfolder()}/vr/${clLocation}/${id}`);
     } else {
-      // No valid client found - show error or redirect to error page
       console.error('No valid client found for navigation');
-      // You could redirect to an error page or show a modal
       alert('Ошибка: не найдена информация о VR устройстве. Отсканируйте QR код заново.');
     }
   }
 
-  const { handlePaymentClick, error, isLoading } = createPaykeeperPayment();
+  // Enhanced payment system
+  const { 
+    handlePaymentClick, 
+    cancelPayment, 
+    retryPaymentCheck,
+    error, 
+    isLoading, 
+    isPolling,
+    iframeVisible,
+    currentOrderId,
+    clearError 
+  } = createEnhancedPaykeeperPayment();
 
   function handleOpenModal() {
     modalVisible = true;
+    clearError();
   }
 
   function handleCloseModal() {
     modalVisible = false;
+    clearError();
   }
+
+  function handleCancelPayment() {
+    cancelPayment();
+    handleCloseModal();
+  }
+
+  function handleRetryPayment() {
+    retryPaymentCheck();
+  }
+
+  // Calculate total amount for display
+  let totalAmount = $derived(() => {
+    if (!queue || queue.length === 0) return 0;
+    return queue.reduce((sum, item) => sum + (item.price || 0), 0);
+  });
 </script>
 
 <div class="queue-page">
 
   <Header />
   <div class="specificHeader">
-    <!-- <button class="inst" onclick={handleOpenModal}>
-      {@html icons.plus}
-    </button> -->
-
     <div class="pageName">Корзина</div>
   </div>
+  
   <div class="content">
     {#if queue && queue.length > 0}
       <div class="info">
+        <div class="payment-summary">
+          <div class="total-amount">Итого: {totalAmount()}₽</div>
+        </div>
         <div class="paymentBtn" onclick={handleOpenModal}>
           Оплатить все
         </div>
@@ -76,38 +102,101 @@
       </div>
     {/if}
   </div>
+
+  <!-- Enhanced Payment Modal -->
   {#if modalVisible}
     <div class="modalOverlay">
       <div class="modalContent">
-        <button class="modalCloseButton" onclick={handleCloseModal}>
-          {@html icons.buttonClose}
-        </button>
-        <div class="instructions">
-          <div class="instEl"><div class="number">1.</div>
-            <div class="descr">Оплата является окончательной и не подлежит возврату.</div>
-          </div>
-          <div class="instEl"><div class="number">2.</div>
-            <div class="descr">Ваше право на выбор - досматривать фильм или нет.</div>
-          </div>
-          <div class="instEl"><div class="number">3.</div>
-            <div class="descr">Возможно перейти к следующему фильму.</div>
-          </div>
-          <div class="instEl"><div class="number">4.</div>
-            <div class="descr">После просмотра всех фильмов, система переходит в режим ожидания.</div>
-          </div>
-          <div class="instEl"><div class="number">5.</div>
-            <div class="descr">Если возникнут вопросы, наш администратор всегда готов помочь.</div>
-          </div>
-        </div>
-        <div class="payBtn" onclick={handlePaymentClick}>
-          {isLoading ? 'Обработка...' : 'Оплата'}
-        </div>
-        {#if error}
-          <div class="error">{error}</div>
+        <!-- Close button (only show if not actively processing payment) -->
+        {#if !isLoading && !isPolling}
+          <button class="modalCloseButton" onclick={handleCloseModal}>
+            {@html icons.buttonClose}
+          </button>
         {/if}
-        <div class="agreement">
-          Нажимая на "Оплатить", вы соглашаетесь с условиями просмотра.
-        </div>
+
+        <!-- Payment Status Display -->
+        {#if isLoading && !isPolling}
+          <div class="payment-status">
+            <div class="status-icon loading">
+              <div class="spinner"></div>
+            </div>
+            <h3>Создание заказа...</h3>
+            <p>Подготавливаем платеж</p>
+          </div>
+        {:else if isPolling}
+          <div class="payment-status">
+            <div class="status-icon polling">
+              <div class="pulse"></div>
+            </div>
+            <h3>Ожидание оплаты</h3>
+            <p>Завершите оплату в банковском приложении или на странице оплаты</p>
+            <div class="polling-info">
+              <small>Проверяем статус платежа...</small>
+            </div>
+            <button class="cancel-btn" onclick={handleCancelPayment}>
+              Отменить
+            </button>
+          </div>
+        {:else if error}
+          <div class="payment-status error">
+            <div class="status-icon error">❌</div>
+            <h3>Ошибка оплаты</h3>
+            <p class="error-message">{error}</p>
+            
+            {#if currentOrderId}
+              <div class="retry-section">
+                <p>Если вы завершили оплату, попробуйте проверить статус:</p>
+                <button class="retry-btn" onclick={handleRetryPayment}>
+                  Проверить статус
+                </button>
+              </div>
+            {/if}
+            
+            <button class="close-btn" onclick={handleCloseModal}>
+              Закрыть
+            </button>
+          </div>
+        {:else}
+          <!-- Initial payment instructions -->
+          <div class="instructions">
+            
+            <div class="instruction-list">
+              <div class="instEl">
+                <div class="number">1.</div>
+                <div class="descr">Оплата является окончательной и не подлежит возврату.</div>
+              </div>
+              <div class="instEl">
+                <div class="number">2.</div>
+                <div class="descr">Ваше право на выбор - досматривать фильм или нет.</div>
+              </div>
+              <div class="instEl">
+                <div class="number">3.</div>
+                <div class="descr">Возможно перейти к следующему фильму.</div>
+              </div>
+              <div class="instEl">
+                <div class="number">4.</div>
+                <div class="descr">После просмотра всех фильмов, система переходит в режим ожидания.</div>
+              </div>
+              <div class="instEl">
+                <div class="number">5.</div>
+                <div class="descr">Если возникнут вопросы, наш администратор всегда готов помочь.</div>
+              </div>
+            </div>
+            
+            <!-- <div class="mobile-payment-notice">
+              <p><strong>Для мобильных устройств:</strong></p>
+              <p>После нажатия "Оплатить" откроется страница оплаты. Вы можете безопасно переключиться в банковское приложение - мы автоматически отследим завершение платежа.</p>
+            </div> -->
+            
+            <div class="payBtn" onclick={handlePaymentClick}>
+              Оплатить
+            </div>
+            
+            <div class="agreement">
+              Нажимая на "Оплатить", вы соглашаетесь с условиями просмотра.
+            </div>
+          </div>
+        {/if}
       </div>
     </div>
   {/if}
@@ -144,18 +233,26 @@
 
   .info {
     margin-top: 18vw;
-    
     width: 100%;
-
     box-sizing: border-box;
     padding: 1em;
-
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
+    gap: var(--spacing-10);
     font-family: 'Montserrat', sans-serif;
-
     margin-bottom: var(--spacing-10);
+  }
+
+  .payment-summary {
+    text-align: center;
+    margin-bottom: var(--spacing-10);
+  }
+
+  .total-amount {
+    font-size: 1.2em;
+    font-weight: var(--font-weight-600);
+    color: var(--color-white);
   }
 
   .pageName {
@@ -177,6 +274,12 @@
     width: 100%;
     cursor: pointer;
     border: none;
+    transition: var(--transition-200);
+    padding: var(--spacing-5) 0;
+  }
+
+  .paymentBtn:hover {
+    background: var(--color-white);
   }
 
   .specificHeader {
@@ -189,58 +292,6 @@
     justify-content: center;
     height: 40px;
     z-index: var(--z-100);
-  }
-
-  .inst {
-    width: 10vw;
-    height: 10vw;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--color-white-10);
-    border-radius: var(--radius-30);
-    border: none;
-    cursor: pointer;
-    transition: var(--transition-100);
-  }
-
-  .inst:hover {
-    background-color: var(--color-white-50);
-  }
-
-  .queue-actions {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: var(--spacing-20);
-  }
-
-  .clear-btn, .paymentBtn {
-    background: var(--color-white-90);
-    border: 1px solid var(--color-info-30);
-    color: var(--color-dark-80);
-    padding: var(--spacing-2) var(--spacing-7);
-    border-radius: var(--radius-30);
-    cursor: pointer;
-    transition: var(--transition-background);
-  }
-
-  .clear-btn:hover, .paymentBtn:hover {
-    background: var(--color-white);
-  }
-
-  .queue-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-10);
-  }
-
-  .queue-item {
-    background: var(--color-white-10);
-    border-radius: var(--radius-10);
-    padding: var(--spacing-10);
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-10);
   }
 
   .empty-queue {
@@ -267,13 +318,14 @@
     color: var(--color-white-50);
   }
 
+  /* Enhanced Modal Styles */
   .modalOverlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: var(--color-white-50);
+    background: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -283,65 +335,220 @@
 
   .modalContent {
     background: var(--color-gray);
-    width: var(--width-vw-950);
-    height: fit-content;
+    width: calc(var(--width-vw-950) * 0.9);
+    max-height: 85vh;
+    overflow-y: auto;
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    font-family: "Montserrat", serif;
-    gap: var(--spacing-vw-25);
+    font-family: 'Montserrat', sans-serif;
     border-radius: var(--radius-15);
+    padding: var(--spacing-20);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 10px 20px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .modalCloseButton {
     position: absolute;
-    top: var(--spacing-vw-20);
-    right: var(--spacing-vw-20);
+    top: var(--spacing-10);
+    right: var(--spacing-10);
     background: none;
     border: none;
-    width: 4vw;
-    height: 4vw;
+    width: 30px;
+    height: 30px;
     cursor: pointer;
-
-    top: 1em;
-    right: 1.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .instructions {
-    width: 86.567vw;
+  /* Payment Status Styles */
+  .payment-status {
     display: flex;
-    height: fit-content;
     flex-direction: column;
     align-items: center;
-    gap: var(--spacing-vw-15);
-    margin-top: var(--spacing-vw-40);
+    text-align: center;
+    padding: var(--spacing-30) var(--spacing-20);
+    gap: var(--spacing-15);
+    min-height: 200px;
+    justify-content: center;
+  }
+
+  .status-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--spacing-20);
+    font-size: 2em;
+  }
+
+  .status-icon.loading {
+    background: var(--color-blue);
+  }
+
+  .status-icon.polling {
+    background: var(--color-green);
+    position: relative;
+  }
+
+  .status-icon.error {
+    background: var(--color-error);
+  }
+
+  .spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .pulse {
+    width: 30px;
+    height: 30px;
+    background: white;
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+  }
+
+  .payment-status h3 {
+    margin: 0;
+    font-size: 1.3em;
+    color: var(--color-dark-primary);
+  }
+
+  .payment-status p {
+    margin: 0;
+    color: var(--color-dark-80);
+    line-height: 1.4;
+  }
+
+  .polling-info {
+    background: var(--color-white-10);
+    padding: var(--spacing-10);
+    border-radius: var(--radius-5);
+    margin: var(--spacing-10) 0;
+  }
+
+  .polling-info small {
+    color: var(--color-dark-80);
+    font-size: 0.9em;
+  }
+
+  .error-message {
+    color: var(--color-error) !important;
+    font-weight: 500;
+  }
+
+  .retry-section {
+    background: var(--color-white-10);
+    padding: var(--spacing-15);
+    border-radius: var(--radius-5);
+    margin: var(--spacing-15) 0;
+    text-align: center;
+  }
+
+  /* Button Styles */
+  .cancel-btn, .retry-btn, .close-btn {
+    padding: var(--spacing-10) var(--spacing-20);
+    border-radius: var(--radius-25);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    transition: var(--transition-200);
+    margin: var(--spacing-5);
+  }
+
+  .cancel-btn {
+    background: var(--color-error);
+    color: white;
+  }
+
+  .retry-btn {
+    background: var(--color-blue);
+    color: white;
+  }
+
+  .close-btn {
+    background: var(--color-dark-80);
+    color: white;
+  }
+
+  .cancel-btn:hover, .retry-btn:hover, .close-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  /* Instructions Styles */
+  .instructions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-20);
+    width: 100%;
+  }
+
+  .instructions h3 {
+    margin: 0;
+    font-size: 1.3em;
+    color: var(--color-dark-primary);
+  }
+
+  .instruction-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-10);
   }
 
   .instEl {
-    width: 97%;
     display: flex;
     font-weight: 500;
     font-size: var(--font-vw-35);
     gap: var(--spacing-5);
     color: var(--color-dark-primary);
+    align-items: flex-start;
   }
 
-  .grace {
-    width: 74.626vw;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    font-weight: var(--font-weight-500);
-    font-size: var(--font-vw-35);
-    color: var(--color-dark-primary);
+  .number {
+    flex-shrink: 0;
+    width: 20px;
+  }
+
+  .mobile-payment-notice {
+    background: var(--color-blue);
+    color: white;
+    padding: var(--spacing-15);
+    border-radius: var(--radius-5);
+    margin: var(--spacing-10) 0;
+  }
+
+  .mobile-payment-notice p {
+    margin: var(--spacing-5) 0;
+    font-size: 0.9em;
+    line-height: 1.4;
   }
 
   .payBtn {
     display: flex;
     flex-direction: column;
-    width: 86.567vw;
+    width: 100%;
     height: var(--height-vw-112);
     background: var(--color-dark-80);
     color: var(--color-white);
@@ -367,7 +574,6 @@
     font-size: var(--font-8);
     color: var(--color-dark-80);
     text-align: center;
-    margin-bottom: var(--spacing-vw-25);
     width: 90%;
     font-weight: 500;
   }
