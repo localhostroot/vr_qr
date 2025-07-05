@@ -5,7 +5,7 @@
   import { initializeMainPageData } from '$lib/utils/mainPageData.js';
   import Header from '$lib/components/widgets/Header.svelte';
   import VrPlayer from '$lib/components/MainPage/VrPlayer.svelte';
-  import Loader from '$lib/components/widgets/Loader.svelte';
+  import StartScreen from '$lib/components/widgets/StartScreen.svelte';
   import MainPageHeader from '$lib/components/MainPage/MainPageHeader.svelte';
 
   let location = $derived($page.params.location);
@@ -25,11 +25,14 @@
       pageInitialized = true;
     }
   });
+
 </script>
 
-{#if isLibraryLoading || isClientsLoading || !pageInitialized}
-  <Loader />
-{:else if library}
+<!-- Start Screen - covers everything including navigation -->
+<StartScreen isVisible={isLibraryLoading || isClientsLoading || !pageInitialized} />
+
+<!-- Main content - always rendered but hidden behind StartScreen when loading -->
+{#if library}
   <div class="mainPage">
     <!-- <Header /> -->
     <MainPageHeader />
