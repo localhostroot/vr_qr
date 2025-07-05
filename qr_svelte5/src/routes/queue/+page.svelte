@@ -83,19 +83,24 @@
           {@html icons.buttonClose}
         </button>
         <div class="instructions">
+
           <div class="instEl"><div class="number">1.</div>
+            <div class="descr">После оплаты в приложении банка не забудьте нажать "Вернуться в магазин"!</div>
+          </div>
+
+          <div class="instEl"><div class="number">2.</div>
             <div class="descr">Оплата является окончательной и не подлежит возврату.</div>
           </div>
-          <div class="instEl"><div class="number">2.</div>
+          <div class="instEl"><div class="number">3.</div>
             <div class="descr">Ваше право на выбор - досматривать фильм или нет.</div>
           </div>
-          <div class="instEl"><div class="number">3.</div>
+          <div class="instEl"><div class="number">4.</div>
             <div class="descr">Возможно перейти к следующему фильму.</div>
           </div>
-          <div class="instEl"><div class="number">4.</div>
+          <div class="instEl"><div class="number">5.</div>
             <div class="descr">После просмотра всех фильмов, система переходит в режим ожидания.</div>
           </div>
-          <div class="instEl"><div class="number">5.</div>
+          <div class="instEl"><div class="number">6.</div>
             <div class="descr">Если возникнут вопросы, наш администратор всегда готов помочь.</div>
           </div>
         </div>
