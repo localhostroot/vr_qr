@@ -116,7 +116,7 @@
     </div>
     {#if item.serial}
       <div class="serial-info">
-        <MovieBottomInfo {item} />
+        <MovieBottomInfo {item} seriesData={list} />
         <SerialTable item={list} series={item.series} />
       </div>
     {:else}

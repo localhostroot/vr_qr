@@ -33,6 +33,7 @@
   .table-element {
     display: flex;
     width: 100%;
+    overflow: hidden;
     border-radius: 5px;
     font-family: "Manrope", serif;
     align-items: stretch;

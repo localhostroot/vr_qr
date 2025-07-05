@@ -44,12 +44,13 @@
     }
   }
 
-  let filmsList = $derived(() => {
+  function getFilmsList() {
     if (!item || !list) return [];
     return list.filter((listFilm) => 
       listFilm.cat_id && listFilm.cat_id.cat_id === item.cat_id.cat_id
     );
-  });
+  }
+  let filmsList = $derived(getFilmsList());
 
   onMount(() => {
     if (typeof window !== 'undefined') {
@@ -100,13 +101,13 @@
 
   .error,
   .not-found {
-    color: white;
+    color: var(--color-white);
     text-align: center;
     padding: 2rem;
     font-family: 'Montserrat', sans-serif;
   }
 
   .error {
-    color: #ff6b6b;
+    color: var(--color-error);
   }
 </style>

@@ -10,6 +10,8 @@
 
   let paidFilms = $derived(globals.get('paidFilms'));
 
+  $inspect(paidFilms)
+
   let token = $derived(globals.get('token'));
   let tokenExpiry = $derived(globals.get('tokenExpiry'));
   let currentClient = $derived(globals.get('currentClient'));
@@ -119,10 +121,10 @@
     <!-- Top icons similar to React -->
     <div class="iconsTop">
       <div class="inst" onclick={handleClick}>
-        {@html icons.home || '🏠'}
+        {@html icons.main}
       </div>
       <div class="inst" onclick={handleOpenModal}>
-        {@html icons.info || 'ℹ'}
+        i
       </div>
     </div>
     
@@ -190,16 +192,18 @@
 
   .inst {
     background: var(--color-white-10);
-    border: 1px solid var(--color-white-20);
-    border-radius: var(--radius-5);
-    padding: var(--spacing-10);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--radius-full);
     cursor: pointer;
-    transition: var(--transition-background);
+    transition: var(--transition-200);
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+    font-weight: var(--font-weight-600);
   }
 
   .inst:hover {
@@ -227,19 +231,23 @@
   }
 
   .paymentBtn {
-    background: var(--color-info-20);
-    border: 1px solid var(--color-info-30);
-    color: var(--color-blue);
-    padding: var(--spacing-10) var(--spacing-15);
-    border-radius: var(--radius-5);
+    font-size: 1em;
+    font-weight: var(--font-weight-600);
+    color: var(--color-dark-primary);
+    background: var(--color-white-90);
+    border-radius: var(--radius-30);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--height-vw-75);
+    padding: 0 var(--spacing-20);
     cursor: pointer;
-    font-family: inherit;
-    font-weight: var(--font-weight-500);
-    transition: var(--transition-background);
+    border: none;
+    transition: var(--transition-200);
   }
 
   .paymentBtn:hover {
-    background: var(--color-info-30);
+    background: var(--color-white);
   }
 
   .queue {

@@ -3,6 +3,7 @@
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { icons } from '$lib/icons/icons.js';
   import { browser } from '$app/environment';
+  import { PUBLIC_DATABASE, PUBLIC_BACKEND } from '$env/static/public';
 
   let { item, clientId, location, client } = $props();
 
@@ -33,7 +34,6 @@
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  import { PUBLIC_DATABASE, PUBLIC_BACKEND } from '$env/static/public';
   
   // API URLs from environment
   const databaseApi = PUBLIC_DATABASE;
@@ -282,7 +282,7 @@
     <div class="loading">Проверка доступа...</div>
   {:else}
     <div class="afisha">
-      <img class="paidAfisha" src={item.queueImg} alt="покупки" />
+      <img class="paidAfisha" src={PUBLIC_DATABASE + item.queueImg} alt="покупки" />
       <div class="afishaInfo">
         <div class="format">{item.format}</div>
         <div class="afishaBottomInfo">
@@ -385,30 +385,44 @@
     position: absolute;
     top: 0;
     justify-content: space-between;
+
+    padding: var(--spacing-3);
+    box-sizing: border-box;
   }
 
   .format {
-    font-weight: 300;
-    color: rgba(255, 255, 255, 0.9);
-    background: rgba(43, 43, 43, 0.5);
-    margin-left: 3px;
-    margin-top: 3px;
+    font-weight: 600;
+    color: var(--color-white-90);
+    background: var(--color-dark-50);
+    border-radius: var(--radius-5);
     height: fit-content;
     width: fit-content;
-    padding: 4px;
-    border-radius: 30px;
+    padding: 4px 4px;
+    font-size: var(--font-9);
+
+    backdrop-filter: blur(5px);
+
+    border: 1px solid var(--color-white-10);
   }
 
   .afishaBottomInfo {
     position: absolute;
     right: 0;
     bottom: 5px;
+
+    padding: var(--spacing-3);
+    box-sizing: border-box;
   }
 
   .time {
-    font-weight: 400;
-    font-size: 3.4825vw;
-    color: rgba(255, 255, 255, 0.8);
+    font-weight: 600;
+    font-size: var(--font-vw-35);
+    color: var(--color-white-80);
+    background: var(--color-dark-50);
+    padding: var(--spacing-3) var(--spacing-5);
+    border-radius: var(--radius-5);
+    backdrop-filter: blur(5px);
+    border: 1px solid var(--color-white-10);
   }
 
   .bottomInfo {
@@ -480,57 +494,71 @@
   }
 
   .addToQueueBtn {
-    background: var(--color-info-20);
-    border: 1px solid var(--color-info-30);
-    color: var(--color-blue);
-    padding: var(--spacing-7) var(--spacing-10);
-    border-radius: var(--radius-5);
+    font-size: 1em;
+    font-weight: var(--font-weight-600);
+    color: var(--color-dark-primary);
+    background: var(--color-white-90);
+    border-radius: var(--radius-30);
+    border: none;
     cursor: pointer;
     font-family: inherit;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: var(--spacing-5);
-    transition: var(--transition-background);
+    padding: var(--spacing-10) var(--spacing-15);
+    transition: var(--transition-200);
+    width: 100%;
   }
 
   .addToQueueBtn:hover {
-    background: var(--color-info-30);
+    background: var(--color-white);
   }
 
   .removeFromQueueBtn {
-    background: var(--color-warning-20);
-    border: 1px solid var(--color-warning-30);
-    color: var(--color-orange);
-    padding: var(--spacing-7) var(--spacing-10);
-    border-radius: var(--radius-5);
+    font-size: 1em;
+    font-weight: var(--font-weight-600);
+    color: var(--color-dark-primary);
+    background: var(--color-white-90);
+    border-radius: var(--radius-30);
+    border: none;
     cursor: pointer;
     font-family: inherit;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: var(--spacing-5);
-    transition: var(--transition-background);
+    padding: var(--spacing-10) var(--spacing-15);
+    transition: var(--transition-200);
+    width: 100%;
+
+    backdrop-filter: blur(5px);
   }
 
   .removeFromQueueBtn:hover {
-    background: var(--color-warning-30);
+    background: var(--color-white);
   }
 
   .watchBtn {
-    background: var(--color-success-20);
-    border: 1px solid var(--color-success-30);
-    color: var(--color-green);
-    padding: var(--spacing-7) var(--spacing-10);
-    border-radius: var(--radius-5);
+    font-size: 1em;
+    font-weight: var(--font-weight-600);
+    color: var(--color-dark-primary);
+    background: var(--color-white-90);
+    border-radius: var(--radius-30);
+    border: none;
     cursor: pointer;
     font-family: inherit;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: var(--spacing-5);
-    transition: var(--transition-background);
+    padding: var(--spacing-10) var(--spacing-15);
+    transition: var(--transition-200);
+    width: 100%;
   }
 
   .watchBtn:hover {
-    background: var(--color-success-30);
+    background: var(--color-white);
   }
 
   .accessDenied {
@@ -560,5 +588,7 @@
   button :global(svg) {
     width: 16px;
     height: 16px;
+
+    filter: invert(1);
   }
 </style>

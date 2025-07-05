@@ -4,9 +4,10 @@
   import { icons } from '$lib/icons/icons.js';
   import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
   import AddToQueueBtn from './AddToQueueBtn.svelte';
+  import AddSeriesBtn from './AddSeriesBtn.svelte';
   import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
-  let { item } = $props();
+  let { item, seriesData } = $props();
 
   let paidFilms = $derived(globals.get('paidFilms'));
   let queue = $derived(globals.get('queue'));
@@ -19,16 +20,18 @@
     return clLocation && id ? `${clLocation}/${id}` : null;
   }
 
-  let isInPaidFilms = $derived(() => {
+  function checkIsInPaidFilms() {
     return paidFilms.some(film => film.film_id === item.film_id);
-  });
+  }
+  let isInPaidFilms = $derived(checkIsInPaidFilms());
 
-  let isQueueEmpty = $derived(() => {
+  function checkIsQueueEmpty() {
     return queue.length === 0;
-  });
+  }
+  let isQueueEmpty = $derived(checkIsQueueEmpty());
 
   function handleClick() {
-    if (isInPaidFilms()) {
+    if (isInPaidFilms) {
       goto(`${getSubfolder()}/films`);
     } else {
       goto(`${getSubfolder()}/queue`);
@@ -86,14 +89,21 @@
     <div 
       class="to-queue" 
       onclick={handleClick}
-      style={isQueueEmpty() && !isInPaidFilms() ? Object.entries(disabledStyles).map(([k, v]) => `${k}: ${v}`).join('; ') : ''}
+      style={isQueueEmpty && !isInPaidFilms ? Object.entries(disabledStyles).map(([k, v]) => `${k}: ${v}`).join('; ') : ''}
     >
-      {isInPaidFilms() ? 'К покупкам' : 'Перейти в корзину'}
+      {isInPaidFilms ? 'К покупкам' : 'Перейти в корзину'}
     </div>
-    <AddToQueueBtn 
-      {item} 
-      styles={item.serial || isInPaidFilms() ? stylesNone : styles} 
-    />
+    {#if item.serial && seriesData && seriesData.length > 0}
+      <AddSeriesBtn 
+        {seriesData}
+        styles={isInPaidFilms ? stylesNone : styles}
+      />
+    {:else}
+      <AddToQueueBtn 
+        {item} 
+        styles={item.serial || isInPaidFilms ? stylesNone : styles} 
+      />
+    {/if}
   </div>
   <div class="bottom-info">
     <div class="upper">
