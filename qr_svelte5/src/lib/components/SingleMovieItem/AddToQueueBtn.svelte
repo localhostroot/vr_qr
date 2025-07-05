@@ -11,6 +11,7 @@
   let isAdded = $derived(queue.some(i => i.id === item.id));
 
   function handleToggleQueue(event) {
+
     event.stopPropagation();
     
     if (item.serial) {

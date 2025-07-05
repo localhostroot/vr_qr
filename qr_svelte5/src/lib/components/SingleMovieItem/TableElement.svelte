@@ -55,7 +55,7 @@
     display: flex;
     flex-direction: column;
     width: calc(100% - 46.268vw);
-    background: #212121;
+    background: var(--color-white-10);
     justify-content: space-between;
   }
 

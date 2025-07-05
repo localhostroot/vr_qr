@@ -3,24 +3,28 @@
   /* Navigation */
   --navigation-height: 60px;
 
-  /* Colors - White/Light variants */
-  --color-white: #ffffff;
-  --color-white-90: rgba(255, 255, 255, 0.9);
-  --color-white-80: rgba(255, 255, 255, 0.8);
-  --color-white-70: rgba(255, 255, 255, 0.7);
-  --color-white-65: rgba(255, 255, 255, 0.65);
-  --color-white-60: rgba(255, 255, 255, 0.6);
-  --color-white-50: rgba(255, 255, 255, 0.5);
-  --color-white-37: rgba(255, 255, 255, 0.37);
-  --color-white-30: rgba(255, 255, 255, 0.3);
-  --color-white-20: rgba(255, 255, 255, 0.2);
-  --color-white-15: rgba(255, 255, 255, 0.15);
-  --color-white-10: rgba(255, 255, 255, 0.1);
-  --color-white-5: rgba(255, 255, 255, 0.05);
+  /* Colors - White/Light variants with subtle cyan shift */
+  --color-white: #f8fdff;                                    /* Pure white with hint of cyan */
+  --color-white-90: rgba(248, 253, 255, 0.9);               /* Very subtle cyan tint */
+  --color-white-80: rgba(245, 251, 255, 0.8);               /* Light cyan tint */
+  --color-white-70: rgba(242, 249, 255, 0.7);               /* Soft cyan tint */
+  --color-white-65: rgba(240, 248, 255, 0.65);              /* Gentle cyan tint */
+  --color-white-60: rgba(238, 247, 255, 0.6);               /* Mild cyan tint */
+  --color-white-50: rgba(235, 245, 255, 0.5);               /* Noticeable cyan tint */
+  --color-white-37: rgba(230, 242, 255, 0.37);              /* Stronger cyan tint */
+  --color-white-30: rgba(225, 240, 255, 0.3);               /* Clear cyan tint */
+  --color-white-20: rgba(220, 238, 255, 0.2);               /* Pronounced cyan tint */
+  --color-white-15: rgba(215, 235, 255, 0.15);              /* Strong cyan tint */
+  --color-white-10: rgba(210, 232, 255, 0.1);               /* Very strong cyan tint */
+  --color-white-5: rgba(200, 228, 255, 0.05);               /* Maximum cyan tint */
 
   /* Colors - Dark variants */
-  --color-dark-primary: #171717;
-  --color-dark-secondary: #212121;
+  /* --color-dark-primary: #171717;
+  --color-dark-secondary: #212121; */
+  
+  --color-dark-primary: #0d1117;
+  --color-dark-secondary: #161b22;
+  
   --color-dark-95: rgba(0, 0, 0, 0.95);
   --color-dark-80: rgba(0, 0, 0, 0.8);
   --color-dark-50: rgba(0, 0, 0, 0.5);
@@ -35,9 +39,11 @@
   --color-gray-50: rgba(217, 217, 217, 0.5);
 
   /* Colors - Semantic */
+  --color-success: #90EE90;
   --color-success-10: rgba(0, 255, 0, 0.1);
   --color-success-20: rgba(0, 255, 0, 0.2);
   --color-success-30: rgba(0, 255, 0, 0.3);
+  --color-error: #ff4444;
   --color-error-10: rgba(255, 0, 0, 0.1);
   --color-error-20: rgba(255, 0, 0, 0.2);
   --color-error-30: rgba(255, 0, 0, 0.3);

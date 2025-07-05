@@ -32,7 +32,7 @@
 
 <style>
   .footer {
-    background-color: #171717;
+    background-color: var(--color-dark-primary);
     width: 100%;
     margin-top: 5vw;
     position: relative;
@@ -42,7 +42,7 @@
     flex-direction: column;
     font-family: "Montserrat", serif;
     font-weight: 500;
-    color: rgba(255,255,255, 0.6);
+    color: var(--color-white-60);
     font-size: 2.8vw;
     padding-bottom: 20vw;
     gap: 2vw;
@@ -75,7 +75,7 @@
 
   .version {
     font-size: 2.5vw;
-    color: rgba(255,255,255, 0.4);
+    color: var(--color-white-37);
     text-align: center;
     margin-top: var(--spacing-10);
   }
