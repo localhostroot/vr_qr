@@ -31,7 +31,7 @@
             <div class="nav-icon">
               {@html currentPath.startsWith(`${getSubfolder()}/vr/`) ? icons.mainActive : icons.main}
             </div>
-            <div class="nav-label">Главная</div>
+            <div class="nav-label" class:active={currentPath.startsWith(`${getSubfolder()}/vr/`)}>Главная</div>
           </div>
       </a>
   </div>
@@ -39,9 +39,9 @@
       <a href="{getSubfolder()}/queue">
           <div class="nav-item">
             <div class="nav-icon">
-              {@html currentPath === `${getSubfolder()}` ? icons.basketActive : icons.basket}
+              {@html currentPath === `${getSubfolder()}/queue` ? icons.basketActive : icons.basket}
             </div>
-            <div class="nav-label">Корзина</div>
+            <div class="nav-label" class:active={currentPath === `${getSubfolder()}/queue`}>Корзина</div>
           </div>
       </a>
       {#if queue && queue.length > 0}
@@ -52,9 +52,9 @@
       <a href="{getSubfolder()}/films">
           <div class="nav-item">
             <div class="nav-icon">
-              {@html currentPath === `${getSubfolder()}` ? icons.playActive : icons.play}
+              {@html currentPath === `${getSubfolder()}/films` ? icons.playActive : icons.play}
             </div>
-            <div class="nav-label">Мои фильмы</div>
+            <div class="nav-label" class:active={currentPath === `${getSubfolder()}/films`}>Мои фильмы</div>
           </div>
       </a>
       {#if paidFilms && paidFilms.length > 0}
@@ -145,7 +145,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
+    gap: 4px;
   }
 
   .nav-icon {
@@ -166,5 +166,11 @@
     font-family: 'Montserrat', sans-serif;
     text-align: center;
     line-height: 1;
+    transition: color 0.2s ease;
+  }
+  
+  .nav-label.active {
+    color: var(--color-white);
+    font-weight: 600;
   }
 </style>
