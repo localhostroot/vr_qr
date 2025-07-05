@@ -45,11 +45,11 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'http://192.168.1.90:3000',
     'http://192.168.1.65:3000',
+    'http://192.168.1.65:5173',
     'https://local.vr360.pro',
     'https://admin.local.vr360.pro',
     'https://stats.local.vr360.pro',
-    'https://cinema.local.vr360.pro',
-    'https://cinema.local.vr360.pro/new'
+    'https://cinema.local.vr360.pro'
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -62,10 +62,10 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://192.168.1.90:3000',
     'http://192.168.1.65:3000',
+    'http://192.168.1.65:5173',
     'https://local.vr360.pro',
     'https://admin.local.vr360.pro',
-    'https://stats.local.vr360.pro',
-    'https://cinema.local.vr360.pro/new'
+    'https://stats.local.vr360.pro'
 ]
 
 INSTALLED_APPS = [
