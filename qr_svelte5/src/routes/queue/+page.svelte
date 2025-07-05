@@ -303,6 +303,9 @@
     width: 4vw;
     height: 4vw;
     cursor: pointer;
+
+    top: 1em;
+    right: 1.5em;
   }
 
   .instructions {

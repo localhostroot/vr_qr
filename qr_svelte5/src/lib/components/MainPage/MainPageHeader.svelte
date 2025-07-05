@@ -73,7 +73,7 @@
   }
 
   .name {
-    font-size: var(--font-responsive-large);
+    font-size: 1.8em;
     font-weight: 500;
     color: var(--color-white);
     margin-bottom: var(--spacing-10);

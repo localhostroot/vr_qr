@@ -199,12 +199,12 @@
 
   .btn-primary,
   .btn-secondary {
-    padding: var(--spacing-10) var(--spacing-15);
     border-radius: var(--radius-10);
     border: none;
     cursor: pointer;
     font-family: inherit;
     font-size: var(--font-10);
+    font-weight: 500;
     transition: var(--transition-300);
     flex: 1;
   }
