@@ -217,7 +217,7 @@
     padding: 3px 5px;
     border-radius: 10px;
     color: var(--color-white-80);
-    font-family: "Manrope", serif;
+    font-family: 'Montserrat', sans-serif;
   }
 
   .serial-info {

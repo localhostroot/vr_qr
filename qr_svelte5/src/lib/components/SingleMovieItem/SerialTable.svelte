@@ -36,7 +36,7 @@
   }
 
   .name {
-    font-family: "Montserrat", serif;
+    font-family: 'Montserrat', sans-serif;
     font-weight: 500;
     font-size: 4.4776vw;
     color: white;
@@ -44,7 +44,7 @@
 
   .series {
     font-weight: 400;
-    font-family: "Manrope", serif;
+    font-family: 'Montserrat', sans-serif;
     font-size: 3.48259vw;
     color: rgba(255, 255, 255, 0.7);
   }

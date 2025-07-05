@@ -35,7 +35,7 @@
     width: 100%;
     overflow: hidden;
     border-radius: 5px;
-    font-family: "Manrope", serif;
+    font-family: 'Montserrat', sans-serif;
     align-items: stretch;
     cursor: pointer;
   }

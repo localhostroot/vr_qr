@@ -40,7 +40,7 @@
     display: flex;
     align-items: center;
     flex-direction: column;
-    font-family: "Montserrat", serif;
+    font-family: 'Montserrat', sans-serif;
     font-weight: 500;
     color: var(--color-white-60);
     font-size: 2.8vw;

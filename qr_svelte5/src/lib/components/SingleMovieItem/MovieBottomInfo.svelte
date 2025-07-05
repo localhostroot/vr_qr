@@ -156,7 +156,7 @@
     font-weight: 400;
     font-size: 5.9701vw;
     color: var(--color-white);
-    font-family: "Manrope", serif;
+    font-family: 'Montserrat', sans-serif;
     gap: 2.4875vw;
   }
 
@@ -183,7 +183,7 @@
     background: var(--color-white-90);
     border-radius: var(--radius-30);
     color: var(--color-dark-primary);
-    font-family: "Montserrat", serif;
+    font-family: 'Montserrat', sans-serif;
     cursor: pointer;
   }
 
@@ -202,7 +202,7 @@
     height: fit-content;
     background: var(--color-dark-secondary);
     border-radius: var(--radius-5);
-    font-family: "Montserrat", serif;
+    font-family: 'Montserrat', sans-serif;
     display: flex;
     flex-direction: column;
     gap: 2.98507vw;
