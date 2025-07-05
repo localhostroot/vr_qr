@@ -42,17 +42,16 @@
 <div class="queue-page">
 
   <Header />
-  <div class="iconsTop">
-    <button class="inst" onclick={handleOpenModal}>
+  <div class="specificHeader">
+    <!-- <button class="inst" onclick={handleOpenModal}>
       {@html icons.plus}
-    </button>
+    </button> -->
+
+    <div class="pageName">Корзина</div>
   </div>
   <div class="content">
     {#if queue && queue.length > 0}
       <div class="info">
-        <div class="pageName">
-          Отложенные
-        </div>
         <div class="paymentBtn" onclick={handleOpenModal}>
           Оплатить все
         </div>
@@ -64,9 +63,6 @@
       </div>
     {:else}
       <div class="info">
-        <div class="pageName">
-          Отложенные
-        </div>
         <div class="paymentBtn" onclick={handleClick}>
           Вернуться
         </div>
@@ -148,24 +144,29 @@
 
   .info {
     margin-top: 18vw;
-    width: var(--width-vw-950);
+    
+    width: 100%;
+
+    box-sizing: border-box;
+    padding: 1em;
+
     display: flex;
     align-items: center;
     justify-content: space-between;
     font-family: "Montserrat", serif;
 
-    margin-bottom: var(--spacing-20);
+    margin-bottom: var(--spacing-10);
   }
 
   .pageName {
     font-weight: var(--font-weight-500);
     color: var(--color-white);
-    font-size: var(--font-vw-45);
+    font-size: 1.5em;
   }
 
   .paymentBtn {
-    font-size: var(--font-vw-30);
-    font-weight: var(--font-weight-400);
+    font-size: 1em;
+    font-weight: var(--font-weight-600);
     color: var(--color-dark-primary);
     background: var(--color-white-90);
     border-radius: var(--radius-30);
@@ -173,19 +174,20 @@
     align-items: center;
     justify-content: center;
     height: var(--height-vw-75);
-    width: var(--width-vw-463);
+    width: 100%;
     cursor: pointer;
     border: none;
   }
 
-  .iconsTop {
+  .specificHeader {
     position: absolute;
     top: var(--spacing-vw-25);
     right: var(--spacing-vw-25);
-    width: fit-content;
+    width: calc(100% + 8vw - 48px);
     display: flex;
-    height: fit-content;
-    gap: var(--spacing-vw-20);
+    align-items: center;
+    justify-content: center;
+    height: 40px;
     z-index: var(--z-100);
   }
 
@@ -195,7 +197,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--color-white-37);
+    background-color: var(--color-white-10);
     border-radius: var(--radius-30);
     border: none;
     cursor: pointer;

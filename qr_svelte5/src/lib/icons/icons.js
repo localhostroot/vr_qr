@@ -95,5 +95,22 @@ export const icons = {
         </clipPath>
       </defs>
     </svg>
+  `,
+
+  bin: `
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g clip-path="url(#clip0_2126_1018)">
+        <path d="M1.42859 5H18.5714" stroke="white" stroke-width="1.42857" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M3.57141 5H16.4286V17.8571C16.4286 18.236 16.278 18.5994 16.0101 18.8673C15.7422 19.1352 15.3789 19.2857 15 19.2857H4.99998C4.6211 19.2857 4.25774 19.1352 3.98983 18.8673C3.72192 18.5994 3.57141 18.236 3.57141 17.8571V5Z" stroke="white" stroke-width="1.42857" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M6.42859 5V4.28572C6.42859 3.33851 6.80486 2.43011 7.47464 1.76033C8.14441 1.09056 9.05282 0.714287 10 0.714287C10.9472 0.714287 11.8556 1.09056 12.5254 1.76033C13.1952 2.43011 13.5714 3.33851 13.5714 4.28572V5" stroke="white" stroke-width="1.42857" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M7.85718 7.85714V15.7143" stroke="white" stroke-width="1.42857" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M12.1428 7.85714V15.7143" stroke="white" stroke-width="1.42857" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <defs>
+        <clipPath id="clip0_2126_1018">
+          <rect width="20" height="20" fill="white" />
+        </clipPath>
+      </defs>
+    </svg>
   `
 };

@@ -46,7 +46,7 @@
   style={styles ? styleObjectToCss(styles) : ''}
 >
   {#if isAdded}
-    {@html icons.minus}
+    {@html icons.bin}
   {:else}
     {@html icons.plus}
   {/if}
@@ -59,8 +59,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-white-10);
-    border-radius: var(--radius-full);
+    background: var(--color-dark-50);
+    border-radius: var(--radius-5);
     cursor: pointer;
     transition: var(--transition-100);
   }
@@ -70,7 +70,7 @@
   }
 
   .button :global(svg) {
-    width: 7vw;
+    width: 5vw;
     height: auto;
   }
 </style>

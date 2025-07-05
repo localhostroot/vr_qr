@@ -1,6 +1,8 @@
 <script>
   import { goto } from '$app/navigation';
   import AddToQueueBtn from '$lib/components/SingleMovieItem/AddToQueueBtn.svelte';
+  import { icons } from '$lib/icons/icons';
+  import { globals } from '$lib/stores/+stores.svelte';
   import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let { item } = $props();
@@ -12,6 +14,23 @@
       goto(`${getSubfolder()}/content/${item.route_id}`);
     }
   }
+
+  const handleRemoveFromQueue = e => {
+
+    e.stopPropagation()
+
+    // if (item.serial) {
+
+    //   goto(`${getSubfolder()}/content/${item.id}`);
+
+    // } else {
+
+      globals.update('queue', currentQueue => 
+        currentQueue.filter(queueItem => queueItem.id !== item.id)
+      );
+    // }
+  }
+
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -25,7 +44,12 @@
       <div class="format">
         {item.format || 'VR'}
       </div>
-      <AddToQueueBtn {item} />
+      
+      <div
+        class="removeFromQueueBtn"
+        onclick={handleRemoveFromQueue}
+      >{@html icons.bin}</div>
+
     </div>
     <div class="afishaBottomInfo">
       <div class="time">
@@ -67,18 +91,19 @@
     position: absolute;
     top: 0;
     justify-content: space-between;
+
+    padding: var(--spacing-3);
+    box-sizing: border-box;
   }
 
   .format {
     font-weight: 600;
     color: var(--color-white-90);
     background: var(--color-dark-50);
-    margin-left: var(--spacing-3);
-    margin-top: var(--spacing-3);
+    border-radius: var(--radius-5);
     height: fit-content;
     width: fit-content;
     padding: 4px 4px;
-    border-radius: var(--radius-5);
     font-size: var(--font-9);
 
     backdrop-filter: blur(5px);
@@ -88,17 +113,17 @@
 
   .afishaBottomInfo {
     position: absolute;
-    bottom: var(--spacing-5);
-    right: var(--spacing-5);
+    bottom: var(--spacing-3);
+    right: var(--spacing-3);
   }
 
   .time {
-    font-weight: 400;
+    font-weight: 600;
     font-size: var(--font-vw-35);
     color: var(--color-white-80);
     background: var(--color-dark-50);
     padding: var(--spacing-3) var(--spacing-5);
-    border-radius: var(--radius-10);
+    border-radius: var(--radius-5);
     backdrop-filter: blur(5px);
     border: 1px solid var(--color-white-10);
   }
@@ -135,5 +160,17 @@
     margin-bottom: var(--spacing-vw-25);
     font-size: var(--font-10);
     font-weight: var(--font-weight-400);
+  }
+
+  .removeFromQueueBtn {
+    width: 40px;
+    height: 40px;
+
+    background: var(--color-dark-50);
+    border-radius: var(--radius-5);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 </style>
