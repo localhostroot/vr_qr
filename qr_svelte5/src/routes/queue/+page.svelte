@@ -102,8 +102,8 @@
         </button>
         <div class="instructions">
 
-          <div class="instEl"><div class="number">1.</div>
-            <div class="descr">После оплаты в приложении банка не забудьте нажать "Вернуться в магазин"!</div>
+          <div class="instEl"><div style="color: #900000" class="number"><b>1.</b></div>
+            <div class="descr"><b style="color: #900000">После оплаты в приложении банка не забудьте нажать "Вернуться в магазин"!</b></div>
           </div>
 
           <div class="instEl"><div class="number">2.</div>
