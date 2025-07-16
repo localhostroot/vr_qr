@@ -1,4 +1,6 @@
 <script>
+// @ts-nocheck
+
   import { onMount } from 'svelte';
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { icons } from '$lib/icons/icons.js';
@@ -312,29 +314,29 @@
             </div>
           {:else if isInQueue}
             <div class="queueActions">
-              <button class="removeFromQueueBtn" onclick={handleRemoveFromQueue}>
+              <!-- <button class="removeFromQueueBtn" onclick={handleRemoveFromQueue}>
                 {@html icons.minus || '−'}
                 Убрать из очереди
-              </button>
-              {#if !isOtherActive}
+              </button> -->
+              <!-- {#if !isOtherActive} -->
                 <button class="watchBtn" onclick={handleWatchClick}>
                   {@html icons.play || '▶'}
                   Смотреть
                 </button>
-              {/if}
+              <!-- {/if} -->
             </div>
           {:else}
             <div class="defaultActions">
-              <button class="addToQueueBtn" onclick={handleAddToQueue}>
+              <!-- <button class="addToQueueBtn" onclick={handleAddToQueue}>
                 {@html icons.plus || '+'}
                 Добавить в очередь
-              </button>
-              {#if !isOtherActive}
+              </button> -->
+              <!-- {#if !isOtherActive} -->
                 <button class="watchBtn" onclick={handleWatchClick}>
                   {@html icons.play || '▶'}
                   Смотреть
                 </button>
-              {/if}
+              <!-- {/if} -->
             </div>
           {/if}
         </div>
