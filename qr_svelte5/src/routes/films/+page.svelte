@@ -107,6 +107,9 @@
 {#if !paidFilms || paidFilms.length === 0}
   <div class="queuePage">
     <!-- Empty state similar to React -->
+
+    <div class="client-name">Очки: <b>№ {currentClient.location}/{currentClient.id}</b></div>
+
     <div class="info">
       <div class="pageName">
         Мои покупки
@@ -116,6 +119,7 @@
       </div>
     </div>
   </div>
+  
 {:else}
   <div class="queuePage">
     <!-- Top icons similar to React -->
@@ -123,9 +127,9 @@
       <div class="inst" onclick={handleClick}>
         {@html icons.main}
       </div>
-      <div class="inst" onclick={handleOpenModal}>
+      <!-- <div class="inst" onclick={handleOpenModal}>
         i
-      </div>
+      </div> -->
     </div>
     
     <!-- Info section -->
@@ -137,6 +141,8 @@
         Сбросить
       </div>
     </div>
+
+    <div class="client-name">Очки: <b>№ {currentClient.location}/{currentClient.id}</b></div>
     
     <!-- Films queue -->
     <div class="queue">
@@ -222,6 +228,20 @@
     width: 95.024vw;
     margin-bottom: var(--spacing-20);
     padding: 0 var(--spacing-10);
+  }
+
+  .client-name {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 1em;
+    padding: 0 12px;
+    box-sizing: border-box;
+
+    font-size: 1.125em;
+    font-family: var(--ff);
+
+    margin-bottom: 1em;
   }
 
   .pageName {

@@ -1,5 +1,8 @@
 <script>
   import { icons } from "$lib/icons/icons";
+  import { globals } from "$lib/stores/+stores.svelte";
+
+  let currentClient = $derived(globals.get('currentClient'));
 </script>
 
 <div class="mainPageHeader">
@@ -20,6 +23,8 @@
         <div class="secondParagraph">
           выбери фильм, оплати, и наслаждайся просмотром
         </div>
+
+        <div class="client-name">Очки <b>№ {currentClient.location}/{currentClient.id}</b></div>
       </div>
     </div>
 
@@ -52,7 +57,7 @@
     align-items: center;
     width: 100%;
     max-width: 1200px;
-    height: 24vh; /* Reduced height */
+    height: 26vh; /* Reduced height */
     min-height: 100px; /* Minimum height for mobile */
   }
 
@@ -97,6 +102,18 @@
 
   .secondParagraph {
     color: var(--color-white-60);
+  }
+
+  .client-name {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    gap: 1em;
+    box-sizing: border-box;
+
+    color: var(--color-white-90);
+    font-size: 1.125em;
+    font-family: var(--ff);
   }
 
   .rightUpperBody {

@@ -10,6 +10,8 @@
 
   let queue = $derived(globals.get('queue'));
 
+  let currentClient = $derived(globals.get('currentClient'));
+
   let modalVisible = $state(false);
 
   function handleClick() {
@@ -56,6 +58,7 @@
           Оплатить все
         </div>
       </div>
+      <div class="client-name">Очки <b>№ {currentClient.location}/{currentClient.id}</b></div>
       <div class="queue">
         {#each queue as item}
           <ContentCardBig {item} />
@@ -67,6 +70,7 @@
           Вернуться
         </div>
       </div>
+      <div class="client-name">Очки <b>№ {currentClient.location}/{currentClient.id}</b></div>
       <div class="empty-queue">
         <div class="empty-icon">
           {@html icons.basket}
@@ -375,5 +379,20 @@
     margin-bottom: var(--spacing-vw-25);
     width: 90%;
     font-weight: 500;
+  }
+
+
+  .client-name {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 1em;
+    padding: 0 12px;
+    box-sizing: border-box;
+
+    font-size: 1.125em;
+    font-family: var(--ff);
+
+    margin-bottom: 1em;
   }
 </style>
