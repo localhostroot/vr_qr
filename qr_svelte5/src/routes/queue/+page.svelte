@@ -58,19 +58,33 @@
           Оплатить все
         </div>
       </div>
-      <div class="client-name">Очки <b>№ {currentClient.location}/{currentClient.id}</b></div>
+      {#if currentClient}
+        <div class="client-name">Очки <b>№ {currentClient.location}/{currentClient.id}</b></div>
+      {/if}
       <div class="queue">
         {#each queue as item}
           <ContentCardBig {item} />
         {/each}
+      </div>
+      <div
+        class="info"
+        style="
+          margin-top: 0;
+        "
+      >
+        <div class="paymentBtn" onclick={handleOpenModal}>
+          Оплатить все
+        </div>
       </div>
     {:else}
       <div class="info">
         <div class="paymentBtn" onclick={handleClick}>
           Вернуться
         </div>
-      </div>
-      <div class="client-name">Очки <b>№ {currentClient.location}/{currentClient.id}</b></div>
+      </div>  
+      {#if currentClient}
+        <div class="client-name">Очки <b>№ {currentClient.location}/{currentClient.id}</b></div>
+      {/if}
       <div class="empty-queue">
         <div class="empty-icon">
           {@html icons.basket}
