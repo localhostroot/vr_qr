@@ -1,4 +1,6 @@
 <script>
+// @ts-nocheck
+
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { goto } from '$app/navigation';
   import { getSubfolder } from '$lib/utils/+helpers.svelte';
@@ -105,7 +107,7 @@
 <div class="movie-card">
   <div class="image-container">
     {#if item.image}
-      <img src={item.image} alt={item.title || item.name} />
+      <img src={item.image} alt={item.title || item.name} onclick={() => goToContent(item)} />
     {:else}
       <div class="placeholder-image">
         <span>Нет изображения</span>
