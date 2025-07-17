@@ -59,7 +59,7 @@
         </div>
       </div>
       {#if currentClient}
-        <div class="client-name">Очки <b>№ {currentClient.location}/{currentClient.id}</b></div>
+        <div class="client-name">Очки <b>№ {currentClient.id}</b></div>
       {/if}
       <div class="queue">
         {#each queue as item}
@@ -83,7 +83,7 @@
         </div>
       </div>  
       {#if currentClient}
-        <div class="client-name">Очки <b>№ {currentClient.location}/{currentClient.id}</b></div>
+        <div class="client-name">Очки <b>№ {currentClient.id}</b></div>
       {/if}
       <div class="empty-queue">
         <div class="empty-icon">

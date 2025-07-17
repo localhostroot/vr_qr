@@ -18,10 +18,10 @@
 
       <div class="initInstructions">
         <div class="firstParagraph">
-          учись и путешествуй в виртуальной реальности.
+          учись и путешествуй в виртуальной реальности
         </div>
         <div class="secondParagraph">
-          выбери фильм, оплати, и наслаждайся просмотром
+          
         </div>
 
         <div class="client-name">Очки <b>№ {currentClient.location}/{currentClient.id}</b></div>
