@@ -2,12 +2,12 @@
 	"contents": {
     "id": "base-folder",
 		"title": "VR кинотеатр Русского географического общества",
-		"backgroundVideo": {  "id": "bg", "url": "https://public.vr360.pro/media/bg.mp4" },
+		"backgroundVideo": {  "id": "bg", "url": "https://public.vr360.pro/vrp-rgo/bg.mp4" },
     "folders": [
       {
-        "title":   "Мир географии",
-        "titleRC": "Мир географии",
-        "id": "subfolder 1",
+        "title":   "Уроки географии",
+        "titleRC": "Уроки географии",
+        "id": "subfolder 2",
         "autoplay": false,
         "ui": {
         "templateId": "rows",
@@ -18,21 +18,49 @@
           "rows": 2
           }
         },
-        "thumb": {  "url": "https://public.vr360.pro/media/geo_01.jpg",  "id": "geo_01" },
+        "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/geo_02.jpg",  "id": "geo_02" },
         "videos": [
-          { "title":    "",
-            "titleRC":  "",
-            "thumb": {  "url": "https://public.vr360.pro/media/geo_01_01.jpg", "id": "geo_01_01" },
-                        "url": "https://public.vr360.pro/media/geo_01_01.mp4", "id": "geo_01_01",
+          { "title": "",
+            "titleRC": "",
+            "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/geo_02_01.jpg", "id": "geo_02_01" },
+                        "url": "https://public.vr360.pro/vrp-rgo/geo_02_01.mp4", "id": "geo_02_01",
             "projection": "p180",   "depth": "3dSBS",
-            "duration":   "702",    "dbContentId": "rgo_vdnh_mg0101"
+            "duration":   "636",    "dbContentId": "rgo_vdnh_ug0201"
           },
-          { "title":    "",
-            "titleRC":  "",
-            "thumb": {  "url": "https://public.vr360.pro/media/geo_01_02.jpg", "id": "geo_01_02" },
-                        "url": "https://public.vr360.pro/media/geo_01_02.mp4", "id": "geo_01_02",
+          { "title": "",
+            "titleRC": "",
+            "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/geo_02_02.jpg", "id": "geo_02_02" },
+                        "url": "https://public.vr360.pro/vrp-rgo/geo_02_02.mp4", "id": "geo_02_02",
             "projection": "p180",   "depth": "3dSBS",
-            "duration":   "711",    "dbContentId": "rgo_vdnh_mg0201"
+            "duration":   "821",    "dbContentId": "rgo_vdnh_ug0202"
+          },
+          { "title": "",
+            "titleRC": "",
+            "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/geo_02_03.jpg", "id": "geo_02_03" },
+                        "url": "https://public.vr360.pro/vrp-rgo/geo_02_03.mp4", "id": "geo_02_03",
+            "projection": "p180",   "depth": "3dSBS",
+            "duration":   "703",    "dbContentId": "rgo_vdnh_ug0203"
+          },
+          { "title": "",
+            "titleRC": "",
+            "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/geo_02_04.jpg", "id": "geo_02_04" },
+                        "url": "https://public.vr360.pro/vrp-rgo/geo_02_04.mp4", "id": "geo_02_04",
+            "projection": "p180",   "depth": "3dSBS",
+            "duration":   "616",    "dbContentId": "rgo_vdnh_ug0204"
+          },
+          { "title": "",
+            "titleRC": "",
+            "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/geo_02_05.jpg", "id": "geo_02_05" },
+                        "url": "https://public.vr360.pro/vrp-rgo/geo_02_05.mp4", "id": "geo_02_05",
+            "projection": "p180",   "depth": "3dSBS",
+            "duration":   "844",    "dbContentId": "rgo_vdnh_ug0205"
+          },
+          { "title": "",
+            "titleRC": "",
+            "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/geo_02_06.jpg", "id": "geo_02_06" },
+                        "url": "https://public.vr360.pro/vrp-rgo/geo_02_06.mp4", "id": "geo_02_06",
+            "projection": "p180",   "depth": "3dSBS",
+            "duration":   "1045",   "dbContentId": "rgo_vdnh_ug0206"
           }
         ]
       },
@@ -50,24 +78,86 @@
           "rows": 1
           }
         },
-        "thumb": {  "url": "https://public.vr360.pro/media/kb_00.jpg",  "id": "kb_00" },
+        "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/kb_00.jpg",  "id": "kb_00" },
         "videos": [
           { "title":    "",
             "titleRC":  "",
-            "thumb": {  "url": "https://public.vr360.pro/media/kb_01.jpg", "id": "kb_01" },
-                        "url": "https://public.vr360.pro/media/kb_01.mp4", "id": "kb_01",
+            "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/kb_01.jpg", "id": "kb_01" },
+                        "url": "https://public.vr360.pro/vrp-rgo/kb_01.mp4", "id": "kb_01",
             "projection": "p360",   "depth": "2d",
             "duration":   "610",    "dbContentId": "rgo_vdnh_kb__01"
           },
           { "title":    "",
             "titleRC":  "",
-            "thumb": {  "url": "https://public.vr360.pro/media/kb_02.jpg", "id": "kb_02" },
-                        "url": "https://public.vr360.pro/media/kb_02.mp4", "id": "kb_02",
+            "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/kb_02.jpg", "id": "kb_02" },
+                        "url": "https://public.vr360.pro/vrp-rgo/kb_02.mp4", "id": "kb_02",
             "projection": "p360",   "depth": "2d",
             "duration":   "272",    "dbContentId": "rgo_vdnh_kb__02"
           }
         ]
-      }   
-     ]
+      },
+      {
+        "title":   "Тува",
+        "titleRC": "Тува",
+        "id": "subfolder 4",
+        "autoplay": false,
+        "ui": {
+        "templateId": "rows",
+        "parameters":{
+          "thumbWidth": 160,
+          "thumbHeight": 100,
+          "itemsPerPage": 6,
+          "rows": 2
+          }
+        },
+        "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/tyva.jpg",  "id": "tyva" },
+        "videos": [
+          { "title":    "",
+            "titleRC":  "",
+            "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/tyva_01.jpg",  "id": "tyva_01" },
+                        "url": "https://public.vr360.pro/vrp-rgo/tyva_01.mp4",  "id": "tyva_01",
+            "projection": "p360",   "depth": "2d",
+            "duration":   "252",    "dbContentId": "rgo_vdnh__tv_01"
+          },
+          { "title":    "",
+            "titleRC":  "",
+            "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/tyva_02.jpg",  "id": "tyva_02" },
+                        "url": "https://public.vr360.pro/vrp-rgo/tyva_02.mp4",  "id": "tyva_02",
+            "projection": "p360",   "depth": "2d",
+            "duration":   "562",    "dbContentId": "rgo_vdnh__tv_02"
+          },
+          { "title":    "",
+            "titleRC":  "",
+            "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/tyva_03.jpg",  "id": "tyva_03" },
+                        "url": "https://public.vr360.pro/vrp-rgo/tyva_03.mp4",  "id": "tyva_03",
+            "projection": "p360",   "depth": "2d",
+            "duration":   "730",    "dbContentId": "rgo_vdnh__tv_02"
+          },
+          { "title":    "",
+            "titleRC":  "",
+            "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/tyva_04.jpg",  "id": "tyva_04" },
+                        "url": "https://public.vr360.pro/vrp-rgo/tyva_04.mp4",  "id": "tyva_04",
+            "projection": "p360",   "depth": "2d",
+            "duration":   "517",    "dbContentId": "rgo_vdnh__tv_04"
+          }
+        ]
+      }
+     ], 
+    "videos": [
+      { "title":    "",
+        "titleRC":  "",
+				"thumb": {  "url": "https://public.vr360.pro/vrp-rgo/volga.jpg",	"id": "volga" },
+							"url": "https://public.vr360.pro/vrp-rgo/volga.mp4",	"id": "volga",
+        "projection": "p360",   "depth": "2d",
+        "duration":   "900",    "dbContentId": "rgo_vdnh__volga"
+			},
+      { "title":    "",
+        "titleRC":  "",
+				"thumb": {  "url": "https://public.vr360.pro/vrp-rgo/russia.jpg",	"id": "russia" },
+							"url": "https://public.vr360.pro/vrp-rgo/russia.mp4",	"id": "russia",
+        "projection": "p360",   "depth": "2d",
+        "duration":   "518",    "dbContentId": "rgo_vdnh_russia"
+			}
+		]
   }
 }
