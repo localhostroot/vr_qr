@@ -138,52 +138,52 @@
     align-items: center;
     justify-content: center;
     padding: var(--spacing-20);
-    font-family: var(--font-family-primary);
+    font-family: 'Montserrat', sans-serif;
   }
 
   .container {
     background: var(--color-dark-secondary);
-    border-radius: var(--radius-16);
+    border-radius: var(--radius-15);
     padding: var(--spacing-40);
-    max-width: 500px;
+    max-width: var(--container-600);
     width: 100%;
-    box-shadow: var(--shadow-xl);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     border: 1px solid var(--color-dark-50);
   }
 
   .title {
     color: var(--color-white);
-    font-size: var(--font-28);
+    font-size: var(--font-20);
     font-weight: var(--font-weight-600);
     text-align: center;
-    margin-bottom: var(--spacing-32);
+    margin-bottom: var(--spacing-30);
     line-height: 1.3;
   }
 
   .token-form {
-    margin-bottom: var(--spacing-32);
+    margin-bottom: var(--spacing-30);
   }
 
   .input-group {
-    margin-bottom: var(--spacing-24);
+    margin-bottom: var(--spacing-25);
   }
 
   .label {
     display: block;
     color: var(--color-white-90);
-    font-size: var(--font-16);
+    font-size: var(--font-10);
     font-weight: var(--font-weight-500);
     margin-bottom: var(--spacing-8);
   }
 
   .token-input {
     width: 100%;
-    padding: var(--spacing-16);
-    background: var(--color-dark-80);
+    padding: var(--spacing-15);
+    background: rgba(0, 0, 0, 0.6);
     border: 2px solid var(--color-dark-50);
-    border-radius: var(--radius-12);
+    border-radius: var(--radius-10);
     color: var(--color-white);
-    font-size: var(--font-16);
+    font-size: var(--font-10);
     transition: var(--transition-300);
     box-sizing: border-box;
   }
@@ -194,8 +194,8 @@
 
   .token-input:focus {
     outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px var(--color-primary-10);
+    border-color: var(--color-blue);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
   }
 
   .token-input:disabled {
@@ -210,33 +210,33 @@
   .error-message {
     background: var(--color-error-10);
     border: 1px solid var(--color-error-30);
-    color: var(--color-error-light);
-    padding: var(--spacing-12) var(--spacing-16);
-    border-radius: var(--radius-8);
+    color: var(--color-red-light);
+    padding: var(--spacing-10) var(--spacing-15);
+    border-radius: var(--radius-5);
     margin-bottom: var(--spacing-20);
-    font-size: var(--font-14);
+    font-size: var(--font-9);
     animation: slideIn 0.3s ease;
   }
 
   .success-message {
     background: var(--color-success-10);
     border: 1px solid var(--color-success-30);
-    color: var(--color-success-light);
-    padding: var(--spacing-12) var(--spacing-16);
-    border-radius: var(--radius-8);
+    color: var(--color-success);
+    padding: var(--spacing-10) var(--spacing-15);
+    border-radius: var(--radius-5);
     margin-bottom: var(--spacing-20);
-    font-size: var(--font-14);
+    font-size: var(--font-9);
     animation: slideIn 0.3s ease;
   }
 
   .submit-button {
     width: 100%;
-    padding: var(--spacing-16);
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    padding: var(--spacing-15);
+    background: linear-gradient(135deg, var(--color-blue) 0%, #357abd 100%);
     color: var(--color-white);
     border: none;
-    border-radius: var(--radius-12);
-    font-size: var(--font-16);
+    border-radius: var(--radius-10);
+    font-size: var(--font-10);
     font-weight: var(--font-weight-600);
     cursor: pointer;
     transition: var(--transition-300);
@@ -245,9 +245,9 @@
   }
 
   .submit-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary-darker) 100%);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    background: linear-gradient(135deg, #357abd 0%, #2a5a8a 100%);
+    transform: var(--transform-hover-lift-2);
+    box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
   }
 
   .submit-button:active:not(:disabled) {
@@ -262,26 +262,26 @@
   }
 
   .instructions {
-    background: var(--color-dark-90);
-    border-radius: var(--radius-12);
-    padding: var(--spacing-24);
-    margin-bottom: var(--spacing-24);
-    border: 1px solid var(--color-dark-70);
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-10);
+    padding: var(--spacing-25);
+    margin-bottom: var(--spacing-25);
+    border: 1px solid var(--color-dark-30);
   }
 
   .instructions h3 {
     color: var(--color-white);
-    font-size: var(--font-18);
+    font-size: var(--font-12);
     font-weight: var(--font-weight-600);
-    margin-bottom: var(--spacing-16);
+    margin-bottom: var(--spacing-15);
     margin-top: 0;
   }
 
   .instructions p {
     color: var(--color-white-70);
-    font-size: var(--font-14);
+    font-size: var(--font-9);
     line-height: 1.5;
-    margin-bottom: var(--spacing-12);
+    margin-bottom: var(--spacing-10);
   }
 
   .instructions p:last-child {
@@ -290,19 +290,19 @@
 
   .back-button {
     width: 100%;
-    padding: var(--spacing-14);
+    padding: var(--spacing-10);
     background: transparent;
     color: var(--color-white-50);
     border: 2px solid var(--color-dark-50);
-    border-radius: var(--radius-12);
-    font-size: var(--font-16);
+    border-radius: var(--radius-10);
+    font-size: var(--font-10);
     font-weight: var(--font-weight-500);
     cursor: pointer;
     transition: var(--transition-300);
   }
 
   .back-button:hover:not(:disabled) {
-    background: var(--color-dark-70);
+    background: var(--color-dark-30);
     color: var(--color-white);
     border-color: var(--color-dark-30);
   }
@@ -325,28 +325,28 @@
 
   @media (max-width: 768px) {
     .token-entry-page {
-      padding: var(--spacing-16);
+      padding: var(--spacing-15);
       align-items: flex-start;
       padding-top: var(--spacing-40);
     }
 
     .container {
-      padding: var(--spacing-32) var(--spacing-24);
+      padding: var(--spacing-30) var(--spacing-25);
     }
 
     .title {
-      font-size: var(--font-24);
-      margin-bottom: var(--spacing-24);
+      font-size: var(--font-15);
+      margin-bottom: var(--spacing-25);
     }
 
     .token-input {
-      padding: var(--spacing-14);
-      font-size: var(--font-16);
+      padding: var(--spacing-10);
+      font-size: var(--font-10);
     }
 
     .submit-button {
-      padding: var(--spacing-14);
-      font-size: var(--font-16);
+      padding: var(--spacing-10);
+      font-size: var(--font-10);
     }
 
     .instructions {
@@ -354,25 +354,25 @@
     }
 
     .instructions h3 {
-      font-size: var(--font-16);
+      font-size: var(--font-11);
     }
 
     .instructions p {
-      font-size: var(--font-13);
+      font-size: var(--font-8);
     }
   }
 
   @media (max-width: 480px) {
     .container {
-      padding: var(--spacing-24) var(--spacing-20);
+      padding: var(--spacing-25) var(--spacing-20);
     }
 
     .title {
-      font-size: var(--font-22);
+      font-size: var(--font-12);
     }
 
     .instructions {
-      padding: var(--spacing-16);
+      padding: var(--spacing-15);
     }
   }
 
@@ -388,7 +388,7 @@
     margin: auto;
     border: 2px solid transparent;
     border-top-color: var(--color-white);
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     animation: spin 1s ease infinite;
     top: 50%;
     left: 50%;
@@ -405,14 +405,14 @@
   }
 
   .token-input:focus + .label {
-    color: var(--color-primary);
+    color: var(--color-blue);
   }
 
   .token-form:has(.success-message) .token-input {
-    border-color: var(--color-success-50);
+    border-color: var(--color-success);
   }
 
   .token-form:has(.error-message) .token-input {
-    border-color: var(--color-error-50);
+    border-color: var(--color-error);
   }
 </style>
