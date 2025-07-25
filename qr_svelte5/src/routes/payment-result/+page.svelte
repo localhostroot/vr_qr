@@ -13,6 +13,7 @@
   let retryCount = $state(0);
   let orderId = $state(null);
   let orderIdShort = $state(null);
+  let orderTime = $state(null);
   const maxRetries = 10; // Try for about 30 seconds
 
   const currentClient = $derived(globals.get('currentClient'))
@@ -55,6 +56,7 @@
               localStorage.removeItem(LOCAL_STORAGE_KEYS.QUEUE_PENDING_PAYMENT);
               localStorage.removeItem(LOCAL_STORAGE_KEYS.QUEUE);
               localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
+              localStorage.removeItem(LOCAL_STORAGE_KEYS.ORDER_TIME);
               
               // Mark order as checked
               await fetch(`${PUBLIC_DATABASE}api/status/checked/?order_id=${orderId}`, {
@@ -125,6 +127,19 @@
     status = 'error';
   }
 
+  function getOrderTime() {
+    if (!browser) return null;
+    const storedOrderTime = localStorage.getItem(LOCAL_STORAGE_KEYS.ORDER_TIME);
+    return storedOrderTime ? new Date(storedOrderTime).toLocaleString('ru-RU', {
+      year: 'numeric',
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }) : null;
+  }
+
   async function refreshPaymentStatus() {
     if (!browser || !orderId) return;
     
@@ -146,6 +161,9 @@
         orderId = storedOrderId;
         orderIdShort = storedOrderId.slice(0, 8);
       }
+      
+      // Get order time from localStorage
+      orderTime = getOrderTime();
     }
     
     const urlParams = new URLSearchParams($page.url.search);
@@ -193,7 +211,12 @@
       {#if orderId}
         <p>Произошла ошибка при обработке платежа. Если оплата прошла успешно, обратитесь к администратору.</p>
         <div class="order-info">
-          <strong>ID заказа для администратора:</strong> <span class="order-id">{orderIdShort}({currentClient})</span>
+          <strong>ID заказа для администратора:</strong> <span class="order-id">{orderIdShort}({currentClient.location}:{currentClient.id})</span>
+          {#if orderTime}
+            <div style="margin-top: 8px;">
+              <strong>Время заказа:</strong> {orderTime}
+            </div>
+          {/if}
         </div>
         <button class="refresh-button" onclick={refreshPaymentStatus}>
           🔄 Обновить статус
@@ -215,6 +238,11 @@
       {#if orderId}
         <div class="order-info">
           <strong>ID заказа для администратора:</strong> <span class="order-id">{orderIdShort}({currentClient})</span>
+          {#if orderTime}
+            <div style="margin-top: 8px;">
+              <strong>Время заказа:</strong> {orderTime}
+            </div>
+          {/if}
         </div>
       {/if}
       <button class="refresh-button" onclick={refreshPaymentStatus}>

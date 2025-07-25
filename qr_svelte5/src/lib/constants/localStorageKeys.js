@@ -6,6 +6,7 @@ const LOCAL_STORAGE_KEYS = {
   SLIDER_INDEX: 'sliderIndex',
   QUEUE_PENDING_PAYMENT: 'queuePendingPayment',
   PAYKEEPER_ORDER_ID: 'paykeeperOrderID',
+  ORDER_TIME: 'orderTime',
   PAYMENT_TOKEN: 'payment_token',
   TOKEN_EXPIRY: 'token_expiry'
 };

@@ -92,6 +92,7 @@ export function createPaykeeperPayment() {
 
       // Store order data for later verification
       localStorage.setItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID, orderId);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.ORDER_TIME, new Date().toISOString());
       localStorage.setItem(LOCAL_STORAGE_KEYS.QUEUE_PENDING_PAYMENT, JSON.stringify(queue));
 
       // Create and submit form to Paykeeper

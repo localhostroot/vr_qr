@@ -1,13 +1,16 @@
 <!-- Admin Page for Order Management and Token Issuance -->
 <script>
+// @ts-nocheck
+
 	import { onMount } from 'svelte';
 	import { PUBLIC_DATABASE } from '$env/static/public';
 
-	let searchQuery = '';
-	let orders = [];
-	let loading = false;
-	let totalFound = 0;
-	let statusMessage = '';
+	let searchQuery = $state('');
+	let orders = $state([]);
+	let loading = $state(false);
+	let totalFound = $state(0);
+	let statusMessage = $state('');
+	let tokenStatusText = $state('')
 
 	// Search orders function
 	async function searchOrders() {
@@ -46,7 +49,7 @@
 		const statusEl = orderCard?.querySelector('.token-status');
 		
 		if (statusEl) {
-			statusEl.textContent = 'Создаю токен...';
+			tokenStatusText = 'Создаю токен...';
 			statusEl.className = 'token-status loading';
 		}
 
@@ -63,20 +66,20 @@
 
 			if (data.success) {
 				if (statusEl) {
-					statusEl.textContent = `✅ ${data.message}. Токен: ${data.token_info.token.slice(0, 8)}... (${data.token_info.films_count} фильмов)`;
+					tokenStatusText = `✅ ${data.message}. Токен: ${data.token_info.token.slice(0, 8)}... (${data.token_info.films_count} фильмов)`;
 					statusEl.className = 'token-status success';
 				}
 				// Refresh the order in the list
 				await searchOrders();
 			} else {
 				if (statusEl) {
-					statusEl.textContent = `❌ ${data.error}`;
+					tokenStatusText = `❌ ${data.error}`;
 					statusEl.className = 'token-status error';
 				}
 			}
 		} catch (error) {
 			if (statusEl) {
-				statusEl.textContent = `❌ Ошибка: ${error.message}`;
+				tokenStatusText = `❌ Ошибка: ${error.message}`;
 				statusEl.className = 'token-status error';
 			}
 		}
@@ -88,7 +91,7 @@
 		const statusEl = orderCard?.querySelector('.token-status');
 		
 		if (statusEl) {
-			statusEl.textContent = 'Подтверждаю платеж и создаю токен...';
+			tokenStatusText = 'Подтверждаю платеж и создаю токен...';
 			statusEl.className = 'token-status loading';
 		}
 
@@ -105,20 +108,20 @@
 
 			if (data.success) {
 				if (statusEl) {
-					statusEl.textContent = `✅ ${data.message}. Токен: ${data.token_info.token.slice(0, 8)}... (${data.token_info.films_count} фильмов)`;
+					tokenStatusText = `✅ ${data.message}. Токен: ${data.token_info.token.slice(0, 8)}... (${data.token_info.films_count} фильмов)`;
 					statusEl.className = 'token-status success';
 				}
 				// Refresh the order in the list
 				await searchOrders();
 			} else {
 				if (statusEl) {
-					statusEl.textContent = `❌ ${data.error}`;
+					tokenStatusText = `❌ ${data.error}`;
 					statusEl.className = 'token-status error';
 				}
 			}
 		} catch (error) {
 			if (statusEl) {
-				statusEl.textContent = `❌ Ошибка: ${error.message}`;
+				tokenStatusText = `❌ Ошибка: ${error.message}`;
 				statusEl.className = 'token-status error';
 			}
 		}
@@ -142,7 +145,6 @@
 </svelte:head>
 
 <div class="admin-container">
-	<h1>🔧 Admin - Order Management</h1>
 	
 	<div class="search-section">
 		<div class="search-input-group">
@@ -163,7 +165,7 @@
 		{/if}
 		
 		{#if totalFound > 0}
-			<div class="results-info">Найдено заказов: {totalFound}</div>
+			<div class="results-info">Последние заказы: {totalFound}</div>
 		{/if}
 	</div>
 
@@ -259,7 +261,9 @@
 									</div>
 								</div>
 							{/if}
-							<div class="token-status"></div>
+							{#if tokenStatusText}
+								<div class="token-status">{tokenStatusText}</div>
+							{/if}
 						</div>
 					</div>
 				{/each}
