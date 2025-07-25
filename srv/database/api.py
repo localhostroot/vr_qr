@@ -550,3 +550,259 @@ class TokenViewSet(viewsets.ViewSet):
                 "valid": False,
                 "error": f"Внутренняя ошибка сервера: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AdminViewSet(viewsets.ViewSet):
+    permission_classes = [AllowAny]  # TODO: Add proper admin permissions
+    
+    @action(detail=False, methods=['get'])
+    def search_orders(self, request):
+        """Search orders by order_id (supports partial match)"""
+        search_query = request.query_params.get('q', '').strip()
+        
+        if not search_query:
+            # Return recent orders if no search query
+            orders = Order.objects.all().order_by('-created_at')[:20]
+        else:
+            # Search by order_id (partial match)
+            orders = Order.objects.filter(order_id__icontains=search_query).order_by('-created_at')[:50]
+        
+        orders_data = []
+        for order in orders:
+            # Check if token exists for this order
+            token_info = None
+            try:
+                payment_token = PaymentToken.objects.get(order=order)
+                token_info = {
+                    'exists': True,
+                    'token': payment_token.token,
+                    'expires_at': payment_token.expires_at.isoformat(),
+                    'is_valid': payment_token.is_valid()
+                }
+            except PaymentToken.DoesNotExist:
+                token_info = {'exists': False}
+            
+            # Get order items
+            order_items = OrderItem.objects.filter(order=order)
+            items_data = []
+            for item in order_items:
+                try:
+                    if item.is_series:
+                        film = Movie.objects.get(film_id=item.film_id)
+                    else:
+                        film = Category.objects.get(film_id=item.film_id)
+                    
+                    items_data.append({
+                        'film_id': item.film_id,
+                        'is_series': item.is_series,
+                        'name': film.name,
+                        'price': float(item.price)
+                    })
+                except (Category.DoesNotExist, Movie.DoesNotExist):
+                    items_data.append({
+                        'film_id': item.film_id,
+                        'is_series': item.is_series,
+                        'name': f'Film {item.film_id} (не найден)',
+                        'price': float(item.price)
+                    })
+            
+            orders_data.append({
+                'order_id': order.order_id,
+                'order_id_short': order.order_id[:8],  # First 8 characters for display
+                'user_id': order.user_id,
+                'amount': float(order.amount),
+                'status': order.status,
+                'description': order.description,
+                'created_at': order.created_at.isoformat(),
+                'payment_id': order.payment_id,
+                'token_info': token_info,
+                'items': items_data
+            })
+        
+        return Response({
+            'orders': orders_data,
+            'total_found': len(orders_data)
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'])
+    def confirm_payment_and_issue_token(self, request):
+        """Manually confirm payment and issue token for order (for cases when payment callback failed)"""
+        order_id = request.data.get('order_id')
+        
+        if not order_id:
+            return Response({
+                'success': False,
+                'error': 'order_id обязателен'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            order = Order.objects.get(order_id=order_id)
+            
+            # Check if token already exists
+            existing_token = None
+            try:
+                existing_token = PaymentToken.objects.get(order=order)
+                return Response({
+                    'success': False,
+                    'error': 'Токен уже существует для этого заказа',
+                    'existing_token': {
+                        'token': existing_token.token,
+                        'expires_at': existing_token.expires_at.isoformat(),
+                        'is_valid': existing_token.is_valid()
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+            except PaymentToken.DoesNotExist:
+                pass  # Good, no existing token
+            
+            # If order is not paid yet, mark it as paid first
+            if order.status != 'paid':
+                order.status = 'paid'
+                order.payment_id = f'admin_confirmed_{timezone.now().strftime("%Y%m%d_%H%M%S")}'
+                order.save()
+                logger.info(f"Admin: заказ {order_id} вручную помечен как оплаченный")
+            
+            # Create new token
+            expires_at = timezone.now() + timezone.timedelta(hours=2)
+            token_string = secrets.token_hex(32)
+            
+            logger.info(f"Admin: создаем токен доступа для заказа {order_id}")
+            payment_token = PaymentToken.objects.create(
+                token=token_string,
+                order=order,
+                expires_at=expires_at
+            )
+            
+            # Create PaidFilm entries for all order items
+            order_items = OrderItem.objects.filter(order=order)
+            created_films = []
+            
+            for item in order_items:
+                paid_film = PaidFilm.objects.create(
+                    token=payment_token,
+                    film_id=item.film_id,
+                    is_series=item.is_series,
+                    price=item.price
+                )
+                created_films.append({
+                    'film_id': item.film_id,
+                    'is_series': item.is_series,
+                    'price': float(item.price)
+                })
+                logger.info(f"Admin: создана запись об оплаченном фильме {item.film_id} для заказа {order_id}")
+            
+            logger.info(f"Admin: токен {token_string} создан для заказа {order_id}")
+            
+            return Response({
+                'success': True,
+                'message': 'Платеж подтвержден и токен создан',
+                'order_status_updated': order.status == 'paid',
+                'token_info': {
+                    'token': token_string,
+                    'expires_at': expires_at.isoformat(),
+                    'films_count': len(created_films)
+                },
+                'films': created_films
+            }, status=status.HTTP_201_CREATED)
+            
+        except Order.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'Заказ не найден'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.exception(f"Admin: ошибка при создании токена для заказа {order_id}: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f'Внутренняя ошибка сервера: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['post'])
+    def issue_token(self, request):
+        """Issue token for already paid order"""
+        order_id = request.data.get('order_id')
+        
+        if not order_id:
+            return Response({
+                'success': False,
+                'error': 'order_id обязателен'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            order = Order.objects.get(order_id=order_id)
+            
+            # Check if order is paid
+            if order.status != 'paid':
+                return Response({
+                    'success': False,
+                    'error': f'Заказ должен быть в статусе "paid", текущий статус: {order.status}. Используйте "Подтвердить и выдать токен" для неоплаченных заказов.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check if token already exists
+            existing_token = None
+            try:
+                existing_token = PaymentToken.objects.get(order=order)
+                return Response({
+                    'success': False,
+                    'error': 'Токен уже существует для этого заказа',
+                    'existing_token': {
+                        'token': existing_token.token,
+                        'expires_at': existing_token.expires_at.isoformat(),
+                        'is_valid': existing_token.is_valid()
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+            except PaymentToken.DoesNotExist:
+                pass  # Good, no existing token
+            
+            # Create new token
+            expires_at = timezone.now() + timezone.timedelta(hours=2)
+            token_string = secrets.token_hex(32)
+            
+            logger.info(f"Admin: создаем токен доступа для заказа {order_id}")
+            payment_token = PaymentToken.objects.create(
+                token=token_string,
+                order=order,
+                expires_at=expires_at
+            )
+            
+            # Create PaidFilm entries for all order items
+            order_items = OrderItem.objects.filter(order=order)
+            created_films = []
+            
+            for item in order_items:
+                paid_film = PaidFilm.objects.create(
+                    token=payment_token,
+                    film_id=item.film_id,
+                    is_series=item.is_series,
+                    price=item.price
+                )
+                created_films.append({
+                    'film_id': item.film_id,
+                    'is_series': item.is_series,
+                    'price': float(item.price)
+                })
+                logger.info(f"Admin: создана запись об оплаченном фильме {item.film_id} для заказа {order_id}")
+            
+            logger.info(f"Admin: токен {token_string} создан для заказа {order_id}")
+            
+            return Response({
+                'success': True,
+                'message': 'Токен успешно создан',
+                'token_info': {
+                    'token': token_string,
+                    'expires_at': expires_at.isoformat(),
+                    'films_count': len(created_films)
+                },
+                'films': created_films
+            }, status=status.HTTP_201_CREATED)
+            
+        except Order.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'Заказ не найден'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.exception(f"Admin: ошибка при создании токена для заказа {order_id}: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f'Внутренняя ошибка сервера: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
