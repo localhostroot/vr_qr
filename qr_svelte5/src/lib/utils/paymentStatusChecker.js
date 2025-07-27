@@ -63,17 +63,17 @@ async function processSuccessfulPayment(orderId) {
     // Clear queue since payment was successful
     globals.set('queue', []);
     
-    // Clean up localStorage
+    // Mark order as checked BEFORE cleaning localStorage
+    await fetch(`${PUBLIC_DATABASE}api/status/checked/?order_id=${orderId}`, {
+      method: 'POST',
+    });
+    
+    // Clean up localStorage only after successful API call
     if (browser) {
       localStorage.removeItem(LOCAL_STORAGE_KEYS.QUEUE_PENDING_PAYMENT);
       localStorage.removeItem(LOCAL_STORAGE_KEYS.QUEUE);
       localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
     }
-
-    // Mark order as checked
-    await fetch(`${PUBLIC_DATABASE}api/status/checked/?order_id=${orderId}`, {
-      method: 'POST',
-    });
 
     return { success: true };
 

@@ -52,16 +52,16 @@
               // Clear queue since payment was successful
               globals.set('queue', []);
               
-              // Clean up localStorage
+              // Mark order as checked BEFORE cleaning localStorage
+              await fetch(`${PUBLIC_DATABASE}api/status/checked/?order_id=${orderId}`, {
+                method: 'POST',
+              });
+              
+              // Clean up localStorage only after successful API call
               localStorage.removeItem(LOCAL_STORAGE_KEYS.QUEUE_PENDING_PAYMENT);
               localStorage.removeItem(LOCAL_STORAGE_KEYS.QUEUE);
               localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
               localStorage.removeItem(LOCAL_STORAGE_KEYS.ORDER_TIME);
-              
-              // Mark order as checked
-              await fetch(`${PUBLIC_DATABASE}api/status/checked/?order_id=${orderId}`, {
-                method: 'POST',
-              });
               
               status = 'success';
               return true;
