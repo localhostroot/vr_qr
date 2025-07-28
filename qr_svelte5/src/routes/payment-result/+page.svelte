@@ -14,6 +14,7 @@ import { getSubfolder, getCookie } from '$lib/utils/+helpers.svelte';
   let orderId = $state(null);
   let orderIdShort = $state(null);
   let orderTime = $state(null);
+  let redirectCountdown = $state(0);
   const maxRetries = 10; // Try for about 30 seconds
   
   let currentClient = $derived(globals.get('currentClient'))
@@ -64,6 +65,8 @@ import { getSubfolder, getCookie } from '$lib/utils/+helpers.svelte';
               localStorage.removeItem(LOCAL_STORAGE_KEYS.ORDER_TIME);
               
               status = 'success';
+              // Start countdown for auto-redirect
+              startSuccessRedirect();
               return true;
             }
           }
@@ -100,6 +103,8 @@ import { getSubfolder, getCookie } from '$lib/utils/+helpers.svelte';
         
         if (result.success) {
           status = 'success';
+          // Start countdown for auto-redirect
+          startSuccessRedirect();
           return;
         }
         
@@ -185,6 +190,17 @@ import { getSubfolder, getCookie } from '$lib/utils/+helpers.svelte';
     processPaymentResult(isSuccess);
   });
 
+  function startSuccessRedirect() {
+    redirectCountdown = 2;
+    const interval = setInterval(() => {
+      redirectCountdown--;
+      if (redirectCountdown <= 0) {
+        clearInterval(interval);
+        goto(`${getSubfolder()}/films/`);
+      }
+    }, 1000);
+  }
+
   function handleContinue() {
     if (status === 'success') {
       goto(`${getSubfolder()}/films/`);
@@ -211,8 +227,11 @@ import { getSubfolder, getCookie } from '$lib/utils/+helpers.svelte';
       <div class="success-icon">✓</div>
       <h2>Оплата успешна!</h2>
       <p>Ваш заказ был успешно оплачен. Теперь вы можете смотреть выбранные фильмы.</p>
+      {#if redirectCountdown > 0}
+        <p class="redirect-message">Переход к фильмам через {redirectCountdown} сек...</p>
+      {/if}
       <button class="continue-button" onclick={handleContinue}>
-        Перейти к фильмам
+        Перейти к фильмам сейчас
       </button>
     </div>
   {/if}
@@ -406,6 +425,13 @@ import { getSubfolder, getCookie } from '$lib/utils/+helpers.svelte';
 
   .continue-button:active {
     transform: translateY(0);
+  }
+
+  .redirect-message {
+    font-size: var(--font-14);
+    color: var(--color-success);
+    margin: var(--spacing-10) 0;
+    font-weight: var(--font-weight-500);
   }
 
   .waiting-container {
