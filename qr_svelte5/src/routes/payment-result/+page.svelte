@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { getSubfolder } from '$lib/utils/+helpers.svelte';
+import { getSubfolder, getCookie } from '$lib/utils/+helpers.svelte';
   import { checkPaymentStatus } from '$lib/utils/paymentStatusChecker.js';
   import { browser } from '$app/environment';
   import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
@@ -15,8 +15,8 @@
   let orderIdShort = $state(null);
   let orderTime = $state(null);
   const maxRetries = 10; // Try for about 30 seconds
-
-  const currentClient = $derived(globals.get('currentClient'))
+  
+  let currentClient = $derived(globals.get('currentClient'))
 
   async function checkForTokenAndProcess() {
     if (!browser || !orderId) return;
@@ -155,6 +155,19 @@
 
   onMount(() => {
     if (browser) {
+      // Restore currentClient from localStorage/cookies if not in globals
+      if (!currentClient) {
+        const storedClient = localStorage.getItem(LOCAL_STORAGE_KEYS.CLIENT) || getCookie('CURRENT_CLIENT');
+        if (storedClient) {
+          try {
+            const parsed = JSON.parse(storedClient);
+            globals.set('currentClient', parsed);
+          } catch (error) {
+            console.error('Error parsing stored client data:', error);
+          }
+        }
+      }
+
       // Get order ID from localStorage
       const storedOrderId = localStorage.getItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
       if (storedOrderId) {

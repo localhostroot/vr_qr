@@ -1,10 +1,12 @@
 <script>
   import { goto } from '$app/navigation';
+  import { browser } from '$app/environment';
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { icons } from '$lib/icons/icons.js';
   import Header from '$lib/components/widgets/Header.svelte';
   import ContentCardBig from '$lib/components/Queue/ContentCardBig.svelte';
-  import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
+import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
+import { getCookie } from '$lib/utils/+helpers.svelte.js';
   import { createPaykeeperPayment } from '$lib/utils/paykeeperPayment.js';
   import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
@@ -13,6 +15,24 @@
   let currentClient = $derived(globals.get('currentClient'));
 
   let modalVisible = $state(false);
+
+  // Add onMount to restore currentClient
+  import { onMount } from 'svelte';
+  
+  onMount(() => {
+    // Restore currentClient from localStorage/cookies if not in globals
+    if (browser && !currentClient) {
+      const storedClient = localStorage.getItem(LOCAL_STORAGE_KEYS.CLIENT) || getCookie('CURRENT_CLIENT');
+      if (storedClient) {
+        try {
+          const parsed = JSON.parse(storedClient);
+          globals.set('currentClient', parsed);
+        } catch (error) {
+          console.error('Error parsing stored client data:', error);
+        }
+      }
+    }
+  });
 
   function handleClick() {
     const clientString = localStorage.getItem(LOCAL_STORAGE_KEYS.CLIENT);
@@ -59,7 +79,7 @@
         </div>
       </div>
       {#if currentClient}
-        <div class="client-name">Очки <b>№ {currentClient.id}</b></div>
+        <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{currentClient?.id ?? ''}</b></div>
       {/if}
       <div class="queue">
         {#each queue as item}
@@ -83,7 +103,7 @@
         </div>
       </div>  
       {#if currentClient}
-        <div class="client-name">Очки <b>№ {currentClient.id}</b></div>
+        <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{currentClient?.id ?? ''}</b></div>
       {/if}
       <div class="empty-queue">
         <div class="empty-icon">

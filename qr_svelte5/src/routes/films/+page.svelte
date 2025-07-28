@@ -6,11 +6,10 @@
   import { icons } from '$lib/icons/icons.js';
   import { useWebSocket } from '$lib/utils/websocket.js';
   import ContentCardPaid from '$lib/components/ContentCardPaid.svelte';
-  import { getSubfolder } from '$lib/utils/+helpers.svelte';
+import { getSubfolder, getCookie } from '$lib/utils/+helpers.svelte.js';
+import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 
   let paidFilms = $derived(globals.get('paidFilms'));
-
-  $inspect(paidFilms)
 
   let token = $derived(globals.get('token'));
   let tokenExpiry = $derived(globals.get('tokenExpiry'));
@@ -85,6 +84,19 @@
   };
 
   onMount(() => {
+    // Restore currentClient from localStorage/cookies if not in globals
+    if (browser && !currentClient) {
+      const storedClient = localStorage.getItem(LOCAL_STORAGE_KEYS.CLIENT) || getCookie('CURRENT_CLIENT');
+      if (storedClient) {
+        try {
+          const parsed = JSON.parse(storedClient);
+          globals.set('currentClient', parsed);
+        } catch (error) {
+          console.error('Error parsing stored client data:', error);
+        }
+      }
+    }
+
     // Scroll to top
     if (browser) {
       window.scrollTo(0, 0);
@@ -108,7 +120,7 @@
   <div class="queuePage">
     <!-- Empty state similar to React -->
 
-    <div class="client-name">Очки: <b>№ {currentClient.location}/{currentClient.id}</b></div>
+    <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{currentClient?.id ?? ''}</b></div>
 
     <div class="info">
       <div class="pageName">
@@ -123,14 +135,14 @@
 {:else}
   <div class="queuePage">
     <!-- Top icons similar to React -->
-    <div class="iconsTop">
+    <!-- <div class="iconsTop">
       <div class="inst" onclick={handleClick}>
         {@html icons.main}
-      </div>
+      </div> -->
       <!-- <div class="inst" onclick={handleOpenModal}>
         i
       </div> -->
-    </div>
+    <!-- </div> -->
     
     <!-- Info section -->
     <div class="info">
@@ -142,7 +154,7 @@
       </div>
     </div>
 
-    <div class="client-name">Очки: <b>№ {currentClient.location}/{currentClient.id}</b></div>
+    <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{currentClient?.id ?? ''}</b></div>
     
     <!-- Films queue -->
     <div class="queue">

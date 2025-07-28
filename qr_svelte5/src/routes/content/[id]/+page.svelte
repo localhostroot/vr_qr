@@ -2,7 +2,9 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { browser } from '$app/environment';
-  import { PUBLIC_DATABASE } from '$env/static/public';
+import { PUBLIC_DATABASE } from '$env/static/public';
+import { getCookie } from '$lib/utils/+helpers.svelte.js';
+import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
   import axios from 'axios';
   import SingleMovieItem from '$lib/components/SingleMovieItem/SingleMovieItem.svelte';
   import StartScreen from '$lib/components/widgets/StartScreen.svelte';
@@ -17,6 +19,8 @@
   let pageInitialized = $state(false);
 
   let id = $derived($page.params.id);
+  let currentClient = $derived(globals.get('currentClient'));
+
   const singleMovieItemLoading = $derived(globals.get('singleMovieItemLoading'))
 
   const checkSessionStorage = () => {
@@ -77,6 +81,19 @@
   let filmsList = $derived(setFilmList());
 
   onMount(async () => {
+    // Restore currentClient from localStorage/cookies if not in globals
+    if (browser && !currentClient) {
+      const storedClient = localStorage.getItem(LOCAL_STORAGE_KEYS.CLIENT) || getCookie('CURRENT_CLIENT');
+      if (storedClient) {
+        try {
+          const parsed = JSON.parse(storedClient);
+          globals.set('currentClient', parsed);
+        } catch (error) {
+          console.error('Error parsing stored client data:', error);
+        }
+      }
+    }
+
     if (typeof window !== 'undefined') {
       window.scrollTo(0, 0);
     }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { browser } from '$app/environment';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 
@@ -92,9 +93,21 @@ function getGlobals() {
   } else if (item === 'currentSlideIndex') {
     saveToLocalStorage(LOCAL_STORAGE_KEYS.SLIDER_INDEX, globalStorage[item]);
   } else if (item === 'token') {
-    saveToLocalStorage(LOCAL_STORAGE_KEYS.PAYMENT_TOKEN, globalStorage[item]);
+    if (browser) {
+      if (globalStorage[item] === null) {
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYMENT_TOKEN);
+      } else {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.PAYMENT_TOKEN, globalStorage[item]);
+      }
+    }
   } else if (item === 'tokenExpiry') {
-    saveToLocalStorage(LOCAL_STORAGE_KEYS.TOKEN_EXPIRY, globalStorage[item]);
+    if (browser) {
+      if (globalStorage[item] === null) {
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN_EXPIRY);
+      } else {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN_EXPIRY, globalStorage[item]);
+      }
+    }
   } else if (item === 'currentClient') {
     saveToLocalStorage(LOCAL_STORAGE_KEYS.CLIENT, globalStorage[item]);
   }
@@ -119,9 +132,21 @@ function getGlobals() {
     } else if (item === 'currentSlideIndex') {
       saveToLocalStorage(LOCAL_STORAGE_KEYS.SLIDER_INDEX, value);
     } else if (item === 'token') {
-      saveToLocalStorage(LOCAL_STORAGE_KEYS.PAYMENT_TOKEN, value);
+      if (browser) {
+        if (value === null) {
+          localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYMENT_TOKEN);
+        } else {
+          localStorage.setItem(LOCAL_STORAGE_KEYS.PAYMENT_TOKEN, value);
+        }
+      }
     } else if (item === 'tokenExpiry') {
-      saveToLocalStorage(LOCAL_STORAGE_KEYS.TOKEN_EXPIRY, value);
+      if (browser) {
+        if (value === null) {
+          localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN_EXPIRY);
+        } else {
+          localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN_EXPIRY, value);
+        }
+      }
     } else if (item === 'currentClient') {
       saveToLocalStorage(LOCAL_STORAGE_KEYS.CLIENT, value);
     }
@@ -175,8 +200,18 @@ function getGlobals() {
   setToken(token, expiry) {
     globalStorage.token = token;
     globalStorage.tokenExpiry = expiry;
-    saveToLocalStorage(LOCAL_STORAGE_KEYS.PAYMENT_TOKEN, token);
-    saveToLocalStorage(LOCAL_STORAGE_KEYS.TOKEN_EXPIRY, expiry);
+    if (browser) {
+      if (token === null) {
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYMENT_TOKEN);
+      } else {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.PAYMENT_TOKEN, token);
+      }
+      if (expiry === null) {
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN_EXPIRY);
+      } else {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN_EXPIRY, expiry);
+      }
+    }
   },
 
   removeToken() {

@@ -7,15 +7,14 @@
   import Header from '$lib/components/widgets/Header.svelte';
   import VrPlayer from '$lib/components/MainPage/VrPlayer.svelte';
   import StartScreen from '$lib/components/widgets/StartScreen.svelte';
-  import MainPageHeader from '$lib/components/MainPage/MainPageHeader.svelte';
+import MainPageHeader from '$lib/components/MainPage/MainPageHeader.svelte';
+import { setCookie } from '$lib/utils/+helpers.svelte.js';
 
   let location = $derived($page.params.location);
   let id = $derived($page.params.id);
   let library = $derived(globals.get('library'));
   let isLibraryLoading = $derived(globals.get('isLibraryLoading'));
   let isClientsLoading = $derived(globals.get('isClientsLoading'));
-
-  globals.set('currentClient', { location, id });
   
   let noveltyRef = $state();
   let pageInitialized = $state(false);
@@ -31,6 +30,13 @@
 
 
   onMount(async () => {
+    // Set current client data in browser only
+    if (browser) {
+      const currentClient = { location, id };
+      globals.set('currentClient', currentClient);
+      localStorage.setItem('CLIENT', JSON.stringify(currentClient));
+      setCookie('CURRENT_CLIENT', JSON.stringify(currentClient), 7);
+    }
 
     const result = await initializeMainPageData(location, id);
 

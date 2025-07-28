@@ -78,8 +78,6 @@
       if (item.film_id) {
         url += `&film_id=${item.film_id}`;
       }
-
-      console.log(url);
       
       const response = await fetch(url);
       
