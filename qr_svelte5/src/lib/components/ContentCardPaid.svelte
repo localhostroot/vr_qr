@@ -36,11 +36,6 @@
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  
-  // API URLs from environment
-  const databaseApi = PUBLIC_DATABASE;
-  const backendApi = PUBLIC_BACKEND;
-
   // Content card state logic
   const updateContentCardState = () => {
     if (!client || !item) {
@@ -62,7 +57,7 @@
 
   // Token validation
   const validateToken = async () => {
-    if (!token || !databaseApi || !item) {
+    if (!token || !PUBLIC_DATABASE || !item) {
       isValidToken = false;
       isValidFilm = false;
       isLoading = false;
@@ -79,10 +74,12 @@
       }
 
       // Validate token and film access
-      let url = `${databaseApi}api/tokens/validate/?token=${token}`;
+      let url = `${PUBLIC_DATABASE}api/tokens/validate/?token=${token}`;
       if (item.film_id) {
         url += `&film_id=${item.film_id}`;
       }
+
+      console.log(url);
       
       const response = await fetch(url);
       
@@ -149,7 +146,7 @@
   // Send request via WebSocket
   const sendRequest = async (type, filmId = null) => {
     return new Promise((resolve, reject) => {
-      const ws = new WebSocket(`${backendApi}`);
+      const ws = new WebSocket(PUBLIC_BACKEND);
 
       ws.onopen = () => {
         const message = JSON.stringify({
