@@ -149,9 +149,6 @@ import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
       <div class="pageName">
         Мои покупки
       </div>
-      <div class="paymentBtn" onclick={handleDelete}>
-        Сбросить
-      </div>
     </div>
 
     <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{currentClient?.id ?? ''}</b></div>

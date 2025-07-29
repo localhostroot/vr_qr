@@ -20,6 +20,7 @@
   let isOtherActive = $state(false);
   let fillBarElement = $state(null);
   let isFillBarComplete = $state(false);
+  let isTokenExpiry = $state(false);
 
   // Get token from store using $derived
   let token = $derived(globals.get('token'));
@@ -71,19 +72,28 @@
       if (tokenExpiry && new Date(tokenExpiry) <= new Date()) {
         isValidToken = false;
         isValidFilm = false;
+        isTokenExpiry = true;
         isLoading = false;
 
+        // Animate fill bar when token is expired
         setTimeout(() => {
-          
-          // Remove film data from localStorage
-          const updatedPaidFilms = (globals.get('paidFilms') || []).filter(film => film.film_id !== item.film_id);
-          globals.set('paidFilms', updatedPaidFilms);
-  
-          // Clear localStorage if in browser
-          if (browser) {
-            localStorage.setItem('paidFilms', JSON.stringify(updatedPaidFilms));
+          if (fillBarElement) {
+            fillBarElement.style.width = '100%';
           }
-        }, 3350);
+        }, 100);
+
+        // Remove film data only if token is expired - after 3 seconds
+        if (isTokenExpiry) {
+          setTimeout(() => {
+            const updatedPaidFilms = (globals.get('paidFilms') || []).filter(film => film.film_id !== item.film_id);
+            globals.set('paidFilms', updatedPaidFilms);
+    
+            // Clear localStorage if in browser
+            if (browser) {
+              localStorage.setItem('paidFilms', JSON.stringify(updatedPaidFilms));
+            }
+          }, 3350);
+        }
 
         return;
       }
@@ -126,6 +136,7 @@
         } else {
           isValidToken = false;
           isValidFilm = false;
+          isTokenExpiry = false;
           
           if (item.film_id) {
             // Remove film from paid films if token is invalid
@@ -142,6 +153,7 @@
       } else {
         isValidToken = false;
         isValidFilm = false;
+        isTokenExpiry = false;
         
         if (item.film_id) {
           // Remove film from paid films on error
@@ -277,24 +289,6 @@
   onMount(() => {
     validateToken();
     updateContentCardState();
-
-    // Animate the fill bar after mounted
-    setTimeout(() => {
-      if (fillBarElement) {
-        fillBarElement.style.width = '100%';
-        
-        // After 3 seconds, mark as complete and trigger localStorage update
-        setTimeout(() => {
-          isFillBarComplete = true;
-          
-          // Update localStorage with current paidFilms state
-          if (browser) {
-            const currentPaidFilms = globals.get('paidFilms') || [];
-            localStorage.setItem('paidFilms', JSON.stringify(currentPaidFilms));
-          }
-        }, 3000);
-      }
-    }, 100);
   });
 
   // Reactive updates using $effect
@@ -373,16 +367,20 @@
         </div>
       {:else}
         <div class="accessDenied">
-          {#if !isValidToken}
+          {#if isTokenExpiry}
             Время доступа к фильму истекло
+          {:else}
+            Нет доступа к фильму.
           {/if}
         </div>
       {/if}
     </div> <!-- Closing the bottomInfo div -->
 
-    <div class="fillBarContainer">
-      <div class="fillBar" bind:this={fillBarElement}></div>
-    </div>
+    {#if isTokenExpiry}
+      <div class="fillBarContainer">
+        <div class="fillBar" bind:this={fillBarElement}></div>
+      </div>
+    {/if}
 
     {#if requestError}
       <div class="error">
