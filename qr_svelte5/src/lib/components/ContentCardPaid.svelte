@@ -18,6 +18,8 @@
   let isPending = $state(false);
   let isInQueue = $state(false);
   let isOtherActive = $state(false);
+  let fillBarElement = $state(null);
+  let isFillBarComplete = $state(false);
 
   // Get token from store using $derived
   let token = $derived(globals.get('token'));
@@ -70,6 +72,19 @@
         isValidToken = false;
         isValidFilm = false;
         isLoading = false;
+
+        setTimeout(() => {
+          
+          // Remove film data from localStorage
+          const updatedPaidFilms = (globals.get('paidFilms') || []).filter(film => film.film_id !== item.film_id);
+          globals.set('paidFilms', updatedPaidFilms);
+  
+          // Clear localStorage if in browser
+          if (browser) {
+            localStorage.setItem('paidFilms', JSON.stringify(updatedPaidFilms));
+          }
+        }, 3350);
+
         return;
       }
 
@@ -92,10 +107,13 @@
             isValidFilm = filmValid;
             
             if (!filmValid) {
-              // Remove film from paid films if not valid
-              const paidFilms = globals.get('paidFilms') || [];
-              const updatedPaidFilms = paidFilms.filter(film => film.film_id !== item.film_id);
+              const updatedPaidFilms = (globals.get('paidFilms') || []).filter(film => film.film_id !== item.film_id);
               globals.set('paidFilms', updatedPaidFilms);
+
+              // Clear localStorage if in browser
+              if (browser) {
+                localStorage.setItem('paidFilms', JSON.stringify(updatedPaidFilms));
+              }
             }
           } else {
             isValidFilm = true;
@@ -259,6 +277,24 @@
   onMount(() => {
     validateToken();
     updateContentCardState();
+
+    // Animate the fill bar after mounted
+    setTimeout(() => {
+      if (fillBarElement) {
+        fillBarElement.style.width = '100%';
+        
+        // After 3 seconds, mark as complete and trigger localStorage update
+        setTimeout(() => {
+          isFillBarComplete = true;
+          
+          // Update localStorage with current paidFilms state
+          if (browser) {
+            const currentPaidFilms = globals.get('paidFilms') || [];
+            localStorage.setItem('paidFilms', JSON.stringify(currentPaidFilms));
+          }
+        }, 3000);
+      }
+    }, 100);
   });
 
   // Reactive updates using $effect
@@ -337,9 +373,15 @@
         </div>
       {:else}
         <div class="accessDenied">
-          Нет доступа к фильму
+          {#if !isValidToken}
+            Время доступа к фильму истекло
+          {/if}
         </div>
       {/if}
+    </div> <!-- Closing the bottomInfo div -->
+
+    <div class="fillBarContainer">
+      <div class="fillBar" bind:this={fillBarElement}></div>
     </div>
 
     {#if requestError}
@@ -440,7 +482,24 @@
     padding-top: 2.4875vw;
   }
 
-  .queueButton {
+.fillBarContainer {
+    width: 100%;
+    background-color: rgb(255 255 255 / 0.1);
+    margin-top: 10px;
+
+    height: 8px;
+    border-radius: 4px;
+  }
+  
+  .fillBar {
+    width: 0%;
+    height: 8px;
+    border-radius: 4px;
+    background-color: var(--color-green);
+    transition: width 3s linear;
+}
+
+.queueButton {
     padding: var(--spacing-10) 2.4875vw;
   }
 
