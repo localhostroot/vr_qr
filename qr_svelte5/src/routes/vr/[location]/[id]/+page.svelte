@@ -30,13 +30,13 @@ import { setCookie } from '$lib/utils/+helpers.svelte.js';
 
 
   onMount(async () => {
+
     // Set current client data in browser only
-    if (browser) {
-      const currentClient = { location, id };
-      globals.set('currentClient', currentClient);
-      localStorage.setItem('CLIENT', JSON.stringify(currentClient));
-      setCookie('CURRENT_CLIENT', JSON.stringify(currentClient), 7);
-    }
+    
+    const currentClient = { location, id };
+    globals.set('currentClient', currentClient);
+    localStorage.setItem('CLIENT', JSON.stringify(currentClient));
+    setCookie('CURRENT_CLIENT', JSON.stringify(currentClient), 7);
 
     const result = await initializeMainPageData(location, id);
 
