@@ -1,6 +1,7 @@
 <script>
 	import '../app.css';
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import { globals } from '$lib/stores/+stores.svelte.js';
 	import { useWebSocket } from '$lib/utils/websocket.js';
 	import { checkPaymentStatus } from '$lib/utils/paymentStatusChecker.js';
@@ -9,6 +10,9 @@
 	import Footer from '$lib/components/widgets/Footer.svelte';
 
 	let webSocketManager;
+
+	// Determine if FixedNavigation should be shown based on current route
+	let showFixedNavigation = $derived($page.route.id !== '/' && $page.route.id !== '/site-admin');
 
 	onMount(() => {
 		// Initialize WebSocket connection
@@ -31,6 +35,8 @@
 	<div class="content-wrapper">
 		<slot />
 	</div>
-	<FixedNavigation />
+	{#if showFixedNavigation}
+		<FixedNavigation />
+	{/if}
 	<Footer />
 </div>
