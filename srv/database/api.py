@@ -6,6 +6,8 @@ import requests
 from .models import Category, Movie, Order, OrderItem, PaidFilm, PaymentToken
 from rest_framework import viewsets, permissions, status
 from .serializers import CategorySerializer, MovieSerializer, OrderSerializer
+from .payment_provider import PaymentProviderClient
+from .payment_processor import PaymentProcessor
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
@@ -167,79 +169,21 @@ class PaymentViewSet(viewsets.ViewSet):
                 )
                 return HttpResponse("Суммы не совпадают", status=400)
 
-            if order.status == 'paid':
+            if PaymentProcessor.is_already_processed(order):
                 logger.warning(f"PayKeeper Callback: платеж уже был обработан для заказа {order_id}")
                 response_hash = hashlib.md5((payment_id + secret_seed).encode('utf-8')).hexdigest()
                 return HttpResponse(f"OK {response_hash}", content_type="text/plain")
 
             logger.info(f"PayKeeper Callback: статус заказа {order_id} до обновления: {order.status}")
 
-            try:
-                order.status = 'paid'
-                order.payment_id = payment_id
-                order.save()
-                logger.info(f"PayKeeper Callback: статус заказа {order_id} обновлен на 'paid', payment_id: {payment_id}")
-                
+            # Use PaymentProcessor to handle the payment
+            if PaymentProcessor.process_successful_payment(order, payment_id):
+                logger.info(f"PayKeeper Callback: заказ {order_id} успешно обработан")
                 response_hash = hashlib.md5((payment_id + secret_seed).encode('utf-8')).hexdigest()
                 response = HttpResponse(f"OK {response_hash}", content_type="text/plain")
-                
-            except Exception as save_error:
-                logger.exception(f"PayKeeper Callback: критическая ошибка при сохранении статуса заказа: {save_error}")
-                return HttpResponse(f"Ошибка сохранения статуса заказа: {str(save_error)}", status=500)
-
-            try:
-                expires_at = timezone.now() + timezone.timedelta(hours=2)
-                token_string = secrets.token_hex(32)
-                
-                logger.info(f"PayKeeper Callback: создаем токен доступа для заказа {order_id}")
-                payment_token = PaymentToken.objects.create(
-                    token=token_string,
-                    order=order,
-                    expires_at=expires_at
-                )
-                logger.info(f"PayKeeper Callback: токен {token_string} создан для заказа {order_id}")
-                
-                order_items = OrderItem.objects.filter(order=order)
-                logger.info(f"PayKeeper Callback: найдено {order_items.count()} элементов в заказе {order_id}")
-                
-                for item in order_items:
-                    paid_film = PaidFilm.objects.create(
-                        token=payment_token,
-                        film_id=item.film_id,
-                        is_series=item.is_series,
-                        price=item.price
-                    )
-                    logger.info(f"PayKeeper Callback: создана запись об оплаченном фильме {item.film_id} для заказа {order_id}")
-                    
-                    try:
-                        if '/' in order.user_id:
-                            location_id, device_id = order.user_id.split('/')
-                            logger.info(f"PayKeeper Callback: отправка статистики для фильма {item.film_id}, локация {location_id}")
-                            
-                            response = requests.post(
-                                f"{settings.STAT_API_URL}record_view/", 
-                                json={
-                                    'location_id': location_id,
-                                    'movie_id': item.film_id
-                                },
-                                timeout=5  
-                            )
-                            
-                            if response.status_code == 200:
-                                logger.info(f"PayKeeper Callback: статистика успешно отправлена для фильма {item.film_id}")
-                            else:
-                                logger.warning(f"PayKeeper Callback: ошибка при отправке статистики, код: {response.status_code}")
-                        else:
-                            logger.warning(f"PayKeeper Callback: неверный формат user_id: {order.user_id}")
-                    except requests.RequestException as req_error:
-                        logger.error(f"PayKeeper Callback: ошибка запроса при отправке статистики: {req_error}")
-                    except Exception as stat_error:
-                        logger.error(f"PayKeeper Callback: ошибка при записи статистики: {stat_error}")
-                
-                logger.info(f"PayKeeper Callback: заказ {order_id} полностью обработан, токен {token_string}")
-                
-            except Exception as additional_error:
-                logger.exception(f"PayKeeper Callback: некритическая ошибка при дополнительной обработке: {additional_error}")
+            else:
+                logger.error(f"PayKeeper Callback: ошибка при обработке платежа для заказа {order_id}")
+                return HttpResponse("Ошибка обработки платежа", status=500)
             return response
 
         except Exception as e:
@@ -259,6 +203,21 @@ class PaymentStatusViewSet(viewsets.ViewSet):
         try:
             order = get_object_or_404(Order, order_id=order_id)
             logger.info(f"Payment status {order_id}: {order.status}")
+            
+            # Check if the status needs verification
+            if order.status not in ['paid', 'checked'] and settings.PAYMENT_VERIFICATION_ENABLED:
+                payment_client = PaymentProviderClient()
+                payment = payment_client.verify_payment_by_order_id(order_id, search_days=1)
+                
+                if payment and payment_client.is_payment_successful(payment):
+                    logger.info(f"Verified successful payment for order {order_id} from provider")
+                    PaymentProcessor.process_successful_payment(order, payment_id=payment.get('id'))
+                    return Response({'status': 'success', 'verified': True}, status=status.HTTP_200_OK)
+                else:
+                    logger.warning(f"No successful payment found for order {order_id} in provider")
+                    return Response({'status': 'pending', 'verified': False}, status=status.HTTP_200_OK)
+
+            # Return current status
             if order.status == 'paid':
                 return Response({'status': 'success'}, status=status.HTTP_200_OK)
             elif order.status == 'checked':

@@ -14,6 +14,15 @@ PAYKEEPER_TEST_MODE ='true'
 PAYKEEPER_URL = 'https://api.paykeeper.ru/v1' if not PAYKEEPER_TEST_MODE else 'https://demo.paykeeper.ru/create/'
 PAYKEEPER_CHECK_URL = 'https://api.paykeeper.ru/v1/invoices/check' if not PAYKEEPER_TEST_MODE else 'https://demo.paykeeper.ru/invoices/check'
 
+# Payment provider verification settings
+PAYMENT_PROVIDER_USER = os.environ.get('PAYMENT_PROVIDER_USER', 'admin')
+PAYMENT_PROVIDER_PASSWORD = os.environ.get('PAYMENT_PROVIDER_PASSWORD', 'Provr4neba!')
+PAYMENT_PROVIDER_SERVER = os.environ.get('PAYMENT_PROVIDER_SERVER', '4-neba.server.paykeeper.ru')
+PAYMENT_VERIFICATION_ENABLED = os.environ.get('PAYMENT_VERIFICATION_ENABLED', 'true').lower() == 'true'
+
+# Stats API URL for recording film views
+STAT_API_URL = os.environ.get('STAT_API_URL', 'https://stats.local.vr360.pro/')
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True # Ensure this is False in production
 
