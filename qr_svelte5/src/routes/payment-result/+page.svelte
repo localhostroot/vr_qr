@@ -269,7 +269,7 @@ import { getSubfolder, getCookie } from '$lib/utils/+helpers.svelte';
       <p>Ваш заказ находится в обработке. Администратор активирует доступ в ближайшее время.</p>
       {#if orderId}
         <div class="order-info">
-          <strong>ID заказа для администратора:</strong> <span class="order-id">{orderIdShort}({currentClient})</span>
+          <strong>ID заказа для администратора:</strong> <span class="order-id">{orderIdShort}({currentClient.location}:{currentClient.id})</span>
           {#if orderTime}
             <div style="margin-top: 8px;">
               <strong>Время заказа:</strong> {orderTime}
