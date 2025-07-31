@@ -253,11 +253,65 @@ class PaymentStatusViewSet(viewsets.ViewSet):
 
 
 
+class PaymentsTestViewSet(viewsets.ViewSet):
+    permission_classes = [AllowAny]
+
+    @action(detail=False, methods=['get'])
+    def get_payments_by_date(self, request):
+        date = request.query_params.get('date')
+        
+        if not date:
+            return Response({'error': 'date parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            payment_client = PaymentProviderClient()
+            
+            # Convert date format from YYYY-MM-DD to YYYY_MM_DD for PayKeeper API
+            api_date = date.replace('-', '_')
+            
+            # Get the URL that will be called
+            url = f"{payment_client.base_url}/info/payments/bydate/?start={api_date}&end={api_date}&payment_system_id[]=30&payment_system_id[]=99&status[]=success&status[]=canceled&status[]=refunded&status[]=failed&status[]=obtained&status[]=refunding&status[]=partially_refunded&status[]=stuck&status[]=pending&limit=1000&from=0"
+            
+            # Make the request manually to get more debug info
+            import requests
+            
+            response = requests.get(url, headers=payment_client.headers, timeout=10)
+            
+            # Return detailed debug information
+            debug_info = {
+                'url': url,
+                'status_code': response.status_code,
+                'headers': dict(response.headers),
+                'content_type': response.headers.get('content-type', 'unknown'),
+                'raw_content': response.text[:1000],  # First 1000 chars
+                'content_length': len(response.text)
+            }
+            
+            try:
+                json_data = response.json()
+                return Response({
+                    'success': True,
+                    'payments': json_data,
+                    'debug': debug_info
+                }, status=status.HTTP_200_OK)
+            except ValueError as json_error:
+                return Response({
+                    'success': False,
+                    'error': f'JSON parsing failed: {str(json_error)}',
+                    'debug': debug_info
+                }, status=status.HTTP_200_OK)
+                
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': f'Request failed: {str(e)}',
+                'date_requested': date
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class TokenViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
     
-
-
     @action(detail=False, methods=['get'])
     def get_token_by_order(self, request):
         order_id = request.query_params.get('order_id')
