@@ -10,9 +10,8 @@ import { getSubfolder } from './+helpers.svelte';
  * @returns {Object} Payment handling functions and state setters
  */
 export function createPaykeeperPayment() {
-  // Internal state - will be managed by the component using this
-  let errorState = '';
-  let loadingState = false;
+  // Use reactive loading state for Svelte 5
+  let loadingState = $state(false);
 
   // Paykeeper configuration
   const paykeeperUrl = "https://4-neba.server.paykeeper.ru/create/";
@@ -48,22 +47,24 @@ export function createPaykeeperPayment() {
   const handlePaymentClick = async () => {
     if (!browser) return;
 
+    globals.set('queueErrorState', '');
+
     const userId = getCurrentUserId();
     const queue = globals.get('queue');
 
     // Validation
     if (!userId) {
-      errorState = "Вы не выбрали очки. Перейдите на начальную страницу и выберите очки";
+      globals.set('queueErrorState', "Хедсет не найден! Отсканируйте QR код ещё раз");
       return;
     }
 
     if (!queue || queue.length === 0) {
-      errorState = "Ваша корзина пуста. Добавьте фильмы для оплаты.";
+      globals.set('queueErrorState', "Ваша корзина пуста. Добавьте фильмы для оплаты");
       return;
     }
 
     loadingState = true;
-    errorState = '';
+    globals.set('queueErrorState', '');
 
     try {
       // Create order
@@ -81,7 +82,7 @@ export function createPaykeeperPayment() {
 
       if (!createOrderResponse.ok) {
         const errorData = await createOrderResponse.json();
-        errorState = "Ошибка при создании заказа: " + (errorData.error || "Неизвестная ошибка");
+        globals.set('queueErrorState', "Ошибка при создании заказа: " + (errorData.error || "Неизвестная ошибка"));
         loadingState = false;
         return;
       }
@@ -89,6 +90,11 @@ export function createPaykeeperPayment() {
       const orderData = await createOrderResponse.json();
       const orderId = orderData.order_id;
       const totalAmount = orderData.amount;
+
+      if (!orderId || !totalAmount) {
+        globals.set('queueErrorState', 'Ошибка создания заказа, попробуйте ещё раз');
+        return;
+      }
 
       // Store order data for later verification
       localStorage.setItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID, orderId);
@@ -123,15 +129,14 @@ export function createPaykeeperPayment() {
 
     } catch (err) {
       console.error('Payment error:', err);
-      errorState = "Ошибка сети или сервера.";
+      globals.set('queueErrorState', "Ошибка сети или сервера.");
       loadingState = false;
     }
   };
 
   return {
-    get error() { return errorState; },
     get isLoading() { return loadingState; },
     handlePaymentClick,
-    clearError: () => { errorState = ''; }
+    clearError: () => { globals.set('queueErrorState', ''); }
   };
 }

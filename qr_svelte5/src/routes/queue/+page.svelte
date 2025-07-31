@@ -1,4 +1,6 @@
 <script>
+// @ts-nocheck
+
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
   import { globals } from '$lib/stores/+stores.svelte.js';
@@ -7,12 +9,13 @@
   import ContentCardBig from '$lib/components/Queue/ContentCardBig.svelte';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 import { getCookie } from '$lib/utils/+helpers.svelte.js';
-  import { createPaykeeperPayment } from '$lib/utils/paykeeperPayment.js';
+  import { createPaykeeperPayment } from '$lib/utils/+paykeeperPayment.svelte.js';
   import { getSubfolder } from '$lib/utils/+helpers.svelte';
 
   let queue = $derived(globals.get('queue'));
 
   let currentClient = $derived(globals.get('currentClient'));
+  let queueErrorState = $derived(globals.get('queueErrorState'))
 
   let modalVisible = $state(false);
 
@@ -50,7 +53,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
     }
   }
 
-  const { handlePaymentClick, error, isLoading } = createPaykeeperPayment();
+  const { handlePaymentClick, isLoading } = createPaykeeperPayment();
 
   function handleOpenModal() {
     modalVisible = true;
@@ -145,8 +148,8 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
         <div class="payBtn" onclick={handlePaymentClick}>
           {isLoading ? 'Обработка...' : 'Оплата'}
         </div>
-        {#if error}
-          <div class="error">{error}</div>
+        {#if queueErrorState}
+          <div class="error">{queueErrorState}</div>
         {/if}
         <div class="agreement">
           Нажимая на "Оплатить", вы соглашаетесь с условиями просмотра.

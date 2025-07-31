@@ -74,6 +74,9 @@ let globalStorage = $state({
   // Payment status
   isPaymentLoading: false,
   paymentError: null,
+  
+  // Queue payment error state
+  queueErrorState: '',
 
   singleMovieItemLoading: true
 });
