@@ -31,7 +31,12 @@
       {#each clients as client, index}
         <div class="vrItem" onclick={() => selectClient(client.location, client.id)}>
           {@html icons.smallLogo}
-          <div class="number">{client.location}:{client.id}</div>
+          <div class="client-info">
+            <div class="number">{client.location}:{client.id}</div>
+            {#if client.currentUptime}
+              <div class="uptime">Uptime: {client.currentUptime}</div>
+            {/if}
+          </div>
         </div>
       {/each}
     </div>
@@ -85,10 +90,21 @@
     height: auto;
   }
 
-  .number {
+  .client-info {
     margin-top: 10px;
+    text-align: center;
+  }
+
+  .number {
     font-weight: bold;
     color: #6C6C6C;
+    font-family: 'Montserrat', sans-serif;
+    margin-bottom: 5px;
+  }
+
+  .uptime {
+    font-size: 12px;
+    color: #888;
     font-family: 'Montserrat', sans-serif;
   }
 

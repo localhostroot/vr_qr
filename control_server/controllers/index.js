@@ -1,6 +1,48 @@
 import { APIHandler, VRHandler } from '../handlers/index.js'
+import fs from 'fs/promises';
+import path from 'path';
+
 const clients = []
 const ids = []
+
+// Function to format time duration as hh:mm:ss
+const formatUptime = (milliseconds) => {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
+
+// Function to save uptime to JSON file
+const saveUptime = async (location, id, uptime) => {
+  try {
+    const uptimeFilePath = path.join(process.cwd(), 'uptime.json');
+    let uptimeData = {};
+    
+    // Try to read existing data
+    try {
+      const existingData = await fs.readFile(uptimeFilePath, 'utf8');
+      uptimeData = JSON.parse(existingData);
+    } catch (error) {
+      // File doesn't exist or is invalid, start with empty object
+      console.log('Creating new uptime.json file');
+    }
+    
+    const clientKey = `${location}_${id}`;
+    if (!uptimeData[clientKey]) {
+      uptimeData[clientKey] = [];
+    }
+    
+    uptimeData[clientKey].push(uptime);
+    
+    await fs.writeFile(uptimeFilePath, JSON.stringify(uptimeData, null, 2));
+    console.log(`Uptime saved for ${clientKey}: ${uptime}`);
+  } catch (error) {
+    console.error('Error saving uptime:', error);
+  }
+};
 
 
 
@@ -67,6 +109,17 @@ export const VRController = (ws, req) => {
 
       if (clientIndex !== -1) {
         const userIdToRemove = clients[clientIndex].id;
+        const client = clients[clientIndex];
+        
+        // Calculate and save uptime
+        if (client.connectionTimestamp) {
+          const disconnectionTime = Date.now();
+          const uptimeMs = disconnectionTime - client.connectionTimestamp;
+          const uptimeFormatted = formatUptime(uptimeMs);
+          
+          // Save uptime to JSON file
+          saveUptime(closingLocation, closingUserId, uptimeFormatted);
+        }
 
         console.log(
           `Удаляем клиента с IP ${ipv4}, location ${closingLocation} и ID ${closingUserId}`

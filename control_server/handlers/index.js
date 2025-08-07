@@ -1,6 +1,47 @@
 import WebSocket from 'ws';
+import fs from 'fs/promises';
+import path from 'path';
 
 const ip_regex = /^::ffff:[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/
+
+// Function to format time duration as hh:mm:ss
+const formatUptime = (milliseconds) => {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
+
+// Function to save uptime to JSON file
+const saveUptime = async (location, id, uptime) => {
+  try {
+    const uptimeFilePath = path.join(process.cwd(), 'uptime.json');
+    let uptimeData = {};
+    
+    // Try to read existing data
+    try {
+      const existingData = await fs.readFile(uptimeFilePath, 'utf8');
+      uptimeData = JSON.parse(existingData);
+    } catch (error) {
+      // File doesn't exist or is invalid, start with empty object
+      console.log('Creating new uptime.json file');
+    }
+    
+    const clientKey = `${location}_${id}`;
+    if (!uptimeData[clientKey]) {
+      uptimeData[clientKey] = [];
+    }
+    
+    uptimeData[clientKey].push(uptime);
+    
+    await fs.writeFile(uptimeFilePath, JSON.stringify(uptimeData, null, 2));
+    console.log(`Uptime saved for ${clientKey}: ${uptime}`);
+  } catch (error) {
+    console.error('Error saving uptime:', error);
+  }
+};
 
 
 
@@ -26,9 +67,18 @@ const onGetVr = (ws, req, payload, clients, ids) => {
   const simplifiedClients = clientsCopy.map(client => {
     if (!client || !Array.isArray(client.queue) || client.queue.length !== 0) return null;
 
+    // Calculate current uptime
+    let currentUptime = '00:00:00';
+    if (client.connectionTimestamp) {
+      const currentTime = Date.now();
+      const uptimeMs = currentTime - client.connectionTimestamp;
+      currentUptime = formatUptime(uptimeMs);
+    }
+
     return {
       location: client.location || null,
-      id: client.id || null
+      id: client.id || null,
+      currentUptime: currentUptime
     };
   }).filter(client => client !== null);
 
@@ -381,7 +431,8 @@ const onLogin = async (ws, req, payload, clients, ids) => {
         userPresent: false,
         queue: [],
         params: {},
-        lastReq: null
+        lastReq: null,
+        connectionTimestamp: Date.now()
       };
       console.log(`Клиент перезаписан: `, clients[existingClientIndex]);
     } else {
@@ -396,7 +447,8 @@ const onLogin = async (ws, req, payload, clients, ids) => {
         isBlocked: false,
         queue: [],
         params: {},
-        lastReq: null
+        lastReq: null,
+        connectionTimestamp: Date.now()
       });
 
       ids.push({
