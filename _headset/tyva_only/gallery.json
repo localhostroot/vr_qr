@@ -49,7 +49,33 @@
             "duration":   "517",    "dbContentId": "rgo_vdnh__tv_04"
           }
         ]
-      }
-     ]
+      },
+
+      {
+        "title":   "Уроки географии",
+        "titleRC": "Уроки географии",
+        "id": "subfolder 2",
+        "autoplay": false,
+        "ui": {
+        "templateId": "rows",
+        "parameters":{
+          "thumbWidth": 160,
+          "thumbHeight": 100,
+          "itemsPerPage": 6,
+          "rows": 2
+          }
+        },
+        "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/geo_02.jpg",  "id": "geo_02" },
+        "videos": [
+          { "title": "",
+            "titleRC": "",
+            "thumb": {  "url": "https://public.vr360.pro/vrp-rgo/geo_02_06.jpg", "id": "geo_02_06" },
+                        "url": "https://public.vr360.pro/vrp-rgo/geo_02_06.mp4", "id": "geo_02_06",
+            "projection": "p180",   "depth": "3dSBS",
+            "duration":   "1045",   "dbContentId": "rgo_vdnh_ug0206"
+          }
+        ]
+      },
+    ]
   }
 }

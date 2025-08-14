@@ -1,4 +1,5 @@
 node_modules
+db_dumps
 
 # macOS
 .DS_Store

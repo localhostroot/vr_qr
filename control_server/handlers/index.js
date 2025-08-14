@@ -557,7 +557,7 @@ const onLogin = async (ws, req, payload, clients, ids) => {
   
   const sendStatistics = async (deviceId, locationName, videoId) => {
     try {
-      const response = await fetch('https://stats.local.vr360.pro.ru/api/api/update_statistics/', {
+      const response = await fetch('https://stats.local.vr360.pro/api/api/update_statistics/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -577,7 +577,7 @@ const onLogin = async (ws, req, payload, clients, ids) => {
       const data = await response.json();
       console.log('Статистика отправлена:', data);
     } catch (error) {
-      console.error('Ошибка при отправке статистики:', error.message);
+      console.error('Ошибка при отправке статистики:', error);
     }
   };
 
