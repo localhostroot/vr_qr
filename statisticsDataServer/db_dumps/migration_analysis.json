@@ -1,0 +1,878 @@
+{
+  "analysis_date": "2025-08-12T16:07:39.463129",
+  "old_database": {
+    "database_path": "old_db.sqlite3",
+    "analysis_date": "2025-08-12T16:07:39.460472",
+    "videos": {
+      "geo_01_01": {
+        "title": "Александр Колчак",
+        "views": 8,
+        "category_id": 2,
+        "img": "videos/images/geo_01_01.jpg"
+      },
+      "geo_01_02": {
+        "title": "Пётр Козлов",
+        "views": 4,
+        "category_id": 2,
+        "img": "videos/images/geo_01_02_BJ0b1Oh.jpg"
+      },
+      "geo_01_03": {
+        "title": "Николай Миклухо-Маклай",
+        "views": 4,
+        "category_id": 2,
+        "img": "videos/images/geo_01_03_Ai5ObSm.jpg"
+      },
+      "geo_01_04": {
+        "title": "Константин Романов",
+        "views": 1,
+        "category_id": 2,
+        "img": "videos/images/geo_01_04_HGG0QoV.jpg"
+      },
+      "geo_01_05": {
+        "title": "Юлий Шокальский",
+        "views": 0,
+        "category_id": 2,
+        "img": "videos/images/geo_01_05_2zSIHMx.jpg"
+      },
+      "geo_01_06": {
+        "title": "Пётр Семёнов Тян-Шанский",
+        "views": 0,
+        "category_id": 2,
+        "img": "videos/images/geo_01_06_mNYbN4u.jpg"
+      },
+      "geo_02_01": {
+        "title": "Александр Колчак",
+        "views": 2,
+        "category_id": 3,
+        "img": "videos/images/geo_02_01_IERqQzk.jpg"
+      },
+      "geo_02_02": {
+        "title": "Пётр Козлов",
+        "views": 0,
+        "category_id": 3,
+        "img": "videos/images/geo_02_02_VDNmyN7.jpg"
+      },
+      "geo_02_03": {
+        "title": "Николай Миклухо-Маклай",
+        "views": 0,
+        "category_id": 3,
+        "img": "videos/images/geo_02_03_t735Cwl.jpg"
+      },
+      "geo_02_04": {
+        "title": "Константин Романов",
+        "views": 0,
+        "category_id": 3,
+        "img": "videos/images/geo_02_04_fhn5QQC.jpg"
+      },
+      "geo_02_05": {
+        "title": "Пётр Семёнов Тян-Шанский",
+        "views": 2,
+        "category_id": 3,
+        "img": "videos/images/geo_02_05_jQSQrtp.jpg"
+      },
+      "geo_02_06": {
+        "title": "Юлий Шокальский",
+        "views": 0,
+        "category_id": 3,
+        "img": "videos/images/geo_02_06_sYIITj1.jpg"
+      },
+      "kb_01": {
+        "title": "Музей",
+        "views": 6,
+        "category_id": 4,
+        "img": "videos/images/kb_01_bJP1jK7.jpg"
+      },
+      "kb_02": {
+        "title": "Осада Севастополя",
+        "views": 5,
+        "category_id": 4,
+        "img": "videos/images/kb_02_uNgv8dA.jpg"
+      },
+      "russia": {
+        "title": "Россия",
+        "views": 391,
+        "category_id": 5,
+        "img": "videos/images/russia_1xOXCXa.jpg"
+      },
+      "test": {
+        "title": "test",
+        "views": 0,
+        "category_id": null,
+        "img": "videos/images/geo_01_JO817ob.jpg"
+      },
+      "tyva_01": {
+        "title": "Республика Тува",
+        "views": 29,
+        "category_id": 1,
+        "img": "videos/images/tyva_01_4fQjA1t.jpg"
+      },
+      "tyva_02": {
+        "title": "Ворота в Шамбалу",
+        "views": 24,
+        "category_id": 1,
+        "img": "videos/images/tyva_02_FWxI5AL.jpg"
+      },
+      "tyva_03": {
+        "title": "Тувинцы",
+        "views": 10,
+        "category_id": 1,
+        "img": "videos/images/tyva_03_Z4Hh0Vm.jpg"
+      },
+      "tyva_04": {
+        "title": "Центр Азии",
+        "views": 7,
+        "category_id": 1,
+        "img": "videos/images/tyva_04_FzqiRHv.jpg"
+      },
+      "volga": {
+        "title": "volga",
+        "views": 42,
+        "category_id": null,
+        "img": ""
+      },
+      "volga_2": {
+        "title": "Течет река Волга",
+        "views": 15,
+        "category_id": 5,
+        "img": "videos/images/volga_cjg2u7O.jpg"
+      }
+    },
+    "categories": {
+      "Константиновская Батарея": {
+        "id": 4,
+        "views": 0
+      },
+      "Мир Географии": {
+        "id": 2,
+        "views": 0
+      },
+      "Республика Тува": {
+        "id": 1,
+        "views": 0
+      },
+      "Уроки Географии": {
+        "id": 3,
+        "views": 0
+      },
+      "Фильмы": {
+        "id": 5,
+        "views": 0
+      }
+    },
+    "locations": {
+      "AP": {
+        "id": 11,
+        "views": 7,
+        "created_at": "2025-07-04 12:18:01.993359",
+        "updated_at": "2025-07-08 10:14:36.669755"
+      },
+      "ARS": {
+        "id": 8,
+        "views": 60,
+        "created_at": "2025-04-26 13:51:47.544681",
+        "updated_at": "2025-06-12 13:54:56.582679"
+      },
+      "CDH": {
+        "id": 12,
+        "views": 468,
+        "created_at": "2025-07-15 13:40:59.392817",
+        "updated_at": "2025-08-12 09:33:36.797977"
+      },
+      "DIMA": {
+        "id": 9,
+        "views": 1,
+        "created_at": "2025-04-26 15:36:24.227143",
+        "updated_at": "2025-04-26 15:36:24.238340"
+      },
+      "DK": {
+        "id": 13,
+        "views": 0,
+        "created_at": "2025-07-28 16:11:34.219598",
+        "updated_at": "2025-07-28 16:11:34.219667"
+      },
+      "YANA": {
+        "id": 10,
+        "views": 3,
+        "created_at": "2025-04-26 20:43:49.028153",
+        "updated_at": "2025-04-26 20:44:19.630024"
+      }
+    },
+    "devices": {
+      "1@AP": {
+        "id": 8,
+        "client_id": "1",
+        "location_name": "AP",
+        "views": 7,
+        "views_today": "2025-07-08 10:14:36.679181",
+        "created_at": "2025-07-04 12:42:07.049228",
+        "updated_at": "2025-07-08 10:14:36.679412"
+      },
+      "1@ARS": {
+        "id": 4,
+        "client_id": "1",
+        "location_name": "ARS",
+        "views": 1,
+        "views_today": "2025-04-26 13:51:47.567345",
+        "created_at": "2025-04-26 13:51:47.555455",
+        "updated_at": "2025-04-26 13:51:47.567516"
+      },
+      "1@DIMA": {
+        "id": 6,
+        "client_id": "1",
+        "location_name": "DIMA",
+        "views": 1,
+        "views_today": "2025-04-26 15:36:24.240602",
+        "created_at": "2025-04-26 15:36:24.234457",
+        "updated_at": "2025-04-26 15:36:24.240688"
+      },
+      "1@YANA": {
+        "id": 7,
+        "client_id": "1",
+        "location_name": "YANA",
+        "views": 3,
+        "views_today": "2025-04-26 20:44:19.633600",
+        "created_at": "2025-04-26 20:43:56.110436",
+        "updated_at": "2025-04-26 20:44:19.633751"
+      },
+      "10@CDH": {
+        "id": 10,
+        "client_id": "10",
+        "location_name": "CDH",
+        "views": 29,
+        "views_today": "2025-07-31 16:04:06.698719",
+        "created_at": "2025-07-16 14:25:41.239511",
+        "updated_at": "2025-07-31 16:04:06.698953"
+      },
+      "12@CDH": {
+        "id": 11,
+        "client_id": "12",
+        "location_name": "CDH",
+        "views": 5,
+        "views_today": "2025-08-07 17:27:14.165785",
+        "created_at": "2025-07-17 09:13:07.508988",
+        "updated_at": "2025-08-07 17:27:14.165972"
+      },
+      "14@CDH": {
+        "id": 16,
+        "client_id": "14",
+        "location_name": "CDH",
+        "views": 53,
+        "views_today": "2025-08-12 09:33:36.800957",
+        "created_at": "2025-07-23 10:46:57.419233",
+        "updated_at": "2025-08-12 09:33:36.801076"
+      },
+      "15@CDH": {
+        "id": 9,
+        "client_id": "15",
+        "location_name": "CDH",
+        "views": 38,
+        "views_today": "2025-08-10 14:31:08.643179",
+        "created_at": "2025-07-15 13:41:21.213909",
+        "updated_at": "2025-08-10 14:31:08.643423"
+      },
+      "2@ARS": {
+        "id": 5,
+        "client_id": "2",
+        "location_name": "ARS",
+        "views": 59,
+        "views_today": "2025-06-12 13:54:56.586720",
+        "created_at": "2025-04-26 15:20:18.705805",
+        "updated_at": "2025-06-12 13:54:56.586854"
+      },
+      "21@CDH": {
+        "id": 17,
+        "client_id": "21",
+        "location_name": "CDH",
+        "views": 25,
+        "views_today": "2025-07-27 11:54:34.737937",
+        "created_at": "2025-07-23 12:12:25.961652",
+        "updated_at": "2025-07-27 11:54:34.738063"
+      },
+      "23@CDH": {
+        "id": 21,
+        "client_id": "23",
+        "location_name": "CDH",
+        "views": 6,
+        "views_today": "2025-08-03 10:57:05.608964",
+        "created_at": "2025-07-26 10:52:15.202203",
+        "updated_at": "2025-08-03 10:57:05.609146"
+      },
+      "24@CDH": {
+        "id": 14,
+        "client_id": "24",
+        "location_name": "CDH",
+        "views": 1,
+        "views_today": "2025-07-23 11:08:01.068252",
+        "created_at": "2025-07-22 07:11:11.467546",
+        "updated_at": "2025-07-23 11:08:01.068354"
+      },
+      "27@CDH": {
+        "id": 15,
+        "client_id": "27",
+        "location_name": "CDH",
+        "views": 60,
+        "views_today": "2025-08-03 14:31:11.549135",
+        "created_at": "2025-07-22 10:34:00.502464",
+        "updated_at": "2025-08-03 14:31:11.549213"
+      },
+      "28@CDH": {
+        "id": 18,
+        "client_id": "28",
+        "location_name": "CDH",
+        "views": 9,
+        "views_today": "2025-08-10 14:27:48.558955",
+        "created_at": "2025-07-24 09:22:14.668174",
+        "updated_at": "2025-08-10 14:27:48.559163"
+      },
+      "3@CDH": {
+        "id": 20,
+        "client_id": "3",
+        "location_name": "CDH",
+        "views": 32,
+        "views_today": "2025-08-05 14:21:24.186743",
+        "created_at": "2025-07-25 10:05:15.431800",
+        "updated_at": "2025-08-05 14:21:24.186847"
+      },
+      "30@CDH": {
+        "id": 19,
+        "client_id": "30",
+        "location_name": "CDH",
+        "views": 88,
+        "views_today": "2025-08-09 16:37:54.255593",
+        "created_at": "2025-07-25 09:10:43.520355",
+        "updated_at": "2025-08-09 16:37:54.255723"
+      },
+      "37@CDH": {
+        "id": 12,
+        "client_id": "37",
+        "location_name": "CDH",
+        "views": 2,
+        "views_today": "2025-07-24 11:57:50.777168",
+        "created_at": "2025-07-21 07:02:08.585911",
+        "updated_at": "2025-07-24 11:57:50.777332"
+      },
+      "37@DK": {
+        "id": 22,
+        "client_id": "37",
+        "location_name": "DK",
+        "views": 0,
+        "views_today": "2025-07-28 16:47:47.566544",
+        "created_at": "2025-07-28 16:47:47.566621",
+        "updated_at": "2025-07-28 16:47:47.566645"
+      },
+      "6@CDH": {
+        "id": 13,
+        "client_id": "6",
+        "location_name": "CDH",
+        "views": 120,
+        "views_today": "2025-08-09 17:18:12.795799",
+        "created_at": "2025-07-21 11:00:40.950663",
+        "updated_at": "2025-08-09 17:18:12.795934"
+      }
+    },
+    "summary": {
+      "total_videos": 22,
+      "videos_with_views": 15,
+      "total_video_views": 550,
+      "total_categories": 5,
+      "categories_with_views": 0,
+      "total_category_views": 0,
+      "total_locations": 6,
+      "locations_with_views": 5,
+      "total_location_views": 539,
+      "total_devices": 19,
+      "devices_with_views": 18,
+      "total_device_views": 539
+    }
+  },
+  "new_database": {
+    "database_path": "new_db.sqlite3",
+    "analysis_date": "2025-08-12T16:07:39.462469",
+    "videos": {
+      "geo_01_01": {
+        "title": "Александр Колчак",
+        "views": 0,
+        "category_id": 2,
+        "img": "videos/images/geo_01_01.jpg"
+      },
+      "geo_01_02": {
+        "title": "Пётр Козлов",
+        "views": 1,
+        "category_id": 2,
+        "img": "videos/images/geo_01_02_BJ0b1Oh.jpg"
+      },
+      "geo_01_03": {
+        "title": "Николай Миклухо-Маклай",
+        "views": 0,
+        "category_id": 2,
+        "img": "videos/images/geo_01_03_Ai5ObSm.jpg"
+      },
+      "geo_01_04": {
+        "title": "Константин Романов",
+        "views": 1,
+        "category_id": 2,
+        "img": "videos/images/geo_01_04_HGG0QoV.jpg"
+      },
+      "geo_01_05": {
+        "title": "Юлий Шокальский",
+        "views": 0,
+        "category_id": 2,
+        "img": "videos/images/geo_01_05_2zSIHMx.jpg"
+      },
+      "geo_01_06": {
+        "title": "Пётр Семёнов Тян-Шанский",
+        "views": 0,
+        "category_id": 2,
+        "img": "videos/images/geo_01_06_mNYbN4u.jpg"
+      },
+      "geo_02_01": {
+        "title": "Александр Колчак",
+        "views": 0,
+        "category_id": 3,
+        "img": "videos/images/geo_02_01_IERqQzk.jpg"
+      },
+      "geo_02_02": {
+        "title": "Пётр Козлов",
+        "views": 0,
+        "category_id": 3,
+        "img": "videos/images/geo_02_02_VDNmyN7.jpg"
+      },
+      "geo_02_03": {
+        "title": "Николай Миклухо-Маклай",
+        "views": 0,
+        "category_id": 3,
+        "img": "videos/images/geo_02_03_t735Cwl.jpg"
+      },
+      "geo_02_04": {
+        "title": "Константин Романов",
+        "views": 0,
+        "category_id": 3,
+        "img": "videos/images/geo_02_04_fhn5QQC.jpg"
+      },
+      "geo_02_05": {
+        "title": "Пётр Семёнов Тян-Шанский",
+        "views": 0,
+        "category_id": 3,
+        "img": "videos/images/geo_02_05_jQSQrtp.jpg"
+      },
+      "geo_02_06": {
+        "title": "Юлий Шокальский",
+        "views": 0,
+        "category_id": 3,
+        "img": "videos/images/geo_02_06_sYIITj1.jpg"
+      },
+      "kb_01": {
+        "title": "Музей",
+        "views": 0,
+        "category_id": 4,
+        "img": "videos/images/kb_01_bJP1jK7.jpg"
+      },
+      "kb_02": {
+        "title": "Осада Севастополя",
+        "views": 0,
+        "category_id": 4,
+        "img": "videos/images/kb_02_uNgv8dA.jpg"
+      },
+      "russia": {
+        "title": "Россия",
+        "views": 6,
+        "category_id": 5,
+        "img": "videos/images/russia_1xOXCXa.jpg"
+      },
+      "test": {
+        "title": "test",
+        "views": 0,
+        "category_id": null,
+        "img": "videos/images/geo_01_JO817ob.jpg"
+      },
+      "tyva_01": {
+        "title": "Республика Тува",
+        "views": 0,
+        "category_id": 1,
+        "img": "videos/images/tyva_01_4fQjA1t.jpg"
+      },
+      "tyva_02": {
+        "title": "Ворота в Шамбалу",
+        "views": 1,
+        "category_id": 1,
+        "img": "videos/images/tyva_02_FWxI5AL.jpg"
+      },
+      "tyva_03": {
+        "title": "Тувинцы",
+        "views": 0,
+        "category_id": 1,
+        "img": "videos/images/tyva_03_Z4Hh0Vm.jpg"
+      },
+      "tyva_04": {
+        "title": "Центр Азии",
+        "views": 0,
+        "category_id": 1,
+        "img": "videos/images/tyva_04_FzqiRHv.jpg"
+      },
+      "volga_2": {
+        "title": "Течет река Волга",
+        "views": 2,
+        "category_id": 5,
+        "img": "videos/images/volga_cjg2u7O.jpg"
+      }
+    },
+    "categories": {
+      "Константиновская Батарея": {
+        "id": 4,
+        "views": 0
+      },
+      "Мир Географии": {
+        "id": 2,
+        "views": 0
+      },
+      "Республика Тува": {
+        "id": 1,
+        "views": 0
+      },
+      "Уроки Географии": {
+        "id": 3,
+        "views": 0
+      },
+      "Фильмы": {
+        "id": 5,
+        "views": 0
+      }
+    },
+    "locations": {},
+    "devices": {},
+    "summary": {
+      "total_videos": 21,
+      "videos_with_views": 5,
+      "total_video_views": 11,
+      "total_categories": 5,
+      "categories_with_views": 0,
+      "total_category_views": 0,
+      "total_locations": 0,
+      "locations_with_views": 0,
+      "total_location_views": 0,
+      "total_devices": 0,
+      "devices_with_views": 0,
+      "total_device_views": 0
+    }
+  },
+  "migration_plan": {
+    "videos": {
+      "to_create": {
+        "volga": {
+          "title": "volga",
+          "views": 42,
+          "category_id": null,
+          "img": ""
+        }
+      },
+      "to_update": {
+        "geo_01_01": {
+          "old_views": 8,
+          "current_views": 0,
+          "new_views": 8,
+          "title": "Александр Колчак"
+        },
+        "geo_01_02": {
+          "old_views": 4,
+          "current_views": 1,
+          "new_views": 5,
+          "title": "Пётр Козлов"
+        },
+        "geo_01_03": {
+          "old_views": 4,
+          "current_views": 0,
+          "new_views": 4,
+          "title": "Николай Миклухо-Маклай"
+        },
+        "geo_01_04": {
+          "old_views": 1,
+          "current_views": 1,
+          "new_views": 2,
+          "title": "Константин Романов"
+        },
+        "geo_02_01": {
+          "old_views": 2,
+          "current_views": 0,
+          "new_views": 2,
+          "title": "Александр Колчак"
+        },
+        "geo_02_05": {
+          "old_views": 2,
+          "current_views": 0,
+          "new_views": 2,
+          "title": "Пётр Семёнов Тян-Шанский"
+        },
+        "kb_01": {
+          "old_views": 6,
+          "current_views": 0,
+          "new_views": 6,
+          "title": "Музей"
+        },
+        "kb_02": {
+          "old_views": 5,
+          "current_views": 0,
+          "new_views": 5,
+          "title": "Осада Севастополя"
+        },
+        "russia": {
+          "old_views": 391,
+          "current_views": 6,
+          "new_views": 397,
+          "title": "Россия"
+        },
+        "tyva_01": {
+          "old_views": 29,
+          "current_views": 0,
+          "new_views": 29,
+          "title": "Республика Тува"
+        },
+        "tyva_02": {
+          "old_views": 24,
+          "current_views": 1,
+          "new_views": 25,
+          "title": "Ворота в Шамбалу"
+        },
+        "tyva_03": {
+          "old_views": 10,
+          "current_views": 0,
+          "new_views": 10,
+          "title": "Тувинцы"
+        },
+        "tyva_04": {
+          "old_views": 7,
+          "current_views": 0,
+          "new_views": 7,
+          "title": "Центр Азии"
+        },
+        "volga_2": {
+          "old_views": 15,
+          "current_views": 2,
+          "new_views": 17,
+          "title": "Течет река Волга"
+        }
+      },
+      "no_change": {}
+    },
+    "categories": {
+      "to_create": {},
+      "to_update": {},
+      "no_change": {}
+    },
+    "locations": {
+      "to_create": {
+        "AP": {
+          "id": 11,
+          "views": 7,
+          "created_at": "2025-07-04 12:18:01.993359",
+          "updated_at": "2025-07-08 10:14:36.669755"
+        },
+        "ARS": {
+          "id": 8,
+          "views": 60,
+          "created_at": "2025-04-26 13:51:47.544681",
+          "updated_at": "2025-06-12 13:54:56.582679"
+        },
+        "CDH": {
+          "id": 12,
+          "views": 468,
+          "created_at": "2025-07-15 13:40:59.392817",
+          "updated_at": "2025-08-12 09:33:36.797977"
+        },
+        "DIMA": {
+          "id": 9,
+          "views": 1,
+          "created_at": "2025-04-26 15:36:24.227143",
+          "updated_at": "2025-04-26 15:36:24.238340"
+        },
+        "YANA": {
+          "id": 10,
+          "views": 3,
+          "created_at": "2025-04-26 20:43:49.028153",
+          "updated_at": "2025-04-26 20:44:19.630024"
+        }
+      },
+      "to_update": {},
+      "no_change": {}
+    },
+    "devices": {
+      "to_create": {
+        "1@AP": {
+          "id": 8,
+          "client_id": "1",
+          "location_name": "AP",
+          "views": 7,
+          "views_today": "2025-07-08 10:14:36.679181",
+          "created_at": "2025-07-04 12:42:07.049228",
+          "updated_at": "2025-07-08 10:14:36.679412"
+        },
+        "1@ARS": {
+          "id": 4,
+          "client_id": "1",
+          "location_name": "ARS",
+          "views": 1,
+          "views_today": "2025-04-26 13:51:47.567345",
+          "created_at": "2025-04-26 13:51:47.555455",
+          "updated_at": "2025-04-26 13:51:47.567516"
+        },
+        "1@DIMA": {
+          "id": 6,
+          "client_id": "1",
+          "location_name": "DIMA",
+          "views": 1,
+          "views_today": "2025-04-26 15:36:24.240602",
+          "created_at": "2025-04-26 15:36:24.234457",
+          "updated_at": "2025-04-26 15:36:24.240688"
+        },
+        "1@YANA": {
+          "id": 7,
+          "client_id": "1",
+          "location_name": "YANA",
+          "views": 3,
+          "views_today": "2025-04-26 20:44:19.633600",
+          "created_at": "2025-04-26 20:43:56.110436",
+          "updated_at": "2025-04-26 20:44:19.633751"
+        },
+        "10@CDH": {
+          "id": 10,
+          "client_id": "10",
+          "location_name": "CDH",
+          "views": 29,
+          "views_today": "2025-07-31 16:04:06.698719",
+          "created_at": "2025-07-16 14:25:41.239511",
+          "updated_at": "2025-07-31 16:04:06.698953"
+        },
+        "12@CDH": {
+          "id": 11,
+          "client_id": "12",
+          "location_name": "CDH",
+          "views": 5,
+          "views_today": "2025-08-07 17:27:14.165785",
+          "created_at": "2025-07-17 09:13:07.508988",
+          "updated_at": "2025-08-07 17:27:14.165972"
+        },
+        "14@CDH": {
+          "id": 16,
+          "client_id": "14",
+          "location_name": "CDH",
+          "views": 53,
+          "views_today": "2025-08-12 09:33:36.800957",
+          "created_at": "2025-07-23 10:46:57.419233",
+          "updated_at": "2025-08-12 09:33:36.801076"
+        },
+        "15@CDH": {
+          "id": 9,
+          "client_id": "15",
+          "location_name": "CDH",
+          "views": 38,
+          "views_today": "2025-08-10 14:31:08.643179",
+          "created_at": "2025-07-15 13:41:21.213909",
+          "updated_at": "2025-08-10 14:31:08.643423"
+        },
+        "2@ARS": {
+          "id": 5,
+          "client_id": "2",
+          "location_name": "ARS",
+          "views": 59,
+          "views_today": "2025-06-12 13:54:56.586720",
+          "created_at": "2025-04-26 15:20:18.705805",
+          "updated_at": "2025-06-12 13:54:56.586854"
+        },
+        "21@CDH": {
+          "id": 17,
+          "client_id": "21",
+          "location_name": "CDH",
+          "views": 25,
+          "views_today": "2025-07-27 11:54:34.737937",
+          "created_at": "2025-07-23 12:12:25.961652",
+          "updated_at": "2025-07-27 11:54:34.738063"
+        },
+        "23@CDH": {
+          "id": 21,
+          "client_id": "23",
+          "location_name": "CDH",
+          "views": 6,
+          "views_today": "2025-08-03 10:57:05.608964",
+          "created_at": "2025-07-26 10:52:15.202203",
+          "updated_at": "2025-08-03 10:57:05.609146"
+        },
+        "24@CDH": {
+          "id": 14,
+          "client_id": "24",
+          "location_name": "CDH",
+          "views": 1,
+          "views_today": "2025-07-23 11:08:01.068252",
+          "created_at": "2025-07-22 07:11:11.467546",
+          "updated_at": "2025-07-23 11:08:01.068354"
+        },
+        "27@CDH": {
+          "id": 15,
+          "client_id": "27",
+          "location_name": "CDH",
+          "views": 60,
+          "views_today": "2025-08-03 14:31:11.549135",
+          "created_at": "2025-07-22 10:34:00.502464",
+          "updated_at": "2025-08-03 14:31:11.549213"
+        },
+        "28@CDH": {
+          "id": 18,
+          "client_id": "28",
+          "location_name": "CDH",
+          "views": 9,
+          "views_today": "2025-08-10 14:27:48.558955",
+          "created_at": "2025-07-24 09:22:14.668174",
+          "updated_at": "2025-08-10 14:27:48.559163"
+        },
+        "3@CDH": {
+          "id": 20,
+          "client_id": "3",
+          "location_name": "CDH",
+          "views": 32,
+          "views_today": "2025-08-05 14:21:24.186743",
+          "created_at": "2025-07-25 10:05:15.431800",
+          "updated_at": "2025-08-05 14:21:24.186847"
+        },
+        "30@CDH": {
+          "id": 19,
+          "client_id": "30",
+          "location_name": "CDH",
+          "views": 88,
+          "views_today": "2025-08-09 16:37:54.255593",
+          "created_at": "2025-07-25 09:10:43.520355",
+          "updated_at": "2025-08-09 16:37:54.255723"
+        },
+        "37@CDH": {
+          "id": 12,
+          "client_id": "37",
+          "location_name": "CDH",
+          "views": 2,
+          "views_today": "2025-07-24 11:57:50.777168",
+          "created_at": "2025-07-21 07:02:08.585911",
+          "updated_at": "2025-07-24 11:57:50.777332"
+        },
+        "6@CDH": {
+          "id": 13,
+          "client_id": "6",
+          "location_name": "CDH",
+          "views": 120,
+          "views_today": "2025-08-09 17:18:12.795799",
+          "created_at": "2025-07-21 11:00:40.950663",
+          "updated_at": "2025-08-09 17:18:12.795934"
+        }
+      },
+      "to_update": {},
+      "no_change": {}
+    },
+    "summary": {
+      "video_updates": 14,
+      "video_creates": 1,
+      "category_updates": 0,
+      "category_creates": 0,
+      "location_updates": 0,
+      "location_creates": 5,
+      "device_updates": 0,
+      "device_creates": 18,
+      "total_operations": 38,
+      "total_views_to_add": 550
+    }
+  }
+}
