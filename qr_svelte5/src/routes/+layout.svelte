@@ -12,7 +12,7 @@
 	let webSocketManager;
 
 	// Determine if FixedNavigation should be shown based on current route
-	let showFixedNavigation = $derived($page.route.id !== '/' && $page.route.id !== '/site-admin');
+	let showFixedNavigation = $derived($page.route.id !== '/' && $page.route.id !== '/site-admin' && $page.route.id !== '/stats');
 
 	onMount(() => {
 		// Initialize WebSocket connection
@@ -37,6 +37,6 @@
 	</div>
 	{#if showFixedNavigation}
 		<FixedNavigation />
+		<Footer />
 	{/if}
-	<Footer />
 </div>

@@ -15,7 +15,7 @@ async function testAPI() {
     
     try {
         // Make the GET request
-        const response = await fetch(`https://${server}/info/payments/bydate/?start=2025-07-30&end=2025-07-31&payment_system_id[]=30&payment_system_id[]=99&status[]=success&status[]=canceled&status[]=refunded&status[]=failed&status[]=obtained&status[]=refunding&status[]=partially_refunded&status[]=stuck&status[]=pending&limit=10&from=0`, {
+        const response = await fetch(`https://${server}/info/payments/bydate/?start=2025-07-30&end=2025-08-14&payment_system_id[]=30&payment_system_id[]=99&status[]=success&status[]=canceled&status[]=refunded&status[]=failed&status[]=obtained&status[]=refunding&status[]=partially_refunded&status[]=stuck&status[]=pending&limit=10&from=0`, {
             method: 'GET',
             headers: headers
         });

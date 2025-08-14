@@ -112,3 +112,149 @@ class PaymentProviderClient:
             True if payment is successful
         """
         return payment.get('status') == 'success'
+    
+    def get_payments_for_date_range(self, start_date: str, end_date: str) -> Optional[List[Dict[str, Any]]]:
+        """
+        Get payments from provider for a date range (for analytics)
+        
+        Args:
+            start_date: Start date in YYYY-MM-DD format
+            end_date: End date in YYYY-MM-DD format
+            
+        Returns:
+            List of all payment objects in the date range or None if error
+        """
+        try:
+            all_payments = []
+            current_date = datetime.strptime(start_date, '%Y-%m-%d')
+            end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+            
+            logger.info(f"Requesting payments for date range {start_date} to {end_date}")
+            
+            while current_date <= end_date_obj:
+                date_str = current_date.strftime('%Y-%m-%d')
+                daily_payments = self.get_payments_by_date(date_str)
+                
+                if daily_payments is not None:
+                    all_payments.extend(daily_payments)
+                    logger.debug(f"Retrieved {len(daily_payments)} payments for {date_str}")
+                else:
+                    logger.warning(f"Failed to get payments for {date_str}")
+                
+                current_date += timedelta(days=1)
+            
+            logger.info(f"Total payments retrieved for range: {len(all_payments)}")
+            return all_payments
+            
+        except Exception as e:
+            logger.error(f"Error getting payments for date range {start_date} to {end_date}: {str(e)}")
+            return None
+    
+    def get_analytics_for_period(self, start_date: str, end_date: str) -> Dict[str, Any]:
+        """
+        Get comprehensive payment analytics for a period
+        
+        Args:
+            start_date: Start date in YYYY-MM-DD format
+            end_date: End date in YYYY-MM-DD format
+            
+        Returns:
+            Dictionary with analytics data
+        """
+        payments = self.get_payments_for_date_range(start_date, end_date)
+        
+        if payments is None:
+            return {
+                'total_payments': 0,
+                'successful_payments': 0,
+                'failed_payments': 0,
+                'pending_payments': 0,
+                'canceled_payments': 0,
+                'refunded_payments': 0,
+                'total_revenue': 0,
+                'success_rate': 0,
+                'payment_methods': {},
+                'daily_totals': {},
+                'hourly_distribution': [0] * 24,
+                'error': 'Failed to fetch payment data for period'
+            }
+        
+        return self._process_payment_analytics(payments, start_date, end_date)
+    
+    def _process_payment_analytics(self, payments: List[Dict[str, Any]], start_date: str, end_date: str) -> Dict[str, Any]:
+        """
+        Process payments data into analytics
+        
+        Args:
+            payments: List of payment objects
+            start_date: Start date for reference
+            end_date: End date for reference
+            
+        Returns:
+            Analytics dictionary
+        """
+        analytics = {
+            'total_payments': len(payments),
+            'successful_payments': 0,
+            'failed_payments': 0,
+            'pending_payments': 0,
+            'canceled_payments': 0,
+            'refunded_payments': 0,
+            'total_revenue': 0,
+            'success_rate': 0,
+            'payment_methods': {},
+            'hourly_distribution': [0] * 24,
+            'daily_totals': {},
+            'period': f"{start_date} to {end_date}"
+        }
+        
+        for payment in payments:
+            # Count by status
+            status = payment.get('status', 'unknown')
+            if status == 'success':
+                analytics['successful_payments'] += 1
+                # Add to revenue (convert kopecks to rubles if needed)
+                pay_amount = float(payment.get('pay_amount', 0))
+                analytics['total_revenue'] += pay_amount
+            elif status == 'failed':
+                analytics['failed_payments'] += 1
+            elif status == 'pending':
+                analytics['pending_payments'] += 1
+            elif status == 'canceled':
+                analytics['canceled_payments'] += 1
+            elif status in ['refunded', 'partially_refunded']:
+                analytics['refunded_payments'] += 1
+            
+            # Count by payment method
+            payment_system = payment.get('payment_system_id', 'unknown')
+            analytics['payment_methods'][payment_system] = analytics['payment_methods'].get(payment_system, 0) + 1
+            
+            # Hourly distribution (if datetime available)
+            success_datetime = payment.get('success_datetime') or payment.get('obtain_datetime')
+            if success_datetime:
+                try:
+                    # Parse datetime (format might vary)
+                    if ' ' in success_datetime:
+                        dt_part = success_datetime.split(' ')[1]  # Get time part
+                        hour = int(dt_part.split(':')[0])
+                        analytics['hourly_distribution'][hour] += 1
+                except (ValueError, IndexError):
+                    pass
+            
+            # Daily totals
+            date_part = None
+            if success_datetime:
+                date_part = success_datetime.split(' ')[0] if ' ' in success_datetime else success_datetime.split('T')[0]
+            
+            if date_part:
+                if date_part not in analytics['daily_totals']:
+                    analytics['daily_totals'][date_part] = {'count': 0, 'revenue': 0}
+                analytics['daily_totals'][date_part]['count'] += 1
+                if status == 'success':
+                    analytics['daily_totals'][date_part]['revenue'] += pay_amount
+        
+        # Calculate success rate
+        if analytics['total_payments'] > 0:
+            analytics['success_rate'] = round((analytics['successful_payments'] / analytics['total_payments']) * 100, 2)
+        
+        return analytics

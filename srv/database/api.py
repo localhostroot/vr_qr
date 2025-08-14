@@ -309,6 +309,49 @@ class PaymentsTestViewSet(viewsets.ViewSet):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class PaymentAnalyticsViewSet(viewsets.ViewSet):
+    permission_classes = [AllowAny]
+    
+    @action(detail=False, methods=['get'])
+    def analytics(self, request):
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        
+        if not start_date or not end_date:
+            # Default to last 3 months
+            from datetime import datetime, timedelta
+            end_date = datetime.now().strftime('%Y-%m-%d')
+            start_date = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+        
+        try:
+            payment_client = PaymentProviderClient()
+            analytics = payment_client.get_analytics_for_period(start_date, end_date)
+            
+            return Response({
+                'success': True,
+                **analytics
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f'Payment analytics error: {str(e)}')
+            return Response({
+                'success': False,
+                'error': f'Failed to get payment analytics: {str(e)}',
+                'total_payments': 0,
+                'successful_payments': 0,
+                'failed_payments': 0,
+                'pending_payments': 0,
+                'canceled_payments': 0,
+                'refunded_payments': 0,
+                'total_revenue': 0,
+                'success_rate': 0,
+                'payment_methods': {},
+                'daily_totals': {},
+                'hourly_distribution': [0] * 24,
+                'period': f'{start_date} to {end_date}'
+            }, status=status.HTTP_200_OK)
+
+
 class TokenViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
     
