@@ -557,7 +557,7 @@ const onLogin = async (ws, req, payload, clients, ids) => {
   
   const sendStatistics = async (deviceId, locationName, videoId) => {
     try {
-      const response = await fetch('https://stats.4-neba.ru/api/api/update_statistics/', {
+      const response = await fetch('https://stats.local.vr360.pro.ru/api/api/update_statistics/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
