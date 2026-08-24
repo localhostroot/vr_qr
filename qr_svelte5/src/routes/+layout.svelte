@@ -1,10 +1,12 @@
 <script>
 	import '../app.css';
 	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
 	import { globals } from '$lib/stores/+stores.svelte.js';
 	import { useWebSocket } from '$lib/utils/websocket.js';
 	import { startPaymentStatusMonitor } from '$lib/utils/paymentStatusChecker.js';
+	import { setCookie } from '$lib/utils/+helpers.svelte.js';
 	import { PUBLIC_DATABASE, PUBLIC_BACKEND, PUBLIC_STAT } from '$env/static/public';
 	import FixedNavigation from '$lib/components/widgets/FixedNavigation.svelte';
 	import Footer from '$lib/components/widgets/Footer.svelte';
@@ -31,6 +33,18 @@
 					? `${clientLocation}:${clientId}`
 					: '4nebaVR'
 	);
+
+	// The viewer encoded in the URL is authoritative. A browser can retain the
+	// previous headset in localStorage/cookies, so synchronize it before child
+	// pages use currentClient for labels or control requests.
+	$effect.pre(() => {
+		if (!browser || !viewerUserId || !clientLocation || !clientId) return;
+		if (currentClient?.location === clientLocation && currentClient?.id === clientId) return;
+
+		const routeClient = { location: clientLocation, id: clientId };
+		globals.set('currentClient', routeClient);
+		setCookie('CURRENT_CLIENT', JSON.stringify(routeClient), 7);
+	});
 
 	onMount(() => {
 		// Initialize WebSocket connection

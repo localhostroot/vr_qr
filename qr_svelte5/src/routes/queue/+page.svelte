@@ -126,23 +126,20 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
         <div class="instructions">
 
           <div class="instEl"><div style="color: #900000" class="number"><b>1.</b></div>
-            <div class="descr"><b style="color: #900000">После оплаты в приложении банка не забудьте нажать "Вернуться в магазин" или "Обратно к заказу"!</b></div>
+            <div class="descr"><b style="color: #900000">После оплаты в банке нажмите "Вернуться в магазин" или "Обратно к заказу"!</b></div>
           </div>
 
           <div class="instEl"><div class="number">2.</div>
-            <div class="descr">Оплата является окончательной и не подлежит возврату.</div>
+            <div class="descr">Оплата окончательна и не подлежит возврату.</div>
           </div>
           <div class="instEl"><div class="number">3.</div>
-            <div class="descr">Ваше право на выбор - досматривать фильм или нет.</div>
+            <div class="descr">Досматривать фильм или нет - ваш выбор.</div>
           </div>
           <div class="instEl"><div class="number">4.</div>
             <div class="descr">Возможно перейти к следующему фильму.</div>
           </div>
           <div class="instEl"><div class="number">5.</div>
-            <div class="descr">После просмотра всех фильмов, система переходит в режим ожидания.</div>
-          </div>
-          <div class="instEl"><div class="number">6.</div>
-            <div class="descr">Если возникнут вопросы, наш администратор всегда готов помочь.</div>
+            <div class="descr">Если есть вопросы - обратитесь к администратору площадки.</div>
           </div>
         </div>
         <button
