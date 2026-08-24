@@ -48,7 +48,7 @@ import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 
   const handleClick = () => {
     if (currentClient?.location && currentClient?.id) {
-      goto(`${getSubfolder()}/vr/${currentClient.location}/${currentClient.id}`);
+      goto(`${getSubfolder()}/${currentClient.location}/${currentClient.id}`);
     } else {
       console.error('No valid client found for navigation');
       alert('Ошибка: не найдена информация о VR устройстве. Отсканируйте QR код заново.');

@@ -63,7 +63,7 @@
     const userId = clLocation && id ? `${clLocation}/${id}` : null;
 
     if (item.serial) {
-      goto(userId ? `${getSubfolder()}/vr/${userId}` : `/`);
+      goto(userId ? `${getSubfolder()}/${userId}` : `/`);
     } else {
       handleClick();
     }

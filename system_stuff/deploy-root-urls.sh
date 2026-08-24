@@ -41,7 +41,6 @@ if ! nginx -t; then
  exit 1
 fi
 
-systemctl reload nginx
 mv "$APP_DIR/build" "$OLD_BUILD"
 mv "$STAGE_DIR/build" "$APP_DIR/build"
 chown -R dk:dk "$APP_DIR/build"
@@ -82,14 +81,33 @@ if [ "$ready" -ne 1 ]; then
  rollback
 fi
 
-ROOT_CODE=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --resolve cinema.local.vr360.pro:443:127.0.0.1 https://cinema.local.vr360.pro/)
-VIEWER_CODE=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --resolve cinema.local.vr360.pro:443:127.0.0.1 https://cinema.local.vr360.pro/vr/CDH/30)
-LEGACY_CODE=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --resolve cinema.local.vr360.pro:443:127.0.0.1 https://cinema.local.vr360.pro/new/vr/CDH/30)
-DJANGO_API_CODE=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --resolve cinema.local.vr360.pro:443:127.0.0.1 https://cinema.local.vr360.pro/api/category/)
-SVELTE_API_CODE=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --resolve cinema.local.vr360.pro:443:127.0.0.1 https://cinema.local.vr360.pro/api/auth)
+if ! systemctl reload nginx; then
+ rollback
+fi
 
-if [ "$ROOT_CODE" != 200 ] || [ "$VIEWER_CODE" != 200 ] || [ "$LEGACY_CODE" != 308 ] || [ "$DJANGO_API_CODE" != 200 ] || [ "$SVELTE_API_CODE" != 405 ]; then
- echo "Unexpected health codes: root=$ROOT_CODE viewer=$VIEWER_CODE legacy=$LEGACY_CODE django_api=$DJANGO_API_CODE svelte_api=$SVELTE_API_CODE" >&2
+fetch_public_status() {
+ path=$1
+ attempt=1
+ while [ "$attempt" -le 5 ]; do
+  if code=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --resolve cinema.local.vr360.pro:443:127.0.0.1 "https://cinema.local.vr360.pro$path"); then
+   printf '%s' "$code"
+   return 0
+  fi
+  attempt=$((attempt + 1))
+  sleep 1
+ done
+ return 1
+}
+
+ROOT_CODE=$(fetch_public_status /) || rollback
+VIEWER_CODE=$(fetch_public_status /CDH/30) || rollback
+LEGACY_CODE=$(fetch_public_status /vr/CDH/30) || rollback
+DOUBLE_LEGACY_CODE=$(fetch_public_status /new/vr/CDH/30) || rollback
+DJANGO_API_CODE=$(fetch_public_status /api/category/) || rollback
+SVELTE_API_CODE=$(fetch_public_status /api/auth) || rollback
+
+if [ "$ROOT_CODE" != 200 ] || [ "$VIEWER_CODE" != 200 ] || [ "$LEGACY_CODE" != 404 ] || [ "$DOUBLE_LEGACY_CODE" != 404 ] || [ "$DJANGO_API_CODE" != 200 ] || [ "$SVELTE_API_CODE" != 405 ]; then
+ echo "Unexpected health codes: root=$ROOT_CODE viewer=$VIEWER_CODE legacy=$LEGACY_CODE double_legacy=$DOUBLE_LEGACY_CODE django_api=$DJANGO_API_CODE svelte_api=$SVELTE_API_CODE" >&2
  rollback
 fi
 
@@ -102,4 +120,4 @@ echo "Deployment completed"
 echo "Application backup: $APP_BACKUP"
 echo "Nginx backup: $NGINX_BACKUP"
 echo "Fast rollback build: $QUARANTINED_BUILD"
-echo "Health codes: root=$ROOT_CODE viewer=$VIEWER_CODE legacy=$LEGACY_CODE django_api=$DJANGO_API_CODE svelte_api=$SVELTE_API_CODE"
+echo "Health codes: root=$ROOT_CODE viewer=$VIEWER_CODE legacy=$LEGACY_CODE double_legacy=$DOUBLE_LEGACY_CODE django_api=$DJANGO_API_CODE svelte_api=$SVELTE_API_CODE"

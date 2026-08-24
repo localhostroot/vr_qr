@@ -20,7 +20,7 @@
   function selectClient(location, id) {
     const client = { location, id };
     globals.set('currentClient', client);
-    goto(`${getSubfolder()}/vr/${location}/${id}`);
+    goto(`${getSubfolder()}/${location}/${id}`);
   }
 
   function formatDuration(seconds) {

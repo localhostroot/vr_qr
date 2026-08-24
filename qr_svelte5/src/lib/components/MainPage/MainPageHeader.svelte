@@ -9,7 +9,7 @@
   let clientId = $derived($page.params.id || currentClient?.id || null);
   let homePath = $derived(
     clientLocation && clientId
-      ? `${getSubfolder()}/vr/${encodeURIComponent(clientLocation)}/${encodeURIComponent(clientId)}`
+      ? `${getSubfolder()}/${encodeURIComponent(clientLocation)}/${encodeURIComponent(clientId)}`
       : `${getSubfolder()}/`
   );
 </script>

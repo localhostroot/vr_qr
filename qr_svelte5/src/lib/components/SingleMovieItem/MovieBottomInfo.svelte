@@ -40,7 +40,7 @@
 
   function handleHomeClick() {
     const userId = getCurrentClient();
-    goto(`${getSubfolder()}/vr/${userId}`);
+    goto(`${getSubfolder()}/${userId}`);
   }
 
   const styles = {

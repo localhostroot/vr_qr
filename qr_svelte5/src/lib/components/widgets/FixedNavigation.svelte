@@ -10,12 +10,13 @@
   let currentClient = $derived(globals.get('currentClient'));
   let paidFilms = $derived(globals.get('paidFilms'));
   let queue = $derived(globals.get('queue'));
-  let clientLocation = $derived($page.params.location || currentClient?.location || null);
-  let clientId = $derived($page.params.id || currentClient?.id || null);
+  let isViewerRoute = $derived($page.route.id?.startsWith('/[location]/[id]'));
+  let clientLocation = $derived(isViewerRoute ? $page.params.location : currentClient?.location || null);
+  let clientId = $derived(isViewerRoute ? $page.params.id : currentClient?.id || null);
 
   let clientBasePath = $derived(
     clientLocation && clientId
-      ? `${getSubfolder()}/vr/${encodeURIComponent(clientLocation)}/${encodeURIComponent(clientId)}`
+      ? `${getSubfolder()}/${encodeURIComponent(clientLocation)}/${encodeURIComponent(clientId)}`
       : null
   );
   let homePath = $derived(clientBasePath || '#');

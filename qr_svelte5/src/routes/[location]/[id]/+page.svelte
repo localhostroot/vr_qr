@@ -7,8 +7,8 @@
   import Header from '$lib/components/widgets/Header.svelte';
   import VrPlayer from '$lib/components/MainPage/VrPlayer.svelte';
   import StartScreen from '$lib/components/widgets/StartScreen.svelte';
-import MainPageHeader from '$lib/components/MainPage/MainPageHeader.svelte';
-import { setCookie } from '$lib/utils/+helpers.svelte.js';
+  import MainPageHeader from '$lib/components/MainPage/MainPageHeader.svelte';
+  import { setCookie } from '$lib/utils/+helpers.svelte.js';
 
   let location = $derived($page.params.location);
   let id = $derived($page.params.id);

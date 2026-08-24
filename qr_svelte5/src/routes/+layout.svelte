@@ -14,10 +14,11 @@
 	// Determine if FixedNavigation should be shown based on current route
 	let showFixedNavigation = $derived($page.route.id !== '/' && $page.route.id !== '/site-admin' && $page.route.id !== '/stats');
 	let currentClient = $derived(globals.get('currentClient'));
-	let clientLocation = $derived($page.params.location || currentClient?.location || null);
-	let clientId = $derived($page.params.id || currentClient?.id || null);
+	let isViewerRoute = $derived($page.route.id?.startsWith('/[location]/[id]'));
+	let clientLocation = $derived(isViewerRoute ? $page.params.location : currentClient?.location || null);
+	let clientId = $derived(isViewerRoute ? $page.params.id : currentClient?.id || null);
 	let viewerUserId = $derived(
-		$page.route.id?.startsWith('/vr/[location]/[id]') && $page.params.location && $page.params.id
+		isViewerRoute && $page.params.location && $page.params.id
 			? `${$page.params.location}/${$page.params.id}`
 			: null
 	);

@@ -44,7 +44,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
     const id = client?.id || null;
 
     if (clLocation && id) {
-      goto(`${getSubfolder()}/vr/${clLocation}/${id}`);
+      goto(`${getSubfolder()}/${clLocation}/${id}`);
     } else {
       // No valid client found - show error or redirect to error page
       console.error('No valid client found for navigation');
