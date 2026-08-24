@@ -1,9 +1,11 @@
 import { APIHandler, VRHandler } from '../handlers/index.js'
 import fs from 'fs/promises';
 import path from 'path';
+import { PresenceHistory } from '../state/presenceHistory.js';
 
 const clients = []
 const ids = []
+const presenceHistory = new PresenceHistory()
 
 // Function to format time duration as hh:mm:ss
 const formatUptime = (milliseconds) => {
@@ -49,16 +51,26 @@ const saveUptime = async (location, id, uptime) => {
 export const APIController = (ws, req) => {
   const ipv4 = req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
-  ws.on('message', (msg) => {
+  ws.on('message', async (msg) => {
+      try {
+        const payload = JSON.parse(msg.toString());
 
-      const payload = JSON.parse(msg.toString());
+        console.log('message payload');
+        console.log(payload);
 
-      console.log('message payload');
-      console.log(payload);
-
-      const type = payload.type;
-      if (type && type in APIHandler) {
-          APIHandler[type](ws, req, payload, clients, ids);
+        const type = payload.type;
+        if (type && type in APIHandler) {
+            await APIHandler[type](ws, req, payload, clients, ids, presenceHistory);
+        }
+      } catch (error) {
+        console.error('API message handling failed:', error);
+        if (ws.readyState === 1) {
+          ws.send(JSON.stringify({
+            type: 'requestResponse',
+            success: false,
+            message: 'Ошибка обработки запроса',
+          }));
+        }
       }
   });
 
@@ -67,34 +79,38 @@ export const APIController = (ws, req) => {
   });
 
   ws.on('error', (err) => {
-      console.err(err);
+      console.error(err);
   });
 }
 
 export const VRController = (ws, req) => {
   const ipv4 = req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
-  ws.on("message", (msg) => {
-    const payload = JSON.parse(msg.toString());
-    const type = payload.type;
-    ws.payload = payload;
+  ws.on("message", async (msg) => {
+    try {
+      const payload = JSON.parse(msg.toString());
+      const type = payload.type;
+      ws.payload = payload;
 
-    if (type === 'login' && payload.params && payload.params.location) {
-      const locationAndId = payload.params.location;
-      const [location, userId] = locationAndId.split(":");
-      ws.location = location;
-      ws.userId = userId;
+      if (type === 'login' && payload.params && payload.params.location) {
+        const locationAndId = payload.params.location;
+        const [location, userId] = locationAndId.split(":");
+        ws.location = location;
+        ws.userId = userId;
 
-      console.log(`Сохранен location для IP ${ipv4}: ${location}`);
-      console.log(`Сохранен userId для IP ${ipv4}: ${userId}`);
-    }
+        console.log(`Сохранен location для IP ${ipv4}: ${location}`);
+        console.log(`Сохранен userId для IP ${ipv4}: ${userId}`);
+      }
 
-    if (type && type in VRHandler) {
-      VRHandler[type](ws, req, payload, clients, ids);
+      if (type && type in VRHandler) {
+        await VRHandler[type](ws, req, payload, clients, ids, presenceHistory);
+      }
+    } catch (error) {
+      console.error('VR message handling failed:', error);
     }
   });
 
-  ws.on("close", () => {
+  ws.on("close", async () => {
     console.log(`Host ${ipv4} closed connection`);
 
     const closingLocation = ws.location;
@@ -104,12 +120,19 @@ export const VRController = (ws, req) => {
       const clientIndex = clients.findIndex(
         (client) =>
           client.location === closingLocation &&
-          client.id === closingUserId
+          client.id === closingUserId &&
+          client.ws === ws
       );
 
       if (clientIndex !== -1) {
         const userIdToRemove = clients[clientIndex].id;
         const client = clients[clientIndex];
+
+        try {
+          await presenceHistory.markOffline(client);
+        } catch (error) {
+          console.error('Failed to persist offline state:', error);
+        }
         
         // Calculate and save uptime
         if (client.connectionTimestamp) {
@@ -126,7 +149,9 @@ export const VRController = (ws, req) => {
         );
         clients.splice(clientIndex, 1);
 
-        const idIndex = ids.findIndex((idObj) => idObj.id === userIdToRemove);
+        const idIndex = ids.findIndex(
+          (idObj) => idObj.id === userIdToRemove && idObj.location === closingLocation
+        );
         if (idIndex !== -1) {
           console.log(`Удаляем ID ${userIdToRemove} из массива ids`);
           ids.splice(idIndex, 1);

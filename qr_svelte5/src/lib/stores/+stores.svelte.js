@@ -54,6 +54,7 @@ let globalStorage = $state({
   
   // Clients state
   clients: persistedClients,
+  vrOverview: null,
   isClientsLoading: true,
   clientsError: null,
   

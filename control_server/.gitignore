@@ -1,0 +1,4 @@
+node_modules/
+presence-history.json
+presence-history.json.*.tmp
+uptime.json

@@ -21,6 +21,7 @@
   let fillBarElement = $state(null);
   let isFillBarComplete = $state(false);
   let isTokenExpiry = $state(false);
+  let isWatchRequestPending = $state(false);
 
   // Get token from store using $derived
   let token = $derived(globals.get('token'));
@@ -175,6 +176,24 @@
   const sendRequest = async (type, filmId = null) => {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(PUBLIC_BACKEND);
+      let settled = false;
+
+      /** @param {() => void} callback */
+      const finish = (callback) => {
+        if (settled) return;
+
+        settled = true;
+        clearTimeout(responseTimeout);
+        callback();
+
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close(1000, 'Request completed');
+        }
+      };
+
+      const responseTimeout = setTimeout(() => {
+        finish(() => reject(new Error('Сервер не ответил вовремя')));
+      }, 10000);
 
       ws.onopen = () => {
         const message = JSON.stringify({
@@ -188,32 +207,42 @@
       };
 
       ws.onmessage = (event) => {
-        const response = JSON.parse(event.data);
-        if (response.type === 'requestResponse') {
-          if (response.success) {
-            resolve(response);
-          } else {
-            reject(new Error(response.message || 'Неизвестная ошибка'));
+        try {
+          const response = JSON.parse(event.data);
+          if (response.type === 'requestResponse') {
+            if (response.success) {
+              finish(() => resolve(response));
+            } else {
+              finish(() => reject(new Error(response.message || 'Неизвестная ошибка')));
+            }
           }
+        } catch (error) {
+          finish(() => reject(new Error('Некорректный ответ сервера')));
         }
       };
 
       ws.onerror = (error) => {
-        reject(error);
+        finish(() => reject(error));
       };
 
       ws.onclose = () => {
-        reject(new Error('Соединение закрыто без ответа'));
+        finish(() => reject(new Error('Соединение закрыто без ответа')));
       };
     });
   };
 
   // Event handlers
   const handleWatchClick = async () => {
+    if (isWatchRequestPending) {
+      return;
+    }
+
     if (!isValidToken || !isValidFilm) {
       requestError = "Нет доступа к этому фильму. Возможно, токен истек или не действителен.";
       return;
     }
+
+    isWatchRequestPending = true;
 
     try {
       await sendRequest('videoForClient', item.film_id);
@@ -222,6 +251,8 @@
     } catch (error) {
       console.error('Ошибка при отправке запроса:', error);
       requestError = `Произошла ошибка: ${error.message}`;
+    } finally {
+      isWatchRequestPending = false;
     }
   };
 
@@ -344,9 +375,9 @@
                 Убрать из очереди
               </button> -->
               <!-- {#if !isOtherActive} -->
-                <button class="watchBtn" onclick={handleWatchClick}>
+                <button class="watchBtn" onclick={handleWatchClick} disabled={isWatchRequestPending}>
                   {@html icons.play || '▶'}
-                  Смотреть
+                  {isWatchRequestPending ? 'Запускаем…' : 'Смотреть'}
                 </button>
               <!-- {/if} -->
             </div>
@@ -357,9 +388,9 @@
                 Добавить в очередь
               </button> -->
               <!-- {#if !isOtherActive} -->
-                <button class="watchBtn" onclick={handleWatchClick}>
+                <button class="watchBtn" onclick={handleWatchClick} disabled={isWatchRequestPending}>
                   {@html icons.play || '▶'}
-                  Смотреть
+                  {isWatchRequestPending ? 'Запускаем…' : 'Смотреть'}
                 </button>
               <!-- {/if} -->
             </div>
@@ -611,8 +642,13 @@
     width: 100%;
   }
 
-  .watchBtn:hover {
+  .watchBtn:hover:not(:disabled) {
     background: var(--color-white);
+  }
+
+  .watchBtn:disabled {
+    cursor: wait;
+    opacity: 0.7;
   }
 
   .accessDenied {

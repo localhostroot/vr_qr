@@ -16,7 +16,7 @@
 
 	onMount(() => {
 		// Initialize WebSocket connection
-		webSocketManager = useWebSocket(PUBLIC_BACKEND, 'getVr');
+		webSocketManager = useWebSocket(PUBLIC_BACKEND, 'getVrOverview');
 		webSocketManager.connect();
 
 		// Check payment status on app startup
