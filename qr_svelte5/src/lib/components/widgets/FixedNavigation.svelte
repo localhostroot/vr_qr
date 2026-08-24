@@ -10,15 +10,20 @@
   let currentClient = $derived(globals.get('currentClient'));
   let paidFilms = $derived(globals.get('paidFilms'));
   let queue = $derived(globals.get('queue'));
+  let clientLocation = $derived($page.params.location || currentClient?.location || null);
+  let clientId = $derived($page.params.id || currentClient?.id || null);
 
-  const getUserId = currentClient => {
-    if (currentClient?.location && currentClient?.id) {
-      return `${currentClient.location}/${currentClient.id}`;
-    }
-    return null;
-  }
-
-  let userId = $derived(getUserId(currentClient));
+  let clientBasePath = $derived(
+    clientLocation && clientId
+      ? `${getSubfolder()}/vr/${encodeURIComponent(clientLocation)}/${encodeURIComponent(clientId)}`
+      : null
+  );
+  let homePath = $derived(clientBasePath || '#');
+  let queuePath = $derived(clientBasePath ? `${clientBasePath}/queue` : `${getSubfolder()}/queue`);
+  let filmsPath = $derived(clientBasePath ? `${clientBasePath}/films` : `${getSubfolder()}/films`);
+  let isHomeActive = $derived(Boolean(clientBasePath) && currentPath === clientBasePath);
+  let isQueueActive = $derived(currentPath === queuePath || currentPath === `${getSubfolder()}/queue`);
+  let isFilmsActive = $derived(currentPath === filmsPath || currentPath === `${getSubfolder()}/films`);
 
   let hideNavAndFooter = $derived(currentPath === '/');
 </script>
@@ -26,22 +31,22 @@
 {#if !hideNavAndFooter}
 <nav class="fixedNavigation">
   <div>
-      <a href={currentClient?.location && currentClient?.id ? `${getSubfolder()}/vr/${currentClient.location}/${currentClient.id}` : '#'}>
+      <a href={homePath}>
           <div class="nav-item">
             <div class="nav-icon">
-              {@html currentPath.startsWith(`${getSubfolder()}/vr/`) ? icons.mainActive : icons.main}
+              {@html isHomeActive ? icons.mainActive : icons.main}
             </div>
-            <div class="nav-label" class:active={currentPath.startsWith(`${getSubfolder()}/vr/`)}>Главная</div>
+            <div class="nav-label" class:active={isHomeActive}>Главная</div>
           </div>
       </a>
   </div>
   <div>
-      <a href="{getSubfolder()}/queue">
+      <a href={queuePath}>
           <div class="nav-item">
             <div class="nav-icon">
-              {@html currentPath === `${getSubfolder()}/queue` ? icons.basketActive : icons.basket}
+              {@html isQueueActive ? icons.basketActive : icons.basket}
             </div>
-            <div class="nav-label" class:active={currentPath === `${getSubfolder()}/queue`}>Корзина</div>
+            <div class="nav-label" class:active={isQueueActive}>Корзина</div>
           </div>
       </a>
       {#if queue && queue.length > 0}
@@ -49,12 +54,12 @@
       {/if}
   </div>
   <div>
-      <a href="{getSubfolder()}/films">
+      <a href={filmsPath}>
           <div class="nav-item">
             <div class="nav-icon">
-              {@html currentPath === `${getSubfolder()}/films` ? icons.playActive : icons.play}
+              {@html isFilmsActive ? icons.playActive : icons.play}
             </div>
-            <div class="nav-label" class:active={currentPath === `${getSubfolder()}/films`}>Мои фильмы</div>
+            <div class="nav-label" class:active={isFilmsActive}>Мои фильмы</div>
           </div>
       </a>
       {#if paidFilms && paidFilms.length > 0}

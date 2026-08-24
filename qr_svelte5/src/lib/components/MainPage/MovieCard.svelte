@@ -162,13 +162,15 @@
     width: 100%;
     aspect-ratio: 16/9; /* Fixed 16:9 aspect ratio */
     overflow: hidden;
+    background: var(--color-dark-primary);
   }
 
   .movie-card img,
   .placeholder-image {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    object-position: center;
   }
 
   .placeholder-image {
