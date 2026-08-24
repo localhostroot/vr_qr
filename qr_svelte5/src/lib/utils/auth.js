@@ -1,5 +1,3 @@
-import { PUBLIC_PROJECT_LINK } from "$env/static/public";
-
 /**
  * Check if user is authenticated by verifying session cookie
  * @param {Object} cookies - SvelteKit cookies object
@@ -28,7 +26,7 @@ export function isAuthenticated(cookies) {
  */
 export async function login(username, password) {
 	try {
-		const response = await fetch(`${PUBLIC_PROJECT_LINK}/api/auth`, {
+		const response = await fetch('/api/auth', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -52,7 +50,7 @@ export async function login(username, password) {
  */
 export async function logout() {
 	try {
-		await fetch(`${PUBLIC_PROJECT_LINK}/api/auth`, {
+		await fetch('/api/auth', {
 			method: 'DELETE'
 		});
 		// Force page reload to clear any cached data

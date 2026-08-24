@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { PUBLIC_DATABASE, PUBLIC_APP_SUBFOLDER } from '$env/static/public';
+import { PUBLIC_DATABASE } from '$env/static/public';
 import { globals } from '$lib/stores/+stores.svelte.js';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 import { getSubfolder } from './+helpers.svelte';

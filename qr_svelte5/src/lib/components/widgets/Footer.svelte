@@ -1,11 +1,10 @@
 <script>
   import { page } from '$app/stores';
-  import { PUBLIC_APP_SUBFOLDER } from '$env/static/public';
   import { icons } from '$lib/icons/icons.js';
   import { globals } from '$lib/stores/+stores.svelte.js';
 
   let currentPath = $derived($page.url.pathname);
-  let hideNavAndFooter = $derived(PUBLIC_APP_SUBFOLDER ? currentPath === '/new' : currentPath === '/');
+  let hideNavAndFooter = $derived(currentPath === '/');
   let version = $derived(globals.get('version'));
 </script>
 

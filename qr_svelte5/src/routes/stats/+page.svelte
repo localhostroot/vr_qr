@@ -6,7 +6,6 @@
   import { login, logout } from '$lib/utils/auth.js';
   import { Chart, registerables } from 'chart.js';
   import 'chartjs-adapter-date-fns';
-  import { PUBLIC_PROJECT_LINK } from '$env/static/public';
   
   if (browser) {
     Chart.register(...registerables);
@@ -53,7 +52,7 @@
     
     try {
       // Try to fetch stats to check if authenticated
-      const response = await fetch(`${PUBLIC_PROJECT_LINK}/api/stats?type=overview`);
+      const response = await fetch('/api/stats?type=overview');
       if (response.ok) {
         isAuthenticated = true;
         await loadAllStats();
@@ -79,7 +78,7 @@
     isLoggingIn = true;
     loginError = '';
 
-    console.log(`${PUBLIC_PROJECT_LINK}/api/stats?type=overview`);
+    console.log('/api/stats?type=overview');
     
     try {
       const result = await login(username, password);
@@ -163,7 +162,7 @@
 
   async function loadOverviewStats() {
     try {
-      const response = await fetch(`${PUBLIC_PROJECT_LINK}/api/stats?type=overview`);
+      const response = await fetch('/api/stats?type=overview');
       if (response.ok) {
         overviewStats = await response.json();
       }
@@ -174,7 +173,7 @@
 
   async function loadLocationStats() {
     try {
-      const response = await fetch(`${PUBLIC_PROJECT_LINK}/api/stats?type=locations`);
+      const response = await fetch('/api/stats?type=locations');
       if (response.ok) {
         locationStats = await response.json();
       }
@@ -185,7 +184,7 @@
 
   async function loadVideoStats() {
     try {
-      const response = await fetch(`${PUBLIC_PROJECT_LINK}/api/stats?type=videos`);
+      const response = await fetch('/api/stats?type=videos');
       if (response.ok) {
         videoStats = await response.json();
       }
@@ -208,7 +207,7 @@
 
   async function loadPaymentStats() {
     try {
-      const response = await fetch(`${PUBLIC_PROJECT_LINK}/api/payments`);
+      const response = await fetch('/api/payments');
       if (response.ok) {
         paymentStats = await response.json();
       }
