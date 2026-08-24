@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import style from './headadminlocationpage.module.css';
 import { ClientList } from '../../components/ClientList/ClientList';
@@ -22,23 +22,14 @@ export const HeadAdminLocationPage = ({ onLogout }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isVideoSelectModalOpen, setIsVideoSelectModalOpen] = useState(false);
     const [isQrCodeModalOpen, setIsQrCodeModalOpen] = useState(false);
-    const [isFreeServer, setIsFreeServer] = useState(() => {
-        const storedValue = localStorage.getItem(`isFreeServer_${location}`);
-        return storedValue === 'true' || false;
-    });
-
-    const controlApi = isFreeServer ? process.env.REACT_APP_CONTROL_SERVER_FREE : process.env.REACT_APP_CONTROL_SERVER;
-    const vrUrlBase = isFreeServer ? process.env.REACT_APP_VR_URL_BASE_FREE : process.env.REACT_APP_VR_URL_BASE;
+    const controlApi = process.env.REACT_APP_CONTROL_SERVER;
+    const vrUrlBase = process.env.REACT_APP_VR_URL_BASE;
 
 
 
 
     const { clients, sendMessage } = useWebSocket(controlApi, location);
     const { sendCommand } = useSendCommand(sendMessage, location);
-
-    useEffect(() => {
-        localStorage.setItem(`isFreeServer_${location}`, String(isFreeServer));
-    }, [isFreeServer, location]);
 
     const handleClientSelectionChange = (selectedIds) => {
         setSelectedClientIds(selectedIds);
@@ -94,10 +85,6 @@ export const HeadAdminLocationPage = ({ onLogout }) => {
         selectedClientIds.forEach(clientId => {
             sendCommand('reset', null, null, null, clientId);
         });
-    };
-
-    const handleServer = () => {
-        setIsFreeServer(!isFreeServer);
     };
 
     const openQrCodeModal = () => {
@@ -174,9 +161,6 @@ export const HeadAdminLocationPage = ({ onLogout }) => {
                     <button onClick={handleVideoForClient}>Запустить видео</button>
                     <button onClick={handleMainMenu}>Перейти в главное меню</button>
                     <button onClick={handleReset}>Сбросить</button>
-                    <button onClick={handleServer}>
-                        {isFreeServer ? "Использовать платный сервер" : "Использовать бесплатный сервер"}
-                    </button>
                     <button onClick={openQrCodeModal}>Создать QR-коды</button>
                 </div>
                 <ClientList

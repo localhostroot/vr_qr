@@ -1,6 +1,6 @@
 import style from './adminpage.module.css'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {ClientList} from "../../components/ClientList/ClientList";
 import NotiModal from "../../ui/NotiModal/NotiModal";
 import VideoSelectModal from "../../ui/VideoSelectModal/VideoSelectModal";
@@ -16,18 +16,9 @@ export const AdminPage = ({onLogout}) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isVideoSelectModalOpen, setIsVideoSelectModalOpen] = useState(false);
 
-    const [isFreeServer, setIsFreeServer] = useState(() => {
-        const storedValue = localStorage.getItem(`isFreeServer_${location}`);
-        return storedValue === 'true' || false;
-    });
-
-    const controlApi = isFreeServer ? process.env.REACT_APP_CONTROL_SERVER_FREE : process.env.REACT_APP_CONTROL_SERVER;
+    const controlApi = process.env.REACT_APP_CONTROL_SERVER;
 
     const { clients, sendMessage } = useWebSocket(controlApi, location);
-
-    useEffect(() => {
-        localStorage.setItem(`isFreeServer_${location}`, String(isFreeServer));
-    }, [isFreeServer, location]);
 
     const { sendCommand } = useSendCommand(sendMessage, location);
 
@@ -87,10 +78,6 @@ export const AdminPage = ({onLogout}) => {
         });
     };
 
-    const handleServer = () => {
-        setIsFreeServer(!isFreeServer);
-    };
-
     return (
         <div className={style.headAdminPage}>
             <div className={style.first}>
@@ -100,9 +87,6 @@ export const AdminPage = ({onLogout}) => {
                     <button onClick={handleVideoForClient}>Запустить видео</button>
                     <button onClick={handleMainMenu}>Перейти в главное меню</button>
                     <button onClick={handleReset}>Сбросить</button>
-                    <button onClick={handleServer}>
-                        {isFreeServer ? "Использовать платный сервер" : "Использовать бесплатный сервер"}
-                    </button>
                 </div>
                 <ClientList
                     clients={clients}

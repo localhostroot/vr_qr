@@ -5,7 +5,7 @@ Based on my analysis of the FilmsPage, ContentCardPaid components, and the contr
 Architecture Overview
 
 The system consists of:
-1. Frontend Components (React + Svelte versions)
+1. SvelteKit frontend components
 2. Control Server (WebSocket-based backend)
 3. Database/API for token validation
 
@@ -13,12 +13,12 @@ Flow for Adding Paid Films to Queue
 
 #### 1. Frontend Components
 
-FilmsPage (/qr/src/pages/FilmsPage/ui/FilmsPage.jsx):
-•  Displays list of paid films from Redux store (paidFilms)
+FilmsPage (`/qr_svelte5/src/routes/films/+page.svelte`):
+•  Displays the list of paid films from the Svelte store
 •  Renders ContentCardPaid components for each film
 •  Provides client information (location, ID) to child components
 
-ContentCardPaid Component (both React and Svelte versions):
+ContentCardPaid component (`/qr_svelte5/src/lib/components/ContentCardPaid.svelte`):
 •  Validates user token and film access before allowing actions
 •  Manages button states: isActive, isPending, isInQueue, isOtherActive
 •  Handles addToQueue action through handleAddToQueue function
@@ -40,15 +40,15 @@ In ContentCardPaid Component:
 
 const handleAddToQueue = async () => {
   if (!isValidToken || !isValidFilm) {
-    setRequestError("Нет доступа к этому фильму...");
+    requestError = "Нет доступа к этому фильму...";
     return;
   }
   
   try {
     await sendRequest(clientId, location, 'addToQueue', item.film_id, token);
-    setRequestError(null);
+    requestError = null;
   } catch (error) {
-    setRequestError(`Произошла ошибка: ${error.message}`);
+    requestError = `Произошла ошибка: ${error.message}`;
   }
 };
 
@@ -135,7 +135,7 @@ Key Features
 1. Token-based Access Control: Each film requires valid token validation
 2. Real-time Communication: WebSocket for instant queue updates
 3. Client-specific Queues: Each VR client has its own queue
-4. State Management: Both frontend (Redux/Svelte stores) and backend maintain queue state
+4. State Management: the Svelte store and backend maintain queue state
 5. Error Handling: Comprehensive error messages for various failure scenarios
 
 Security Considerations
