@@ -1,7 +1,6 @@
 <script>
   // @ts-nocheck
   import { globals } from '$lib/stores/+stores.svelte.js';
-  import { icons } from '$lib/icons/icons.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { PUBLIC_DATABASE } from '$env/static/public';
@@ -149,7 +148,6 @@
           <div class="vr-grid">
             {#each waiting as client}
               <button class="vr-card waiting-card" onclick={() => selectClient(client.location, client.id)}>
-                <span class="logo">{@html icons.smallLogo}</span>
                 <span class="client-number">{client.location}:{client.id}</span>
                 <span class="status waiting-status">В ожидании</span>
                 {#if client.currentUptime}
@@ -176,7 +174,6 @@
           <div class="vr-grid">
             {#each watching as client}
               <article class="vr-card watching-card">
-                <span class="logo">{@html icons.smallLogo}</span>
                 <span class="client-number">{client.location}:{client.id}</span>
                 <span class="status watching-status">
                   {client.activity !== 1 ? 'Запускается' : client.isPlaying ? 'Идёт просмотр' : 'Видео на паузе'}
@@ -210,7 +207,6 @@
           <div class="vr-grid">
             {#each offline as client}
               <article class="vr-card offline-card">
-                <span class="logo">{@html icons.smallLogo}</span>
                 <span class="client-number">{client.location}:{client.id}</span>
                 <span class="status offline-status">Не в сети</span>
                 <span class="meta">Последний раз в смене: {formatServerTime(client.lastSeenInServiceWindowAt)}</span>
@@ -337,13 +333,6 @@
     border-color: rgba(114, 220, 152, 0.55);
   }
 
-  .logo {
-    width: 42px;
-    height: 42px;
-    opacity: 0.9;
-  }
-
-  .logo :global(svg) { width: 100%; height: 100%; }
   .client-number { font-size: 17px; font-weight: 700; }
 
   .status {
