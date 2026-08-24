@@ -141,7 +141,7 @@
 </script>
 
 <svelte:head>
-	<title>Admin - Order Management</title>
+	<title>Подтверждение покупок</title>
 </svelte:head>
 
 <div class="admin-container">

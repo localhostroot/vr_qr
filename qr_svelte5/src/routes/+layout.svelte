@@ -18,9 +18,13 @@
 	let clientLocation = $derived($page.params.location || currentClient?.location || null);
 	let clientId = $derived($page.params.id || currentClient?.id || null);
 	let browserTitle = $derived(
-		showFixedNavigation && clientLocation && clientId
-			? `${clientLocation}:${clientId}`
-			: '4nebaVR'
+		$page.route.id === '/stats'
+			? 'Статистика'
+			: $page.route.id === '/'
+				? 'Мониторинг'
+				: showFixedNavigation && clientLocation && clientId
+					? `${clientLocation}:${clientId}`
+					: '4nebaVR'
 	);
 
 	onMount(() => {
