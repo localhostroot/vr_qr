@@ -1,6 +1,15 @@
 import WebSocket from 'ws';
 import fs from 'fs/promises';
 import path from 'path';
+import {
+  ensurePaidPlaybackSession,
+  finalizePaidPlaybackSession,
+  inheritClientPlayback,
+  markPaidAuthorization,
+  restoreClientPlayback,
+  updatePaidPlaybackSession,
+  verifyPaidAccess,
+} from '../services/paidPlayback.js';
 
 const ip_regex = /^::ffff:[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/
 
@@ -305,7 +314,7 @@ const onNotification = (ws, req, payload, clients) => {
 
 };
 
-const onSingleClientVideo = (ws, req, payload, clients) => {
+const onSingleClientVideo = async (ws, req, payload, clients) => {
   const msg = JSON.stringify({
       type: 'videoChangeRequested',
       data: {
@@ -326,11 +335,21 @@ const onSingleClientVideo = (ws, req, payload, clients) => {
           }));
       }
 
+      const paidAuthorization = payload.token
+          ? await verifyPaidAccess(payload.token, payload.videoId)
+          : null;
+      const paymentVerified = markPaidAuthorization(
+          client,
+          payload.videoId,
+          paidAuthorization,
+      );
+
       if (isVideoAlreadyRequested(client, payload.videoId)) {
           return ws.send(JSON.stringify({
               type: 'requestResponse',
               success: true,
               duplicate: true,
+              paymentVerified,
               message: 'Видео уже запущено или добавлено в очередь'
           }));
       }
@@ -341,6 +360,7 @@ const onSingleClientVideo = (ws, req, payload, clients) => {
           ws.send(JSON.stringify({
               type: 'requestResponse',
               success: true,
+              paymentVerified,
               message: 'Видео добавлено в очередь'
           }));
       } else {
@@ -349,6 +369,7 @@ const onSingleClientVideo = (ws, req, payload, clients) => {
           ws.send(JSON.stringify({
               type: 'requestResponse',
               success: true,
+              paymentVerified,
               message: 'Video началось'
           }));
       }
@@ -572,29 +593,10 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
   if (userId && location) {
     const existingClientIndex = clients.findIndex(client => client.id === userId && client.location === location);
 
-    if (existingClientIndex !== -1) {
-      clients[existingClientIndex] = {
-        ws: ws,
-        ip: ipv4,
-        id: userId,
-        location: location,
-        isBlocked: false,
-        activity: 2,
-        pendingQueue: null,
-        userPresent: false,
-        queue: [],
-        params: {},
-        lastReq: null,
-        connectionTimestamp: Date.now(),
-        lastSeenAt: Date.now(),
-        currentVideoId: null,
-        playbackPosition: null,
-        currentVideoDuration: null,
-        isPlaying: false
-      };
-      console.log(`Клиент перезаписан: `, clients[existingClientIndex]);
-    } else {
-      clients.push({
+    const previousClient = existingClientIndex !== -1
+      ? clients[existingClientIndex]
+      : null;
+    const registeredState = {
         ws: ws,
         ip: ipv4,
         id: userId,
@@ -611,8 +613,18 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
         currentVideoId: null,
         playbackPosition: null,
         currentVideoDuration: null,
-        isPlaying: false
-      });
+        isPlaying: false,
+        activePlaybackSession: null,
+        paidAuthorizations: {},
+      };
+
+    if (previousClient) {
+      inheritClientPlayback(registeredState, previousClient);
+      clients[existingClientIndex] = registeredState;
+      console.log(`Клиент перезаписан: `, clients[existingClientIndex]);
+    } else {
+      restoreClientPlayback(registeredState);
+      clients.push(registeredState);
 
       ids.push({
         id: userId,
@@ -638,7 +650,7 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
 };
 
 
-  const handleStartVideo = (client, currentVideoId, details, ws) => {
+  const handleStartVideo = async (client, currentVideoId, details, ws) => {
     const playbackPosition = details.playbackPosition || 0;
 
     normalizeClientQueues(client);
@@ -656,9 +668,13 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
     }
   
     if (client.currentVideoId !== currentVideoId) {
-      handleVideoChange(client, currentVideoId);
+      await handleVideoChange(client, currentVideoId);
     }
-  
+
+    if (details.isPlaying) {
+      ensurePaidPlaybackSession(client, currentVideoId);
+    }
+
     handlePlayback(client, details, playbackPosition);
   };
   
@@ -681,11 +697,11 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
     }
   };
   
-  const handleVideoChange = (client, currentVideoId) => {
+  const handleVideoChange = async (client, currentVideoId) => {
     if (client.currentVideoId) {
         console.log(`Смена фильма: заканчиваем ${client.currentVideoId}`);
 
-        sendStatistics(client.id, client.location, client.currentVideoId);
+        await finalizePaidPlaybackSession(client, 'video_changed');
         if (queueHasVideo(client.queue, client.currentVideoId)) {
             console.log(`Удаляем фильм ${client.currentVideoId} из очереди.`);
             client.queue = removeVideoFromQueue(client.queue, client.currentVideoId);
@@ -710,6 +726,8 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
       client.currentVideoDuration = reportedDuration;
     }
 
+    updatePaidPlaybackSession(client, details);
+
     console.log(`${details.isPlaying}`);
     if (details.isPlaying) {
       client.playbackTimeCounter += 1;
@@ -720,13 +738,14 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
     }
   };
   
-  const handleEndVideo = (client) => {
+  const handleEndVideo = async (client) => {
     if (client.missingVideoTimer) {
         clearTimeout(client.missingVideoTimer);
         client.missingVideoTimer = null;
     }
 
-    if (isVideoIdPresent(client.stopRequestedVideoId)) {
+    const wasStopRequested = isVideoIdPresent(client.stopRequestedVideoId);
+    if (wasStopRequested) {
         client.queue = removeVideoFromQueue(client.queue, client.stopRequestedVideoId);
         client.pendingQueue = removeVideoFromQueue(client.pendingQueue, client.stopRequestedVideoId);
         client.stopRequestedVideoId = null;
@@ -743,7 +762,10 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
         } else {
             console.log(`Фильм ${client.currentVideoId} не найден в очереди.`);
         }
-    sendStatistics(client.id, client.location, client.currentVideoId);
+    await finalizePaidPlaybackSession(
+      client,
+      wasStopRequested ? 'stopped' : 'playback_ended',
+    );
     client.currentVideoId = null;
     client.playbackPosition = null;
     client.currentVideoDuration = null;
@@ -754,32 +776,6 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
   };
 
   
-  const sendStatistics = async (deviceId, locationName, videoId) => {
-    try {
-      const response = await fetch('https://stats.local.vr360.pro/api/api/update_statistics/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          client_id: deviceId,
-          location_name: locationName,
-          video_id: videoId,
-        }),
-      });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`HTTP error! status: ${response.status}, ${JSON.stringify(errorData)}`);
-      }
-  
-      const data = await response.json();
-      console.log('Статистика отправлена:', data);
-    } catch (error) {
-      console.error('Ошибка при отправке статистики:', error);
-    }
-  };
-
   const onUpdateState = async (ws, req, payload, clients, ids, presenceHistory) => {
     const ipv4 = req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     console.log(`updateState: запрос от клиента с IP ${ipv4}`);
@@ -842,9 +838,9 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
 
           } else if (currentActivity === 1) {
               const currentVideoId = details.videoId;
-              handleStartVideo(foundClient, currentVideoId, details, ws);
+              await handleStartVideo(foundClient, currentVideoId, details, ws);
           } else {
-              handleEndVideo(foundClient);
+              await handleEndVideo(foundClient);
           }
 
           if (presenceHistory) {

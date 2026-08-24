@@ -2,6 +2,7 @@ import { APIHandler, VRHandler } from '../handlers/index.js'
 import fs from 'fs/promises';
 import path from 'path';
 import { PresenceHistory } from '../state/presenceHistory.js';
+import { suspendClientPlayback } from '../services/paidPlayback.js';
 
 const clients = []
 const ids = []
@@ -127,6 +128,8 @@ export const VRController = (ws, req) => {
       if (clientIndex !== -1) {
         const userIdToRemove = clients[clientIndex].id;
         const client = clients[clientIndex];
+
+        suspendClientPlayback(client);
 
         try {
           await presenceHistory.markOffline(client);

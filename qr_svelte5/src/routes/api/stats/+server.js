@@ -43,8 +43,12 @@ async function getOverviewStats() {
 	} catch (error) {
 		console.error('Overview stats error:', error);
 		return json({ 
-			total_views: 0, 
-			todays_views: 0,
+			total_launches: 0,
+			total_abandoned: 0,
+			total_viewed: 0,
+			todays_launches: 0,
+			todays_abandoned: 0,
+			todays_viewed: 0,
 			error: 'Failed to fetch overview stats'
 		});
 	}

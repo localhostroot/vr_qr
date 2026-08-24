@@ -89,3 +89,27 @@ class ViewerAccessRecoveryTests(TestCase):
             {'film-a', 'film-b'},
         )
         self.assertTrue(PaymentToken.objects.filter(pk=self.old_token.pk).exists())
+
+    def test_token_validation_exposes_confirmed_payment(self):
+        response = self.client.get(
+            reverse('tokens-validate'),
+            {'token': self.new_token.token, 'film_id': 'film-b'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['valid'])
+        self.assertTrue(response.data['payment_confirmed'])
+        self.assertEqual(response.data['viewer_id'], self.viewer_id)
+
+    def test_token_validation_rejects_unconfirmed_order(self):
+        self.new_order.status = 'created'
+        self.new_order.save(update_fields=('status',))
+
+        response = self.client.get(
+            reverse('tokens-validate'),
+            {'token': self.new_token.token, 'film_id': 'film-b'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data['valid'])
+        self.assertFalse(response.data['payment_confirmed'])

@@ -236,6 +236,11 @@
     loadDeviceStats(location.id);
   }
 
+  function percentage(part, total) {
+    if (!total) return '0%';
+    return `${((part || 0) / total * 100).toFixed(1)}%`;
+  }
+
   function handleKeydown(event) {
     if (event.key === 'Enter' && showLoginModal) {
       handleLogin();
@@ -343,12 +348,28 @@
             <div class="metrics-row">
               {#if overviewStats}
                 <div class="metric-card">
-                  <div class="metric-value">{overviewStats.total_views || 0}</div>
-                  <div class="metric-label">Total Views</div>
+                  <div class="metric-value">{overviewStats.total_launches || 0}</div>
+                  <div class="metric-label">Запуски</div>
                 </div>
                 <div class="metric-card">
-                  <div class="metric-value">{overviewStats.todays_views || 0}</div>
-                  <div class="metric-label">Today's Views</div>
+                  <div class="metric-value">{overviewStats.total_abandoned || 0}</div>
+                  <div class="metric-label">Брошенные</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value">{overviewStats.total_viewed || 0}</div>
+                  <div class="metric-label">Просмотренные</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value">{overviewStats.todays_launches || 0}</div>
+                  <div class="metric-label">Запуски сегодня</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value">{overviewStats.todays_abandoned || 0}</div>
+                  <div class="metric-label">Брошенные сегодня</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value">{overviewStats.todays_viewed || 0}</div>
+                  <div class="metric-label">Просмотренные сегодня</div>
                 </div>
               {/if}
               {#if paymentStats}
@@ -392,15 +413,15 @@
               {/if}
               
               <div class="chart-card">
-                <h3>Top Locations by Views</h3>
+                <h3>Локации по оплаченным запускам</h3>
                 <div class="location-chart">
                   {#if locationStats}
                     {#each locationStats.slice(0, 5) as location}
                       <div class="location-bar">
                         <div class="location-name">{location.name}</div>
                         <div class="location-bar-container">
-                          <div class="location-bar-fill" style="width: {Math.max(10, (location.views || 0) / Math.max(...locationStats.map(l => l.views || 0)) * 100)}%"></div>
-                          <div class="location-bar-value">{location.views || 0}</div>
+                          <div class="location-bar-fill" style="width: {Math.max(10, (location.launches || 0) / Math.max(1, ...locationStats.map(l => l.launches || 0)) * 100)}%"></div>
+                          <div class="location-bar-value">{location.launches || 0}</div>
                         </div>
                       </div>
                     {/each}
@@ -411,17 +432,21 @@
             
             <!-- Video Stats Table -->
             <div class="stats-table-card">
-              <h3>Top Videos</h3>
+              <h3>Статистика фильмов</h3>
               <div class="stats-table">
                 <div class="table-header">
-                  <div>Video Title</div>
-                  <div>Views</div>
+                  <div>Фильм</div>
+                  <div>Запуски</div>
+                  <div>Брошенные</div>
+                  <div>Просмотренные</div>
                 </div>
                 {#if videoStats}
                   {#each videoStats.slice(0, 10) as video}
                     <div class="table-row">
                       <div class="video-title">{video.title || 'Untitled'}</div>
-                      <div class="video-views">{video.views || 0}</div>
+                      <div class="video-views">{video.launches || 0}</div>
+                      <div class="video-views">{video.abandoned || 0} ({percentage(video.abandoned, video.launches)})</div>
+                      <div class="video-views">{video.viewed || 0} ({percentage(video.viewed, video.launches)})</div>
                     </div>
                   {/each}
                 {/if}
@@ -443,7 +468,7 @@
                       on:click={() => selectLocation(location)}
                     >
                       {location.name}
-                      <span class="location-views-badge">{location.views || 0}</span>
+                      <span class="location-views-badge">{location.launches || 0}</span>
                     </button>
                   {/each}
                 {/if}
@@ -456,22 +481,32 @@
                 <div class="location-metrics">
                   <div class="metric-card">
                     <div class="metric-value">{deviceStats.length || 0}</div>
-                    <div class="metric-label">Active Devices</div>
+                    <div class="metric-label">Устройств</div>
                   </div>
                   <div class="metric-card">
-                    <div class="metric-value">{deviceStats.reduce((sum, device) => sum + (device.views || 0), 0)}</div>
-                    <div class="metric-label">Total Views</div>
+                    <div class="metric-value">{deviceStats.reduce((sum, device) => sum + (device.launches || 0), 0)}</div>
+                    <div class="metric-label">Запуски</div>
+                  </div>
+                  <div class="metric-card">
+                    <div class="metric-value">{deviceStats.reduce((sum, device) => sum + (device.abandoned || 0), 0)}</div>
+                    <div class="metric-label">Брошенные</div>
+                  </div>
+                  <div class="metric-card">
+                    <div class="metric-value">{deviceStats.reduce((sum, device) => sum + (device.viewed || 0), 0)}</div>
+                    <div class="metric-label">Просмотренные</div>
                   </div>
                 </div>
                 
                 <!-- Device List -->
                 <div class="device-list-card">
-                  <h3>Devices in {selectedLocationName}</h3>
+                  <h3>Очки на локации {selectedLocationName}</h3>
                   <div class="device-list">
                     {#each deviceStats as device}
                       <div class="device-item">
-                        <div class="device-name">Client {device.client_id}</div>
-                        <div class="device-views">{device.views || 0} views</div>
+                        <div class="device-name">Очки № {device.client_id}</div>
+                        <div class="device-views">
+                          {device.launches || 0} запусков · {device.abandoned || 0} брошено · {device.viewed || 0} просмотрено
+                        </div>
                       </div>
                     {/each}
                   </div>
@@ -479,13 +514,15 @@
                 
                 <!-- Video Views for Location -->
                 <div class="location-videos-card">
-                  <h3>Video Performance in {selectedLocationName}</h3>
+                  <h3>Общие показатели фильмов</h3>
                   <div class="location-videos">
                     {#if videoStats}
                       {#each videoStats.slice(0, 8) as video}
                         <div class="video-item">
                           <div class="video-name">{video.title || 'Untitled'}</div>
-                          <div class="video-views">{video.views || 0} views</div>
+                          <div class="video-views">
+                            {video.launches || 0} запусков · {video.abandoned || 0} брошено · {video.viewed || 0} просмотрено
+                          </div>
                         </div>
                       {/each}
                     {/if}
@@ -1008,11 +1045,13 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+    overflow-x: auto;
   }
 
   .table-header {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(130px, 1fr));
+    min-width: 760px;
     gap: 1rem;
     padding: 0.75rem;
     background: var(--color-dark-primary, #0f0f0f);
@@ -1023,7 +1062,8 @@
 
   .table-row {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(130px, 1fr));
+    min-width: 760px;
     gap: 1rem;
     padding: 0.75rem;
     background: var(--color-white-05, #1a1a1a);

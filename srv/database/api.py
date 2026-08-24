@@ -440,16 +440,22 @@ class TokenViewSet(viewsets.ViewSet):
                 
             if film_id:
                 film_exists = PaidFilm.objects.filter(token=token, film_id=film_id).exists()
-                
+                payment_confirmed = token.order.status in ('paid', 'checked')
+
                 return Response({
-                    "valid": film_exists,
+                    "valid": film_exists and payment_confirmed,
                     "token_valid": True,
                     "film_valid": film_exists,
+                    "payment_confirmed": payment_confirmed,
+                    "viewer_id": token.order.user_id,
                     "expires_at": token.expires_at.isoformat()
                 }, status=status.HTTP_200_OK)
             else:
+                payment_confirmed = token.order.status in ('paid', 'checked')
                 return Response({
-                    "valid": True,
+                    "valid": payment_confirmed,
+                    "payment_confirmed": payment_confirmed,
+                    "viewer_id": token.order.user_id,
                     "expires_at": token.expires_at.isoformat()
                 }, status=status.HTTP_200_OK)
                 

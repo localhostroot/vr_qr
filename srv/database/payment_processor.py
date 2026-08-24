@@ -3,10 +3,8 @@ Shared payment processing utilities for handling successful payments
 """
 import logging
 import secrets
-import requests
 from decimal import Decimal
 from django.utils import timezone
-from django.conf import settings
 from .models import Order, OrderItem, PaymentToken, PaidFilm
 
 logger = logging.getLogger(__name__)
@@ -94,9 +92,6 @@ class PaymentProcessor:
                 )
                 logger.info(f"Payment processor: Created paid film record {item.film_id} for order {order.order_id}")
                 
-                # Send statistics if user_id is in the correct format
-                PaymentProcessor._send_film_statistics(order, item)
-
             PaymentProcessor.merge_active_user_films(payment_token)
 
             logger.info(f"Payment processor: Order {order.order_id} fully processed with token {token_string}")
@@ -105,41 +100,6 @@ class PaymentProcessor:
         except Exception as e:
             logger.error(f"Payment processor: Error processing payment for order {order.order_id}: {str(e)}")
             return False
-    
-    @staticmethod
-    def _send_film_statistics(order: Order, item: OrderItem):
-        """
-        Send film viewing statistics to the stats API
-        
-        Args:
-            order: Order object
-            item: OrderItem object
-        """
-        try:
-            if '/' in order.user_id:
-                location_id, device_id = order.user_id.split('/')
-                logger.info(f"Payment processor: Sending statistics for film {item.film_id}, location {location_id}")
-                
-                response = requests.post(
-                    f"{settings.STAT_API_URL}record_view/",
-                    json={
-                        'location_id': location_id,
-                        'movie_id': item.film_id
-                    },
-                    timeout=5
-                )
-                
-                if response.status_code == 200:
-                    logger.info(f"Payment processor: Statistics successfully sent for film {item.film_id}")
-                else:
-                    logger.warning(f"Payment processor: Statistics error, status code: {response.status_code}")
-            else:
-                logger.warning(f"Payment processor: Invalid user_id format: {order.user_id}")
-                
-        except requests.RequestException as req_error:
-            logger.error(f"Payment processor: Statistics request error: {req_error}")
-        except Exception as stat_error:
-            logger.error(f"Payment processor: Statistics error: {stat_error}")
     
     @staticmethod
     def is_already_processed(order: Order) -> bool:
