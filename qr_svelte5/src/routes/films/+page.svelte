@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
+  import { page } from '$app/stores';
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { icons } from '$lib/icons/icons.js';
   import { useWebSocket } from '$lib/utils/websocket.js';
@@ -13,7 +14,13 @@ import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 
   let token = $derived(globals.get('token'));
   let tokenExpiry = $derived(globals.get('tokenExpiry'));
-  let currentClient = $derived(globals.get('currentClient'));
+  let storedCurrentClient = $derived(globals.get('currentClient'));
+  let routeClient = $derived(
+    $page.params.location && $page.params.id
+      ? { location: $page.params.location, id: $page.params.id }
+      : null
+  );
+  let currentClient = $derived(routeClient ?? storedCurrentClient);
   let clients = $derived(globals.get('clients'));
   let isClientsLoading = $derived(globals.get('isClientsLoading'));
   let clientsError = $derived(globals.get('clientsError'));

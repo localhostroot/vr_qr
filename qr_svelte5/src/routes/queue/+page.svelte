@@ -3,6 +3,7 @@
 
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
+  import { page } from '$app/stores';
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { icons } from '$lib/icons/icons.js';
   import Header from '$lib/components/widgets/Header.svelte';
@@ -14,7 +15,13 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
 
   let queue = $derived(globals.get('queue'));
 
-  let currentClient = $derived(globals.get('currentClient'));
+  let storedCurrentClient = $derived(globals.get('currentClient'));
+  let routeClient = $derived(
+    $page.params.location && $page.params.id
+      ? { location: $page.params.location, id: $page.params.id }
+      : null
+  );
+  let currentClient = $derived(routeClient ?? storedCurrentClient);
   let queueErrorState = $derived(globals.get('queueErrorState'))
 
   let modalVisible = $state(false);
@@ -38,10 +45,8 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
   });
 
   function handleClick() {
-    const clientString = localStorage.getItem(LOCAL_STORAGE_KEYS.CLIENT);
-    const client = clientString ? JSON.parse(clientString) : null;
-    const clLocation = client?.location || null;
-    const id = client?.id || null;
+    const clLocation = currentClient?.location || null;
+    const id = currentClient?.id || null;
 
     if (clLocation && id) {
       goto(`${getSubfolder()}/${clLocation}/${id}`);

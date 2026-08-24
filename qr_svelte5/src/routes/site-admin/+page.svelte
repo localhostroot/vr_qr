@@ -10,36 +10,67 @@
 	let loading = $state(false);
 	let totalFound = $state(0);
 	let statusMessage = $state('');
-	let tokenStatusText = $state('')
+	let tokenStatusText = $state('');
+	let activeSearchQuery = '';
+	let latestRequestId = 0;
+	let foregroundRequestId = 0;
+
+	const AUTO_REFRESH_INTERVAL_MS = 5000;
 
 	// Search orders function
-	async function searchOrders() {
-		loading = true;
-		statusMessage = '';
+	async function searchOrders({ background = false, keepActiveQuery = false } = {}) {
+		const query = keepActiveQuery ? activeSearchQuery : searchQuery.trim();
+		if (!keepActiveQuery) {
+			activeSearchQuery = query;
+		}
+
+		const requestId = ++latestRequestId;
+		if (!background) {
+			foregroundRequestId = requestId;
+			loading = true;
+			statusMessage = '';
+		}
 		
 		try {
 			const params = new URLSearchParams();
-			if (searchQuery.trim()) {
-				params.append('q', searchQuery.trim());
+			if (query) {
+				params.append('q', query);
 			}
 			
-			const response = await fetch(`${PUBLIC_DATABASE}api/admin/search_orders/?${params}`);
+			const response = await fetch(`${PUBLIC_DATABASE}api/admin/search_orders/?${params}`, {
+				cache: 'no-store'
+			});
 			const data = await response.json();
+			if (requestId !== latestRequestId) return;
 			
 			if (response.ok) {
 				orders = data.orders;
 				totalFound = data.total_found;
+				statusMessage = '';
 			} else {
 				statusMessage = `Ошибка поиска: ${data.error || 'Неизвестная ошибка'}`;
+				if (!background) {
+					orders = [];
+					totalFound = 0;
+				}
+			}
+		} catch (error) {
+			if (requestId !== latestRequestId) return;
+			statusMessage = `Ошибка подключения: ${error.message}`;
+			if (!background) {
 				orders = [];
 				totalFound = 0;
 			}
-		} catch (error) {
-			statusMessage = `Ошибка подключения: ${error.message}`;
-			orders = [];
-			totalFound = 0;
 		} finally {
-			loading = false;
+			if (requestId === foregroundRequestId) {
+				loading = false;
+			}
+		}
+	}
+
+	function refreshOrders() {
+		if (!document.hidden) {
+			searchOrders({ background: true, keepActiveQuery: true });
 		}
 	}
 
@@ -70,7 +101,7 @@
 					statusEl.className = 'token-status success';
 				}
 				// Refresh the order in the list
-				await searchOrders();
+				await searchOrders({ background: true, keepActiveQuery: true });
 			} else {
 				if (statusEl) {
 					tokenStatusText = `❌ ${data.error}`;
@@ -112,7 +143,7 @@
 					statusEl.className = 'token-status success';
 				}
 				// Refresh the order in the list
-				await searchOrders();
+				await searchOrders({ background: true, keepActiveQuery: true });
 			} else {
 				if (statusEl) {
 					tokenStatusText = `❌ ${data.error}`;
@@ -137,6 +168,18 @@
 	// Load recent orders on mount
 	onMount(() => {
 		searchOrders();
+
+		const intervalId = window.setInterval(refreshOrders, AUTO_REFRESH_INTERVAL_MS);
+		window.addEventListener('focus', refreshOrders);
+		window.addEventListener('online', refreshOrders);
+		document.addEventListener('visibilitychange', refreshOrders);
+
+		return () => {
+			window.clearInterval(intervalId);
+			window.removeEventListener('focus', refreshOrders);
+			window.removeEventListener('online', refreshOrders);
+			document.removeEventListener('visibilitychange', refreshOrders);
+		};
 	});
 </script>
 
@@ -151,11 +194,11 @@
 			<input 
 				type="text" 
 				bind:value={searchQuery} 
-				on:keydown={handleSearch}
+				onkeydown={handleSearch}
 				placeholder="Поиск по ID заказа (или оставьте пустым для последних заказов)"
 				class="search-input"
 			/>
-			<button on:click={searchOrders} class="search-button" disabled={loading}>
+			<button onclick={() => searchOrders()} class="search-button" disabled={loading}>
 				{loading ? '🔍 Поиск...' : '🔍 Поиск'}
 			</button>
 		</div>
@@ -181,29 +224,25 @@
 				{#each orders as order}
 					<div class="order-card" data-order={order.order_id}>
 						<div class="order-header">
-							<h3>Заказ #{order.order_id_short}</h3>
+							<div class="order-heading">
+								<h3>Пользователь <span class="viewer-id">{order.user_id}</span></h3>
+								<div class="order-identifiers">
+									<span title={order.order_id}>
+										<strong>ID заказа:</strong> <code>{order.order_id}</code>
+									</span>
+									{#if order.payment_id}
+										<span title={order.payment_id}>
+											<strong>ID платежа:</strong> <code>{order.payment_id}</code>
+										</span>
+									{/if}
+								</div>
+							</div>
 							<span class="order-status status-{order.status}">{order.status}</span>
 						</div>
 						
 						<div class="order-details">
-							<div class="detail-row">
-								<strong>ID заказа:</strong> 
-								<span class="order-id-full" title={order.order_id}>{order.order_id}</span>
-							</div>
-							<div class="detail-row">
-								<strong>Пользователь:</strong> {order.user_id}
-							</div>
-							<div class="detail-row">
-								<strong>Сумма:</strong> {order.amount} ₽
-							</div>
-							<div class="detail-row">
-								<strong>Создан:</strong> {new Date(order.created_at).toLocaleString('ru-RU')}
-							</div>
-							{#if order.payment_id}
-								<div class="detail-row">
-									<strong>ID платежа:</strong> {order.payment_id}
-								</div>
-							{/if}
+							<span><strong>Сумма:</strong> {order.amount} ₽</span>
+							<span><strong>Создан:</strong> {new Date(order.created_at).toLocaleString('ru-RU')}</span>
 						</div>
 
 						<div class="order-films">
@@ -241,14 +280,14 @@
 									<div class="token-actions">
 										{#if order.status === 'paid'}
 											<button 
-												on:click={() => issueToken(order.order_id)}
+												onclick={() => issueToken(order.order_id)}
 												class="issue-token-button paid"
 											>
 												🎫 Выдать токен
 											</button>
 										{:else}
 											<button 
-												on:click={() => confirmPaymentAndIssueToken(order.order_id)}
+												onclick={() => confirmPaymentAndIssueToken(order.order_id)}
 												class="issue-token-button confirm"
 												title="Подтвердить что платеж прошел (для случаев сбоя callback от банка) и выдать токен"
 											>
@@ -280,12 +319,6 @@
 		padding: 20px;
 		font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 		font-size: 0.875em;
-	}
-
-	h1 {
-		text-align: center;
-		color: #333;
-		margin-bottom: 30px;
 	}
 
 	.search-section {
@@ -379,15 +412,47 @@
 	.order-header {
 		display: flex;
 		justify-content: space-between;
-		align-items: center;
+		align-items: flex-start;
+		gap: 16px;
 		margin-bottom: 15px;
 		border-bottom: 2px solid #f0f0f0;
 		padding-bottom: 10px;
 	}
 
+	.order-heading {
+		min-width: 0;
+		flex: 1;
+	}
+
 	.order-header h3 {
 		margin: 0;
 		color: #333;
+		font-size: 18px;
+	}
+
+	.viewer-id {
+		font-weight: 800;
+		color: #111;
+	}
+
+	.order-identifiers {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 16px;
+		margin-top: 5px;
+		color: #666;
+		font-size: 11px;
+		line-height: 1.35;
+	}
+
+	.order-identifiers span {
+		min-width: 0;
+	}
+
+	.order-identifiers code {
+		color: #444;
+		font-family: monospace;
+		overflow-wrap: anywhere;
 	}
 
 	.order-status {
@@ -414,23 +479,10 @@
 	}
 
 	.order-details {
-		margin-bottom: 15px;
-	}
-
-	.detail-row {
-		margin-bottom: 8px;
 		display: flex;
-		gap: 10px;
-	}
-
-	.order-id-full {
-		font-family: monospace;
-		background: #f8f9fa;
-		padding: 2px 4px;
-		border-radius: 3px;
-		font-size: 12px;
-		word-break: break-all;
-		flex: 1;
+		flex-wrap: wrap;
+		gap: 8px 28px;
+		margin-bottom: 15px;
 	}
 
 	.order-films {
@@ -559,9 +611,11 @@
 		}
 		
 		.order-header {
+			gap: 8px;
+		}
+
+		.order-identifiers {
 			flex-direction: column;
-			align-items: flex-start;
-			gap: 10px;
 		}
 	}
 </style>
