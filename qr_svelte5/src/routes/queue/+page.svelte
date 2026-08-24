@@ -53,7 +53,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
     }
   }
 
-  const { handlePaymentClick, isLoading } = createPaykeeperPayment();
+  const paykeeperPayment = createPaykeeperPayment();
 
   function handleOpenModal() {
     modalVisible = true;
@@ -145,9 +145,13 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
             <div class="descr">Если возникнут вопросы, наш администратор всегда готов помочь.</div>
           </div>
         </div>
-        <div class="payBtn" onclick={handlePaymentClick}>
-          {isLoading ? 'Обработка...' : 'Оплата'}
-        </div>
+        <button
+          class="payBtn"
+          onclick={paykeeperPayment.handlePaymentClick}
+          disabled={paykeeperPayment.isLoading}
+        >
+          {paykeeperPayment.isLoading ? 'Обработка...' : 'Оплата'}
+        </button>
         {#if queueErrorState}
           <div class="error">{queueErrorState}</div>
         {/if}
@@ -407,6 +411,11 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
 
   .payBtn:active {
     background: var(--color-dark-80);
+  }
+
+  .payBtn:disabled {
+    cursor: wait;
+    opacity: 0.7;
   }
 
   .agreement {

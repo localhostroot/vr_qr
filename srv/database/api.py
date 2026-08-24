@@ -354,12 +354,41 @@ class PaymentAnalyticsViewSet(viewsets.ViewSet):
 
 class TokenViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
+
+    @staticmethod
+    def _serialize_films(token):
+        films_data = []
+
+        for paid_film in PaidFilm.objects.filter(token=token):
+            try:
+                if paid_film.is_series:
+                    film = Movie.objects.get(film_id=paid_film.film_id)
+                else:
+                    film = Category.objects.get(film_id=paid_film.film_id)
+
+                films_data.append({
+                    "film_id": paid_film.film_id,
+                    "is_series": paid_film.is_series,
+                    "name": film.name,
+                    "name_short": film.name_short,
+                    "description": film.description,
+                    "year": film.year,
+                    "country": film.country,
+                    "time": film.time,
+                    "format": film.format,
+                    "price": float(paid_film.price),
+                    "image": film.image.url if film.image else None,
+                    "queueImg": film.queueImg.url if hasattr(film, 'queueImg') and film.queueImg else None,
+                })
+            except (Category.DoesNotExist, Movie.DoesNotExist):
+                continue
+
+        return films_data
     
     @action(detail=False, methods=['get'])
     def get_token_by_order(self, request):
         order_id = request.query_params.get('order_id')
-        current_token = request.query_params.get('current_token')
-        
+
         if not order_id:
             return Response({"error": "ID заказа не указан"}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -368,37 +397,10 @@ class TokenViewSet(viewsets.ViewSet):
             try:
                 new_payment_token = PaymentToken.objects.get(order=order)
                 
-                if current_token:
-                    try:
-                        old_token = PaymentToken.objects.get(token=current_token)
-                        
-
-                        if old_token.is_valid():
-                            old_paid_films = PaidFilm.objects.filter(token=old_token)
-                            
-                            for old_film in old_paid_films:
-                                existing_film = PaidFilm.objects.filter(
-                                    token=new_payment_token,
-                                    film_id=old_film.film_id,
-                                    is_series=old_film.is_series
-                                ).first()
-                                
-                                if not existing_film:
-                                    PaidFilm.objects.create(
-                                        token=new_payment_token,
-                                        film_id=old_film.film_id,
-                                        is_series=old_film.is_series,
-                                        price=old_film.price
-                                    )
-                                    logger.info(f"Перенесен фильм {old_film.film_id} из токена {current_token} в токен {new_payment_token.token}")
-                            
-                            old_token.delete()
-                            logger.info(f"Старый токен {current_token} удален после переноса фильмов")
-                            
-                    except PaymentToken.DoesNotExist:
-                        logger.warning(f"Старый токен {current_token} не найден или уже удален")
-                    except Exception as e:
-                        logger.error(f"Ошибка при объединении токенов: {str(e)}")
+                # Keep access cumulative for this viewer.  The old token is
+                # not deleted: another tab/device may still be using it while
+                # it learns about the newly issued token.
+                PaymentProcessor.merge_active_user_films(new_payment_token)
                 
                 return Response({
                     "valid": new_payment_token.is_valid(),
@@ -473,33 +475,7 @@ class TokenViewSet(viewsets.ViewSet):
                     "error": "Срок действия токена истек или токен недействителен"
                 }, status=status.HTTP_200_OK)
                 
-            paid_films = PaidFilm.objects.filter(token=token)
-            films_data = []
-            
-            for paid_film in paid_films:
-                try:
-                    if paid_film.is_series:
-                        film = Movie.objects.get(film_id=paid_film.film_id)
-                    else:
-                        film = Category.objects.get(film_id=paid_film.film_id)
-                    
-                    film_data = {
-                        "film_id": paid_film.film_id,
-                        "is_series": paid_film.is_series,
-                        "name": film.name,
-                        "name_short": film.name_short,
-                        "description": film.description,
-                        "year": film.year,
-                        "country": film.country,
-                        "time": film.time,
-                        "format": film.format,
-                        "price": float(paid_film.price),
-                        "image": film.image.url if film.image else None,
-                        "queueImg": film.queueImg.url if hasattr(film, 'queueImg') and film.queueImg else None
-                    }
-                    films_data.append(film_data)
-                except (Category.DoesNotExist, Movie.DoesNotExist):
-                    continue
+            films_data = self._serialize_films(token)
             
             return Response({
                 "valid": True,
@@ -606,6 +582,44 @@ class TokenViewSet(viewsets.ViewSet):
                 "valid": False,
                 "error": f"Внутренняя ошибка сервера: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'])
+    def latest_for_user(self, request):
+        """Restore the best active access token for a viewer route."""
+        user_id = request.query_params.get('user_id', '').strip()
+
+        if not user_id or len(user_id) > 255:
+            return Response(
+                {"error": "user_id обязателен"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        active_tokens = list(
+            PaymentToken.objects.filter(
+                order__user_id=user_id,
+                is_active=True,
+                expires_at__gt=timezone.now(),
+            ).select_related('order').prefetch_related('paid_films')
+        )
+
+        if not active_tokens:
+            return Response({"valid": False, "films": []}, status=status.HTTP_200_OK)
+
+        # Legacy data may contain several live tokens.  Pick the one with the
+        # broadest access and make it cumulative before returning it.
+        token = max(
+            active_tokens,
+            key=lambda item: (len(item.paid_films.all()), item.created_at),
+        )
+        PaymentProcessor.merge_active_user_films(token)
+        films_data = self._serialize_films(token)
+
+        return Response({
+            "valid": True,
+            "token": token.token,
+            "expires_at": token.expires_at.isoformat(),
+            "films": films_data,
+        }, status=status.HTTP_200_OK)
 
 
 class AdminViewSet(viewsets.ViewSet):
@@ -745,6 +759,8 @@ class AdminViewSet(viewsets.ViewSet):
                     'price': float(item.price)
                 })
                 logger.info(f"Admin: создана запись об оплаченном фильме {item.film_id} для заказа {order_id}")
+
+            PaymentProcessor.merge_active_user_films(payment_token)
             
             logger.info(f"Admin: токен {token_string} создан для заказа {order_id}")
             
@@ -837,6 +853,8 @@ class AdminViewSet(viewsets.ViewSet):
                     'price': float(item.price)
                 })
                 logger.info(f"Admin: создана запись об оплаченном фильме {item.film_id} для заказа {order_id}")
+
+            PaymentProcessor.merge_active_user_films(payment_token)
             
             logger.info(f"Admin: токен {token_string} создан для заказа {order_id}")
             

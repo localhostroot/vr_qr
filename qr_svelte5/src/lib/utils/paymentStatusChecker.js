@@ -3,6 +3,69 @@ import { PUBLIC_DATABASE } from '$env/static/public';
 import { globals } from '$lib/stores/+stores.svelte.js';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 
+const filmSignature = (films) => (films || [])
+  .map((film) => `${film.film_id || film.id}:${film.is_series ? 1 : 0}`)
+  .sort()
+  .join('|');
+
+function applyAccessData(data) {
+  const previousToken = globals.get('token');
+  const films = Array.isArray(data.films) ? data.films : [];
+
+  globals.set('token', data.token);
+  globals.set('tokenExpiry', data.expires_at);
+
+  if (filmSignature(globals.get('paidFilms')) !== filmSignature(films)) {
+    globals.set('paidFilms', films);
+  }
+
+  return previousToken !== data.token;
+}
+
+/**
+ * Restore current access by viewer id.  This is the F5/manual-issuance path:
+ * it does not depend on a pending order id surviving in localStorage.
+ */
+export async function syncLatestAccessForUser(userId) {
+  if (!browser || !userId) return { success: false, pending: false };
+
+  try {
+    const response = await fetch(
+      `${PUBLIC_DATABASE}api/tokens/latest_for_user/?user_id=${encodeURIComponent(userId)}`,
+    );
+
+    if (!response.ok) {
+      return { success: false, pending: true };
+    }
+
+    const data = await response.json();
+    if (!data.valid || !data.token || !Array.isArray(data.films)) {
+      const tokenExpiry = globals.get('tokenExpiry');
+      if (tokenExpiry && new Date(tokenExpiry) <= new Date()) {
+        globals.set('token', null);
+        globals.set('tokenExpiry', null);
+        globals.set('paidFilms', []);
+      }
+      return { success: false, pending: false };
+    }
+
+    const tokenChanged = applyAccessData(data);
+
+    // A different server token means a newer purchase was issued (or an old
+    // deleted token was recovered).  Only then is it safe to clear the basket.
+    if (tokenChanged) {
+      globals.set('queue', []);
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.QUEUE_PENDING_PAYMENT);
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.QUEUE);
+    }
+
+    return { success: true, pending: false, tokenChanged };
+  } catch (error) {
+    console.warn('Не удалось восстановить доступ зрителя, повторим проверку:', error);
+    return { success: false, pending: true };
+  }
+}
+
 /**
  * Process successful payment by getting token and updating paid films
  * @param {string} orderId - Order ID from successful payment
@@ -54,30 +117,32 @@ async function processSuccessfulPayment(orderId) {
       return { success: false, error: "Токен недействителен" };
     }
 
-    // Update token and expiry
-    globals.set('token', tokenData.token);
-    globals.set('tokenExpiry', filmsData.expires_at);
-
-    // Clear and set paid films
-    globals.set('paidFilms', []);
-    
-    if (filmsData.films && Array.isArray(filmsData.films)) {
-      globals.set('paidFilms', filmsData.films);
-    }
+    applyAccessData({
+      token: tokenData.token,
+      expires_at: filmsData.expires_at,
+      films: filmsData.films,
+    });
 
     // Clear queue since payment was successful
     globals.set('queue', []);
     
     // Mark order as checked BEFORE cleaning localStorage
-    await fetch(`${PUBLIC_DATABASE}api/status/checked/?order_id=${orderId}`, {
+    const checkedResponse = await fetch(`${PUBLIC_DATABASE}api/status/checked/?order_id=${orderId}`, {
       method: 'POST',
     });
+
+    // A 400 here normally means another tab already acknowledged the order.
+    // Other failures are retried without discarding the local recovery id.
+    if (!checkedResponse.ok && checkedResponse.status !== 400) {
+      return { success: true, pending: true };
+    }
     
     // Clean up localStorage only after successful API call
     if (browser) {
       localStorage.removeItem(LOCAL_STORAGE_KEYS.QUEUE_PENDING_PAYMENT);
       localStorage.removeItem(LOCAL_STORAGE_KEYS.QUEUE);
       localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.ORDER_TIME);
     }
 
     return { success: true, pending: false };
@@ -106,9 +171,9 @@ async function runPaymentStatusCheck() {
       if (data.status === 'success') {
         return await processSuccessfulPayment(orderId);
       } else if (data.status === 'checked') {
-        // Order was already processed, clean up
-        localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
-        return { success: false, pending: false };
+        // Another tab may have acknowledged the order first.  Recover its
+        // token before removing the only local link to that purchase.
+        return await processSuccessfulPayment(orderId);
       }
 
       return { success: false, pending: true };
@@ -146,15 +211,23 @@ export function checkPaymentStatus() {
  * @param {{intervalMs?: number}} options
  * @returns {() => void} cleanup function
  */
-export function startPaymentStatusMonitor({ intervalMs = 5000 } = {}) {
+export function startPaymentStatusMonitor({ intervalMs = 5000, userId = null } = {}) {
   if (!browser) return () => {};
 
   let stopped = false;
+  let refreshInFlight = null;
 
   const refresh = () => {
-    if (!stopped) {
-      void checkPaymentStatus();
-    }
+    if (stopped || refreshInFlight) return;
+
+    refreshInFlight = (async () => {
+      await checkPaymentStatus();
+      if (userId) {
+        await syncLatestAccessForUser(userId);
+      }
+    })().finally(() => {
+      refreshInFlight = null;
+    });
   };
 
   const refreshWhenVisible = () => {

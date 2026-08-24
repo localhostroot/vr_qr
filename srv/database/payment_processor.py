@@ -14,6 +14,41 @@ logger = logging.getLogger(__name__)
 
 class PaymentProcessor:
     """Handles the business logic for processing successful payments"""
+
+    @staticmethod
+    def merge_active_user_films(target_token: PaymentToken) -> int:
+        """Copy active access for the same viewer into the target token.
+
+        Source tokens are deliberately kept until their natural expiry.  A
+        viewer can therefore finish switching devices/tabs without an older
+        page suddenly losing access, and historical orders do not reappear in
+        the admin UI as paid orders without a token.
+        """
+        source_films = PaidFilm.objects.filter(
+            token__order__user_id=target_token.order.user_id,
+            token__is_active=True,
+            token__expires_at__gt=timezone.now(),
+        ).exclude(token=target_token)
+
+        copied_count = 0
+        for source_film in source_films.iterator():
+            _, created = PaidFilm.objects.get_or_create(
+                token=target_token,
+                film_id=source_film.film_id,
+                is_series=source_film.is_series,
+                defaults={'price': source_film.price},
+            )
+            if created:
+                copied_count += 1
+
+        if copied_count:
+            logger.info(
+                "Payment processor: merged %s active films for viewer %s",
+                copied_count,
+                target_token.order.user_id,
+            )
+
+        return copied_count
     
     @staticmethod
     def process_successful_payment(order: Order, payment_id: str) -> bool:
@@ -61,7 +96,9 @@ class PaymentProcessor:
                 
                 # Send statistics if user_id is in the correct format
                 PaymentProcessor._send_film_statistics(order, item)
-            
+
+            PaymentProcessor.merge_active_user_films(payment_token)
+
             logger.info(f"Payment processor: Order {order.order_id} fully processed with token {token_string}")
             return True
             

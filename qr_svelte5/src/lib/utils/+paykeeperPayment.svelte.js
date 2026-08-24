@@ -45,7 +45,7 @@ export function createPaykeeperPayment() {
    * Handle payment click - creates order and redirects to Paykeeper
    */
   const handlePaymentClick = async () => {
-    if (!browser) return;
+    if (!browser || loadingState) return;
 
     globals.set('queueErrorState', '');
 
@@ -61,6 +61,36 @@ export function createPaykeeperPayment() {
     if (!queue || queue.length === 0) {
       globals.set('queueErrorState', "Ваша корзина пуста. Добавьте фильмы для оплаты");
       return;
+    }
+
+    const existingOrderId = localStorage.getItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
+    if (existingOrderId) {
+      try {
+        const existingResponse = await fetch(
+          `${PUBLIC_DATABASE}api/status/status/?order_id=${encodeURIComponent(existingOrderId)}`,
+        );
+
+        if (existingResponse.ok) {
+          const existingData = await existingResponse.json();
+          if (['pending', 'success', 'checked'].includes(existingData.status)) {
+            globals.set(
+              'queueErrorState',
+              existingData.status === 'pending'
+                ? 'Предыдущий заказ уже создан и ожидает подтверждения.'
+                : 'Предыдущий заказ уже подтверждён. Доступ обновляется автоматически.',
+            );
+            return;
+          }
+        } else if (existingResponse.status === 404) {
+          localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
+        } else {
+          globals.set('queueErrorState', 'Не удалось проверить предыдущий заказ. Повторите через несколько секунд.');
+          return;
+        }
+      } catch (error) {
+        globals.set('queueErrorState', 'Не удалось проверить предыдущий заказ. Повторите через несколько секунд.');
+        return;
+      }
     }
 
     loadingState = true;

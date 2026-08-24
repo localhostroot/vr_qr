@@ -10,13 +10,17 @@
 	import Footer from '$lib/components/widgets/Footer.svelte';
 
 	let webSocketManager;
-	let stopPaymentStatusMonitor;
 
 	// Determine if FixedNavigation should be shown based on current route
 	let showFixedNavigation = $derived($page.route.id !== '/' && $page.route.id !== '/site-admin' && $page.route.id !== '/stats');
 	let currentClient = $derived(globals.get('currentClient'));
 	let clientLocation = $derived($page.params.location || currentClient?.location || null);
 	let clientId = $derived($page.params.id || currentClient?.id || null);
+	let viewerUserId = $derived(
+		$page.route.id?.startsWith('/vr/[location]/[id]') && $page.params.location && $page.params.id
+			? `${$page.params.location}/${$page.params.id}`
+			: null
+	);
 	let browserTitle = $derived(
 		$page.route.id === '/stats'
 			? 'Статистика'
@@ -32,18 +36,21 @@
 		webSocketManager = useWebSocket(PUBLIC_BACKEND, 'getVrOverview');
 		webSocketManager.connect();
 
-		// Keep pending payment/token state in sync without requiring a page refresh.
-		stopPaymentStatusMonitor = startPaymentStatusMonitor();
-
 		// Cleanup on destroy
 		return () => {
 			if (webSocketManager) {
 				webSocketManager.disconnect();
 			}
-			if (stopPaymentStatusMonitor) {
-				stopPaymentStatusMonitor();
-			}
 		};
+	});
+
+	// The payment monitor belongs only to a concrete viewer.  The root
+	// monitoring, statistics and site-admin pages must never claim a viewer's
+	// order merely because that browser profile still has viewer localStorage.
+	$effect(() => {
+		if (!viewerUserId) return;
+
+		return startPaymentStatusMonitor({ userId: viewerUserId });
 	});
 </script>
 

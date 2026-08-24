@@ -4,7 +4,6 @@
   import { onMount } from 'svelte';
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { icons } from '$lib/icons/icons.js';
-  import { browser } from '$app/environment';
   import { PUBLIC_DATABASE, PUBLIC_BACKEND } from '$env/static/public';
 
   let { item, clientId, location, client } = $props();
@@ -22,6 +21,8 @@
   let isFillBarComplete = $state(false);
   let isTokenExpiry = $state(false);
   let isWatchRequestPending = $state(false);
+  let validationError = $state('');
+  let validationSequence = 0;
 
   // Get token from store using $derived
   let token = $derived(globals.get('token'));
@@ -60,8 +61,13 @@
   };
 
   // Token validation
-  const validateToken = async () => {
-    if (!token || !PUBLIC_DATABASE || !item) {
+  const validateToken = async (tokenValue, expiryValue, filmId) => {
+    const sequence = ++validationSequence;
+    validationError = '';
+    isTokenExpiry = false;
+    isLoading = true;
+
+    if (!tokenValue || !PUBLIC_DATABASE || !item) {
       isValidToken = false;
       isValidFilm = false;
       isLoading = false;
@@ -70,7 +76,7 @@
 
     try {
       // Check if token is expired
-      if (tokenExpiry && new Date(tokenExpiry) <= new Date()) {
+      if (expiryValue && new Date(expiryValue) <= new Date()) {
         isValidToken = false;
         isValidFilm = false;
         isTokenExpiry = true;
@@ -83,93 +89,57 @@
           }
         }, 100);
 
-        // Remove film data only if token is expired - after 3 seconds
-        if (isTokenExpiry) {
-          setTimeout(() => {
-            const updatedPaidFilms = (globals.get('paidFilms') || []).filter(film => film.film_id !== item.film_id);
-            globals.set('paidFilms', updatedPaidFilms);
-    
-            // Clear localStorage if in browser
-            if (browser) {
-              localStorage.setItem('paidFilms', JSON.stringify(updatedPaidFilms));
-            }
-          }, 3350);
-        }
-
         return;
       }
 
       // Validate token and film access
-      let url = `${PUBLIC_DATABASE}api/tokens/validate/?token=${token}`;
-      if (item.film_id) {
-        url += `&film_id=${item.film_id}`;
+      let url = `${PUBLIC_DATABASE}api/tokens/validate/?token=${encodeURIComponent(tokenValue)}`;
+      if (filmId) {
+        url += `&film_id=${encodeURIComponent(filmId)}`;
       }
       
       const response = await fetch(url);
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.valid) {
-          isValidToken = true;
-          
-          if (item.film_id) {
-            const filmValid = data.film_valid || false;
-            isValidFilm = filmValid;
-            
-            if (!filmValid) {
-              const updatedPaidFilms = (globals.get('paidFilms') || []).filter(film => film.film_id !== item.film_id);
-              globals.set('paidFilms', updatedPaidFilms);
 
-              // Clear localStorage if in browser
-              if (browser) {
-                localStorage.setItem('paidFilms', JSON.stringify(updatedPaidFilms));
-              }
-            }
-          } else {
-            isValidFilm = true;
-          }
-          
-          // Update token expiry if provided
-          if (data.expires_at) {
-            globals.set('tokenExpiry', data.expires_at);
-          }
-        } else {
-          isValidToken = false;
-          isValidFilm = false;
-          isTokenExpiry = false;
-          
-          if (item.film_id) {
-            // Remove film from paid films if token is invalid
-            const paidFilms = globals.get('paidFilms') || [];
-            const updatedPaidFilms = paidFilms.filter(film => film.film_id !== item.film_id);
-            globals.set('paidFilms', updatedPaidFilms);
-          }
-          
-          if (data.error && data.error.includes("истек")) {
-            globals.set('token', null);
-            globals.set('tokenExpiry', null);
-          }
-        }
-      } else {
+      if (sequence !== validationSequence) return;
+
+      if (!response.ok) {
         isValidToken = false;
         isValidFilm = false;
-        isTokenExpiry = false;
-        
-        if (item.film_id) {
-          // Remove film from paid films on error
-          const paidFilms = globals.get('paidFilms') || [];
-          const updatedPaidFilms = paidFilms.filter(film => film.film_id !== item.film_id);
-          globals.set('paidFilms', updatedPaidFilms);
+        validationError = 'Не удалось проверить доступ. Повторяем автоматически.';
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.valid) {
+        isValidToken = true;
+        isValidFilm = filmId ? Boolean(data.film_valid) : true;
+
+        if (data.expires_at && data.expires_at !== expiryValue) {
+          globals.set('tokenExpiry', data.expires_at);
         }
+      } else if (data.token_valid === true) {
+        isValidToken = true;
+        isValidFilm = false;
+      } else {
+        // Never erase paidFilms here.  A newly merged token can invalidate an
+        // older tab for a moment; the viewer-level monitor restores the
+        // current server token and film list.
+        isValidToken = false;
+        isValidFilm = false;
+        isTokenExpiry = Boolean(data.error && data.error.includes('истек'));
       }
     } catch (error) {
+      if (sequence !== validationSequence) return;
       console.error('Token validation error:', error);
       isValidToken = false;
       isValidFilm = false;
+      validationError = 'Не удалось проверить доступ. Повторяем автоматически.';
+    } finally {
+      if (sequence === validationSequence) {
+        isLoading = false;
+      }
     }
-    
-    isLoading = false;
   };
 
   // Send request via WebSocket
@@ -318,7 +288,6 @@
   );
 
   onMount(() => {
-    validateToken();
     updateContentCardState();
   });
 
@@ -329,9 +298,7 @@
 
   // Watch for token changes and revalidate
   $effect(() => {
-    if (token !== undefined) {
-      validateToken();
-    }
+    void validateToken(token, tokenExpiry, item?.film_id);
   });
 </script>
 
@@ -416,6 +383,11 @@
     {#if requestError}
       <div class="error">
         {requestError}
+      </div>
+    {/if}
+    {#if validationError}
+      <div class="error">
+        {validationError}
       </div>
     {/if}
   {/if}
