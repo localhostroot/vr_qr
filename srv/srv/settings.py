@@ -34,6 +34,7 @@ ALLOWED_HOSTS = [
     '4-neba.ru',
     'www.4-neba.ru',
     'localhost',
+    '127.0.0.1',
     'admin.4-neba.ru',
     'stats.4-neba.ru',
     'cinema.4-neba.ru',
