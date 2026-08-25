@@ -135,11 +135,8 @@ class PaymentProviderClient:
             List of payment objects or None if error
         """
         try:
-            # Convert date format from YYYY-MM-DD to YYYY_MM_DD for PayKeeper API
-            api_date = date.replace('-', '_')
-            
             # Build URL with all possible payment statuses
-            url = f"{self.base_url}/info/payments/bydate/?start={api_date}&end={api_date}&payment_system_id[]=30&payment_system_id[]=99&status[]=success&status[]=canceled&status[]=refunded&status[]=failed&status[]=obtained&status[]=refunding&status[]=partially_refunded&status[]=stuck&status[]=pending&limit=1000&from=0"
+            url = f"{self.base_url}/info/payments/bydate/?start={date}&end={date}&payment_system_id[]=30&payment_system_id[]=99&status[]=success&status[]=canceled&status[]=refunded&status[]=failed&status[]=obtained&status[]=refunding&status[]=partially_refunded&status[]=stuck&status[]=pending&limit=1000&from=0"
             
             logger.info(f"Requesting payments from provider for date {date}")
             
@@ -147,6 +144,13 @@ class PaymentProviderClient:
             response.raise_for_status()
             
             result = response.json()
+            if not isinstance(result, list):
+                error_code = result.get('error_code') if isinstance(result, dict) else None
+                logger.warning(
+                    "PayKeeper payments response is not a list (error_code=%s)",
+                    error_code,
+                )
+                return None
             logger.info(f"Retrieved {len(result)} payments from provider for date {date}")
             
             return result

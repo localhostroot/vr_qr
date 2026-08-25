@@ -340,6 +340,33 @@ class PaymentInvoiceTests(TestCase):
     PAYMENT_PROVIDER_SERVER='paykeeper.example',
 )
 class PaymentProviderInvoiceTests(SimpleTestCase):
+    @patch('database.payment_provider.requests.get')
+    def test_payment_lookup_uses_iso_date_expected_by_gateway(self, get_request):
+        response = Mock()
+        response.json.return_value = []
+        get_request.return_value = response
+
+        payments = PaymentProviderClient().get_payments_by_date('2026-08-25')
+
+        self.assertEqual(payments, [])
+        requested_url = get_request.call_args.args[0]
+        self.assertIn('start=2026-08-25&end=2026-08-25', requested_url)
+        self.assertNotIn('2026_08_25', requested_url)
+
+    @patch('database.payment_provider.requests.get')
+    def test_payment_lookup_rejects_gateway_error_payload(self, get_request):
+        response = Mock()
+        response.json.return_value = {
+            'result': 'fail',
+            'error_code': 0,
+            'msg': 'Invalid date',
+        }
+        get_request.return_value = response
+
+        payments = PaymentProviderClient().get_payments_by_date('2026-08-25')
+
+        self.assertIsNone(payments)
+
     @patch('database.payment_provider.requests.post')
     @patch('database.payment_provider.requests.get')
     def test_invoice_uses_gateway_default_email(self, get_request, post_request):
