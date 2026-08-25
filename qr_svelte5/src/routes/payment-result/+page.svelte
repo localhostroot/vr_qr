@@ -185,7 +185,7 @@ import { getSubfolder, getCookie } from '$lib/utils/+helpers.svelte';
     }
     
     const urlParams = new URLSearchParams($page.url.search);
-    const isSuccess = urlParams.get('success') === 'true';
+    const isSuccess = urlParams.get('success') === 'true' || urlParams.get('result') === 'success';
     
     processPaymentResult(isSuccess);
   });

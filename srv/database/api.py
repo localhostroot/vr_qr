@@ -6,7 +6,7 @@ import requests
 from .models import Category, Movie, Order, OrderItem, PaidFilm, PaymentToken
 from rest_framework import viewsets, permissions, status
 from .serializers import CategorySerializer, MovieSerializer, OrderSerializer
-from .payment_provider import PaymentProviderClient
+from .payment_provider import PaymentProviderClient, PaymentProviderError
 from .payment_processor import PaymentProcessor
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -109,11 +109,35 @@ class PaymentViewSet(viewsets.ViewSet):
                     is_series=film['is_series'],
                     price=film['price']
                 )
-            
+
+            try:
+                payment_url = PaymentProviderClient().create_invoice(
+                    order_id=order.order_id,
+                    amount=total_amount,
+                    client_id=user_id,
+                    service_name=description,
+                    result_callback=settings.PAYMENT_RESULT_URL,
+                )
+            except PaymentProviderError:
+                order.status = 'payment_error'
+                order.save(update_fields=('status',))
+                logger.warning(
+                    "PayKeeper invoice creation failed for order %s",
+                    order.order_id,
+                )
+                return Response(
+                    {"error": "Платёжный шлюз временно недоступен. Повторите попытку."},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+
+            order.status = 'pending'
+            order.save(update_fields=('status',))
+
             return Response({
                 'order_id': order.order_id,
                 'amount': float(total_amount),
-                'films': validated_films
+                'films': validated_films,
+                'payment_url': payment_url,
             }, status=status.HTTP_201_CREATED)
             
         except Exception as e:
@@ -205,7 +229,11 @@ class PaymentStatusViewSet(viewsets.ViewSet):
         try:
             order = get_object_or_404(Order, order_id=order_id)
             logger.info(f"Payment status {order_id}: {order.status}")
-            
+
+            # Orders without a PayKeeper invoice must not block a fresh attempt.
+            if order.status in ['created', 'payment_error']:
+                return Response({'status': 'fail'}, status=status.HTTP_200_OK)
+
             # Check if the status needs verification
             if order.status not in ['paid', 'checked'] and settings.PAYMENT_VERIFICATION_ENABLED:
                 payment_client = PaymentProviderClient()

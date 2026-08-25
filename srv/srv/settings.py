@@ -19,6 +19,10 @@ PAYMENT_PROVIDER_USER = os.environ.get('PAYMENT_PROVIDER_USER', 'admin')
 PAYMENT_PROVIDER_PASSWORD = os.environ.get('PAYMENT_PROVIDER_PASSWORD', 'Provr4neba!')
 PAYMENT_PROVIDER_SERVER = os.environ.get('PAYMENT_PROVIDER_SERVER', '4-neba.server.paykeeper.ru')
 PAYMENT_VERIFICATION_ENABLED = os.environ.get('PAYMENT_VERIFICATION_ENABLED', 'true').lower() == 'true'
+PAYMENT_RESULT_URL = os.environ.get(
+    'PAYMENT_RESULT_URL',
+    'https://cinema.local.vr360.pro/payment-result',
+)
 
 # Optional shared secret for control-server requests when Django and the
 # control server do not communicate directly over loopback.

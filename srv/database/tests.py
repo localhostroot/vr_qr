@@ -1,10 +1,14 @@
-from django.test import TestCase
+from decimal import Decimal
+from unittest.mock import Mock, patch
+
+from django.test import SimpleTestCase, TestCase
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
 from .models import Category, Order, PaidFilm, PaymentToken
+from .payment_provider import PaymentProviderClient, PaymentProviderError
 from .payment_processor import PaymentProcessor
 
 
@@ -217,3 +221,135 @@ class ViewerAccessRecoveryTests(TestCase):
         )
         self.assertEqual(allowed_response.status_code, 200)
         self.assertEqual(allowed_response.data['deactivated'], 2)
+
+
+class PaymentInvoiceTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.film = Category.objects.create(
+            film_id='payment-film',
+            cat_id='payment-test',
+            name='Payment test film',
+            year='2026',
+            format='VR',
+            price=150,
+            route_id='payment-film',
+            time='10',
+            serial=False,
+            isAdded=True,
+            country='RU',
+            image='category_images/payment.jpg',
+            queueImg='queue_category_images/payment.jpg',
+            name_short='Payment test',
+            description='Payment test film',
+        )
+
+    def order_payload(self):
+        return {
+            'user_id': 'VDNH/30',
+            'description': 'Оплата за просмотр фильмов',
+            'films': [{'film_id': self.film.film_id, 'series': False}],
+        }
+
+    @patch('database.api.PaymentProviderClient.create_invoice')
+    def test_create_order_returns_server_generated_payment_url(self, create_invoice):
+        create_invoice.return_value = 'https://4-neba.server.paykeeper.ru/bill/123/'
+
+        response = self.client.post(
+            reverse('payments-create-order'),
+            self.order_payload(),
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(
+            response.data['payment_url'],
+            'https://4-neba.server.paykeeper.ru/bill/123/',
+        )
+        order = Order.objects.get(order_id=response.data['order_id'])
+        self.assertEqual(order.status, 'pending')
+        create_invoice.assert_called_once_with(
+            order_id=order.order_id,
+            amount=Decimal('150.00'),
+            client_id='VDNH/30',
+            service_name='Оплата за просмотр фильмов',
+            result_callback='https://cinema.local.vr360.pro/payment-result',
+        )
+
+    @patch('database.api.PaymentProviderClient.create_invoice')
+    def test_gateway_error_does_not_leave_blocking_order(self, create_invoice):
+        create_invoice.side_effect = PaymentProviderError('unavailable')
+
+        response = self.client.post(
+            reverse('payments-create-order'),
+            self.order_payload(),
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 502)
+        order = Order.objects.get()
+        self.assertEqual(order.status, 'payment_error')
+
+    @patch('database.api.PaymentProviderClient.verify_payment_by_order_id')
+    def test_order_without_invoice_does_not_block_retry(self, verify_payment):
+        order = Order.objects.create(
+            user_id='VDNH/30',
+            amount=150,
+            description='Failed payment form',
+            order_id='failed-before-invoice',
+            status='created',
+        )
+
+        response = self.client.get(
+            reverse('status-status'),
+            {'order_id': order.order_id},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], 'fail')
+        verify_payment.assert_not_called()
+
+
+@override_settings(
+    PAYMENT_PROVIDER_USER='api-user',
+    PAYMENT_PROVIDER_PASSWORD='api-password',
+    PAYMENT_PROVIDER_SERVER='paykeeper.example',
+)
+class PaymentProviderInvoiceTests(SimpleTestCase):
+    @patch('database.payment_provider.requests.post')
+    @patch('database.payment_provider.requests.get')
+    def test_invoice_uses_gateway_default_email(self, get_request, post_request):
+        token_response = Mock()
+        token_response.json.return_value = {'token': 'one-time-token'}
+        fields_response = Mock()
+        fields_response.json.return_value = [{
+            'pk_name': 'client_email',
+            'placeholder': 'receipts@example.test',
+            'enabled': 'true',
+            'required': 'true',
+        }]
+        get_request.side_effect = [token_response, fields_response]
+
+        invoice_response = Mock()
+        invoice_response.json.return_value = {'invoice_id': 'invoice-123'}
+        post_request.return_value = invoice_response
+
+        payment_url = PaymentProviderClient().create_invoice(
+            order_id='order-123',
+            amount=Decimal('150.00'),
+            client_id='VDNH/30',
+            service_name='Оплата за просмотр фильмов',
+            result_callback='https://cinema.example/payment-result',
+        )
+
+        self.assertEqual(
+            payment_url,
+            'https://paykeeper.example/bill/invoice-123/',
+        )
+        request_data = post_request.call_args.kwargs['data']
+        self.assertEqual(request_data['client_email'], 'receipts@example.test')
+        self.assertEqual(request_data['service_name'], 'Оплата за просмотр фильмов')
+        self.assertEqual(
+            request_data['user_result_callback'],
+            'https://cinema.example/payment-result',
+        )

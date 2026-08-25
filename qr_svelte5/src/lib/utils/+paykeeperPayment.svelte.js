@@ -2,7 +2,6 @@ import { browser } from '$app/environment';
 import { PUBLIC_DATABASE } from '$env/static/public';
 import { globals } from '$lib/stores/+stores.svelte.js';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
-import { getSubfolder } from './+helpers.svelte';
 
 
 /**
@@ -12,19 +11,6 @@ import { getSubfolder } from './+helpers.svelte';
 export function createPaykeeperPayment() {
   // Use reactive loading state for Svelte 5
   let loadingState = $state(false);
-
-  // Paykeeper configuration
-  const paykeeperUrl = "https://4-neba.server.paykeeper.ru/create/";
-  
-  // Get success and fail URLs (only available in browser)
-
-  // предыдущие настройки в пэйкипере
-  // https://4-neba.ru/payment-result?success=true
-  // https://4-neba.ru/payment-result
-  // колбэк оплаты отправляется на https://4-neba.ru/api/payments/payment_callback/
-
-  const getSuccessUrl = () => browser ? `${window.location.origin}${getSubfolder()}/payment-result?success=true` : '';
-  const getFailUrl = () => browser ? `${window.location.origin}${getSubfolder()}/payment-result?success=false` : '';
 
   /**
    * Get current user ID from client data
@@ -120,9 +106,22 @@ export function createPaykeeperPayment() {
       const orderData = await createOrderResponse.json();
       const orderId = orderData.order_id;
       const totalAmount = orderData.amount;
+      const paymentUrl = orderData.payment_url;
 
-      if (!orderId || !totalAmount) {
+      if (!orderId || !totalAmount || !paymentUrl) {
         globals.set('queueErrorState', 'Ошибка создания заказа, попробуйте ещё раз');
+        loadingState = false;
+        return;
+      }
+
+      const paymentTarget = new URL(paymentUrl);
+      if (
+        paymentTarget.protocol !== 'https:'
+        || paymentTarget.hostname !== '4-neba.server.paykeeper.ru'
+        || !paymentTarget.pathname.startsWith('/bill/')
+      ) {
+        globals.set('queueErrorState', 'Платёжный шлюз вернул некорректную ссылку');
+        loadingState = false;
         return;
       }
 
@@ -131,31 +130,7 @@ export function createPaykeeperPayment() {
       localStorage.setItem(LOCAL_STORAGE_KEYS.ORDER_TIME, new Date().toISOString());
       localStorage.setItem(LOCAL_STORAGE_KEYS.QUEUE_PENDING_PAYMENT, JSON.stringify(queue));
 
-      // Create and submit form to Paykeeper
-      const form = document.createElement('form');
-      form.action = paykeeperUrl;
-      form.method = 'POST';
-      form.style.display = 'none';
-
-      const addInput = (name, value) => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = name;
-        input.value = value;
-        form.appendChild(input);
-      };
-
-      // Add form fields
-      addInput('sum', totalAmount);
-      addInput('clientid', userId);
-      addInput('orderid', orderId);
-      addInput('name', "Оплата за просмотр фильмов");
-      addInput('success_url', getSuccessUrl());
-      addInput('fail_url', getFailUrl());
-
-      // Submit form
-      document.body.appendChild(form);
-      form.submit();
+      window.location.assign(paymentTarget.href);
 
     } catch (err) {
       console.error('Payment error:', err);

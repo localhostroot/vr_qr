@@ -5,10 +5,15 @@ import requests
 import base64
 import logging
 from datetime import datetime, timedelta
+from decimal import Decimal
 from django.conf import settings
 from typing import Optional, List, Dict, Any
 
 logger = logging.getLogger(__name__)
+
+
+class PaymentProviderError(Exception):
+    """A safe-to-handle PayKeeper communication or response error."""
 
 
 class PaymentProviderClient:
@@ -28,6 +33,96 @@ class PaymentProviderClient:
             'Authorization': f'Basic {self.auth_header}',
             'Content-Type': 'application/x-www-form-urlencoded'
         }
+
+    def _get_json(self, path: str) -> Any:
+        try:
+            response = requests.get(
+                f"{self.base_url}{path}",
+                headers=self.headers,
+                timeout=10,
+            )
+            response.raise_for_status()
+            return response.json()
+        except (requests.RequestException, ValueError) as exc:
+            logger.warning("PayKeeper GET request failed for %s", path)
+            raise PaymentProviderError("PayKeeper API is unavailable") from exc
+
+    def _get_token(self) -> str:
+        payload = self._get_json('/info/settings/token/')
+        token = payload.get('token') if isinstance(payload, dict) else None
+        if not token:
+            logger.warning("PayKeeper token response did not contain a token")
+            raise PaymentProviderError("PayKeeper did not issue an API token")
+        return str(token)
+
+    def _get_default_client_email(self) -> str:
+        payload = self._get_json('/info/organization/fields/')
+        if isinstance(payload, dict):
+            fields = payload.get('fields') or payload.get('data') or []
+        elif isinstance(payload, list):
+            fields = payload
+        else:
+            fields = []
+
+        for field in fields:
+            if not isinstance(field, dict):
+                continue
+            field_name = field.get('pk_name') or field.get('name')
+            if field_name != 'client_email':
+                continue
+            email = (
+                field.get('default')
+                or field.get('default_value')
+                or field.get('value')
+                or field.get('placeholder')
+            )
+            if isinstance(email, str) and '@' in email:
+                return email.strip()
+
+        logger.warning("PayKeeper client_email field has no usable default value")
+        raise PaymentProviderError("PayKeeper has no default customer email")
+
+    def create_invoice(
+        self,
+        *,
+        order_id: str,
+        amount: Decimal,
+        client_id: str,
+        service_name: str,
+        result_callback: str,
+    ) -> str:
+        """Create an invoice and return its hosted PayKeeper payment URL."""
+        token = self._get_token()
+        client_email = self._get_default_client_email()
+        payload = {
+            'pay_amount': format(amount, '.2f'),
+            'clientid': client_id,
+            'orderid': order_id,
+            'service_name': service_name,
+            'client_email': client_email,
+            'user_result_callback': result_callback,
+            'token': token,
+        }
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/change/invoice/preview/",
+                headers=self.headers,
+                data=payload,
+                timeout=15,
+            )
+            response.raise_for_status()
+            result = response.json()
+        except (requests.RequestException, ValueError) as exc:
+            logger.warning("PayKeeper invoice creation request failed")
+            raise PaymentProviderError("PayKeeper invoice creation failed") from exc
+
+        invoice_id = result.get('invoice_id') if isinstance(result, dict) else None
+        if not invoice_id:
+            logger.warning("PayKeeper invoice response did not contain invoice_id")
+            raise PaymentProviderError("PayKeeper did not create an invoice")
+
+        return f"{self.base_url}/bill/{invoice_id}/"
     
     def get_payments_by_date(self, date: str) -> Optional[List[Dict[str, Any]]]:
         """
