@@ -309,6 +309,30 @@ class PaymentInvoiceTests(TestCase):
         self.assertEqual(response.data['status'], 'fail')
         verify_payment.assert_not_called()
 
+    def test_failed_invoice_is_hidden_from_recent_manual_approvals(self):
+        Order.objects.create(
+            user_id='VDNH/30',
+            amount=150,
+            description='Failed payment form',
+            order_id='failed-invoice',
+            status='payment_error',
+        )
+        visible_order = Order.objects.create(
+            user_id='VDNH/30',
+            amount=150,
+            description='Invoice awaiting payment',
+            order_id='pending-invoice',
+            status='pending',
+        )
+
+        response = self.client.get(reverse('admin-search-orders'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [order['order_id'] for order in response.data['orders']],
+            [visible_order.order_id],
+        )
+
 
 @override_settings(
     PAYMENT_PROVIDER_USER='api-user',

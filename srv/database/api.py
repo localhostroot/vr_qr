@@ -769,8 +769,10 @@ class AdminViewSet(viewsets.ViewSet):
         search_query = request.query_params.get('q', '').strip()
         
         if not search_query:
-            # Return recent orders if no search query
-            orders = Order.objects.all().order_by('-created_at')[:20]
+            # Failed invoice initialization is not a purchase awaiting approval.
+            orders = Order.objects.exclude(
+                status__in=('created', 'payment_error'),
+            ).order_by('-created_at')[:20]
         else:
             # Search by order_id (partial match)
             orders = Order.objects.filter(order_id__icontains=search_query).order_by('-created_at')[:50]
