@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
@@ -309,6 +310,32 @@ class PaymentInvoiceTests(TestCase):
         self.assertEqual(response.data['status'], 'fail')
         verify_payment.assert_not_called()
 
+    @override_settings(PAYMENT_VERIFICATION_ENABLED=True)
+    @patch('database.api.PaymentProviderClient.verify_payment_by_order_id')
+    def test_failed_gateway_payment_unblocks_retry(self, verify_payment):
+        order = Order.objects.create(
+            user_id='VDNH/30',
+            amount=150,
+            description='Gateway payment failed',
+            order_id='failed-at-gateway',
+            status='pending',
+        )
+        verify_payment.return_value = {
+            'id': 'payment-123',
+            'orderid': order.order_id,
+            'status': 'failed',
+        }
+
+        response = self.client.get(
+            reverse('status-status'),
+            {'order_id': order.order_id},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {'status': 'fail', 'verified': True})
+        order.refresh_from_db()
+        self.assertEqual(order.status, 'payment_error')
+
     def test_failed_invoice_is_hidden_from_recent_manual_approvals(self):
         Order.objects.create(
             user_id='VDNH/30',
@@ -351,6 +378,7 @@ class PaymentProviderInvoiceTests(SimpleTestCase):
         self.assertEqual(payments, [])
         requested_url = get_request.call_args.args[0]
         self.assertIn('start=2026-08-25&end=2026-08-25', requested_url)
+        self.assertIn('payment_system_id[]=305', requested_url)
         self.assertNotIn('2026_08_25', requested_url)
 
     @patch('database.payment_provider.requests.get')
@@ -382,7 +410,10 @@ class PaymentProviderInvoiceTests(SimpleTestCase):
         get_request.side_effect = [token_response, fields_response]
 
         invoice_response = Mock()
-        invoice_response.json.return_value = {'invoice_id': 'invoice-123'}
+        invoice_response.json.return_value = {
+            'invoice_id': 'invoice-123',
+            'invoice_url': 'https://paykeeper.example/bill/invoice-123',
+        }
         post_request.return_value = invoice_response
 
         payment_url = PaymentProviderClient().create_invoice(
@@ -395,12 +426,17 @@ class PaymentProviderInvoiceTests(SimpleTestCase):
 
         self.assertEqual(
             payment_url,
-            'https://paykeeper.example/bill/invoice-123/',
+            'https://paykeeper.example/bill/invoice-123',
         )
         request_data = post_request.call_args.kwargs['data']
         self.assertEqual(request_data['client_email'], 'receipts@example.test')
-        self.assertEqual(request_data['service_name'], 'Оплата за просмотр фильмов')
+        service_data = json.loads(request_data['service_name'])
         self.assertEqual(
-            request_data['user_result_callback'],
+            service_data['service_name'],
+            'Оплата за просмотр фильмов',
+        )
+        self.assertEqual(
+            service_data['user_result_callback'],
             'https://cinema.example/payment-result',
         )
+        self.assertNotIn('user_result_callback', request_data)

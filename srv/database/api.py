@@ -243,6 +243,18 @@ class PaymentStatusViewSet(viewsets.ViewSet):
                     logger.info(f"Verified successful payment for order {order_id} from provider")
                     PaymentProcessor.process_successful_payment(order, payment_id=payment.get('id'))
                     return Response({'status': 'success', 'verified': True}, status=status.HTTP_200_OK)
+                elif payment and payment_client.is_payment_failed(payment):
+                    logger.info(
+                        "PayKeeper reported terminal status %s for order %s",
+                        payment.get('status'),
+                        order_id,
+                    )
+                    order.status = 'payment_error'
+                    order.save(update_fields=('status',))
+                    return Response(
+                        {'status': 'fail', 'verified': True},
+                        status=status.HTTP_200_OK,
+                    )
                 else:
                     logger.warning(f"No successful payment found for order {order_id} in provider")
                     return Response({'status': 'pending', 'verified': False}, status=status.HTTP_200_OK)
@@ -300,7 +312,7 @@ class PaymentsTestViewSet(viewsets.ViewSet):
             api_date = date.replace('-', '_')
             
             # Get the URL that will be called
-            url = f"{payment_client.base_url}/info/payments/bydate/?start={api_date}&end={api_date}&payment_system_id[]=30&payment_system_id[]=99&status[]=success&status[]=canceled&status[]=refunded&status[]=failed&status[]=obtained&status[]=refunding&status[]=partially_refunded&status[]=stuck&status[]=pending&limit=1000&from=0"
+            url = f"{payment_client.base_url}/info/payments/bydate/?start={api_date}&end={api_date}&payment_system_id[]=30&payment_system_id[]=99&payment_system_id[]=305&status[]=success&status[]=canceled&status[]=refunded&status[]=failed&status[]=obtained&status[]=refunding&status[]=partially_refunded&status[]=stuck&status[]=pending&limit=1000&from=0"
             
             # Make the request manually to get more debug info
             import requests

@@ -3,6 +3,7 @@ Payment provider client for verifying payment statuses from PayKeeper API
 """
 import requests
 import base64
+import json
 import logging
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -94,13 +95,20 @@ class PaymentProviderClient:
         """Create an invoice and return its hosted PayKeeper payment URL."""
         token = self._get_token()
         client_email = self._get_default_client_email()
+        service_data = json.dumps(
+            {
+                'service_name': service_name,
+                'user_result_callback': result_callback,
+            },
+            ensure_ascii=False,
+            separators=(',', ':'),
+        )
         payload = {
             'pay_amount': format(amount, '.2f'),
             'clientid': client_id,
             'orderid': order_id,
-            'service_name': service_name,
+            'service_name': service_data,
             'client_email': client_email,
-            'user_result_callback': result_callback,
             'token': token,
         }
 
@@ -122,7 +130,14 @@ class PaymentProviderClient:
             logger.warning("PayKeeper invoice response did not contain invoice_id")
             raise PaymentProviderError("PayKeeper did not create an invoice")
 
-        return f"{self.base_url}/bill/{invoice_id}/"
+        invoice_url = result.get('invoice_url')
+        if (
+            isinstance(invoice_url, str)
+            and invoice_url.startswith(f"{self.base_url}/bill/")
+        ):
+            return invoice_url
+
+        return f"{self.base_url}/bill/{invoice_id}"
     
     def get_payments_by_date(self, date: str) -> Optional[List[Dict[str, Any]]]:
         """
@@ -136,7 +151,7 @@ class PaymentProviderClient:
         """
         try:
             # Build URL with all possible payment statuses
-            url = f"{self.base_url}/info/payments/bydate/?start={date}&end={date}&payment_system_id[]=30&payment_system_id[]=99&status[]=success&status[]=canceled&status[]=refunded&status[]=failed&status[]=obtained&status[]=refunding&status[]=partially_refunded&status[]=stuck&status[]=pending&limit=1000&from=0"
+            url = f"{self.base_url}/info/payments/bydate/?start={date}&end={date}&payment_system_id[]=30&payment_system_id[]=99&payment_system_id[]=305&status[]=success&status[]=canceled&status[]=refunded&status[]=failed&status[]=obtained&status[]=refunding&status[]=partially_refunded&status[]=stuck&status[]=pending&limit=1000&from=0"
             
             logger.info(f"Requesting payments from provider for date {date}")
             
@@ -211,6 +226,15 @@ class PaymentProviderClient:
             True if payment is successful
         """
         return payment.get('status') == 'success'
+
+    def is_payment_failed(self, payment: Dict[str, Any]) -> bool:
+        """Return whether the gateway reported a terminal failed state."""
+        return payment.get('status') in {
+            'failed',
+            'canceled',
+            'refunded',
+            'partially_refunded',
+        }
     
     def get_payments_for_date_range(self, start_date: str, end_date: str) -> Optional[List[Dict[str, Any]]]:
         """
