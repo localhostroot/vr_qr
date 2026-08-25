@@ -80,6 +80,7 @@ tar -xzf "$CODE_ARCHIVE" -C "$WORK_DIR/code"
 tar -xzf "$FRONTEND_ARCHIVE" -C "$WORK_DIR"
 [ -f "$WORK_DIR/build/index.js" ]
 
+SOURCE_INSTALLED=1
 cp -a "$WORK_DIR/code/control_server/handlers/index.js" "$CONTROL_DIR/handlers/index.js"
 cp -a "$WORK_DIR/code/control_server/services/paidPlayback.js" "$CONTROL_DIR/services/paidPlayback.js"
 cp -a "$WORK_DIR/code/control_server/test/paidPlayback.test.js" "$CONTROL_DIR/test/paidPlayback.test.js"
@@ -87,7 +88,6 @@ cp -a "$WORK_DIR/code/control_server/test/queue.test.js" "$CONTROL_DIR/test/queu
 cp -a "$WORK_DIR/code/srv/database/api.py" "$SRV_DIR/database/api.py"
 cp -a "$WORK_DIR/code/srv/database/tests.py" "$SRV_DIR/database/tests.py"
 cp -a "$WORK_DIR/code/srv/srv/settings.py" "$SRV_DIR/srv/settings.py"
-SOURCE_INSTALLED=1
 
 (cd "$SRV_DIR" && venv/bin/python manage.py makemigrations --check --dry-run)
 (cd "$SRV_DIR" && venv/bin/python manage.py test database)
