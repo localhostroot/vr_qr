@@ -2,9 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  PAYMENT_SESSION_IDLE_TIMEOUT_MS,
+  checkViewerFilmAccess,
   ensurePaidPlaybackSession,
   finalizePaidPlaybackSession,
   markPaidAuthorization,
+  resetViewerPaymentSession,
+  updateViewerPresenceTimeout,
   updatePaidPlaybackSession,
   verifyPaidAccess,
 } from '../services/paidPlayback.js';
@@ -31,6 +35,120 @@ test('payment verification requires confirmed access to the requested film', asy
 
   const authorization = await verifyPaidAccess('paid-token', 'film-1', fetchImplementation);
   assert.equal(authorization.viewerId, 'CDH/30');
+});
+
+test('default presence timeout is headset 60 seconds plus server 30 seconds', () => {
+  assert.equal(PAYMENT_SESSION_IDLE_TIMEOUT_MS, 90_000);
+});
+
+test('session reset request identifies the headset viewer and cutoff time', async () => {
+  let requestData = null;
+  const endedAt = '2026-08-25T12:00:00.000Z';
+  const fetchImplementation = async (url, options) => {
+    requestData = { url, options };
+    return {
+      ok: true,
+      async json() {
+        return { success: true, deactivated: 1 };
+      },
+    };
+  };
+
+  const success = await resetViewerPaymentSession(
+    createClient(),
+    endedAt,
+    fetchImplementation,
+  );
+
+  assert.equal(success, true);
+  assert.equal(requestData.options.method, 'POST');
+  assert.deepEqual(JSON.parse(requestData.options.body), {
+    user_id: 'CDH/30',
+    ended_at: endedAt,
+  });
+});
+
+test('headset can check paid film access without receiving a browser token', async () => {
+  const fetchImplementation = async (url, options) => ({
+    ok: true,
+    async json() {
+      const payload = JSON.parse(options.body);
+      return {
+        success: true,
+        valid: payload.film_id === 'film-paid',
+        viewer_id: payload.user_id,
+      };
+    },
+  });
+
+  const paid = await checkViewerFilmAccess(
+    createClient(),
+    'film-paid',
+    fetchImplementation,
+  );
+  const unpaid = await checkViewerFilmAccess(
+    createClient(),
+    'film-unpaid',
+    fetchImplementation,
+  );
+
+  assert.equal(paid.available, true);
+  assert.equal(paid.paid, true);
+  assert.equal(paid.authorization.viewerId, 'CDH/30');
+  assert.equal(unpaid.available, true);
+  assert.equal(unpaid.paid, false);
+});
+
+test('presence timeout starts only after a viewer was detected', async () => {
+  const client = {
+    ...createClient(),
+    userPresent: false,
+    queue: ['film-1'],
+    pendingQueue: ['film-2'],
+    ws: { send() {} },
+  };
+  let resets = 0;
+  const resetSession = async () => {
+    resets += 1;
+    return true;
+  };
+
+  updateViewerPresenceTimeout(client, false, { timeoutMs: 10, resetSession });
+  await new Promise(resolve => setTimeout(resolve, 30));
+  assert.equal(resets, 0);
+
+  client.userPresent = true;
+  updateViewerPresenceTimeout(client, true, { timeoutMs: 10, resetSession });
+  client.userPresent = false;
+  updateViewerPresenceTimeout(client, false, { timeoutMs: 10, resetSession });
+  await new Promise(resolve => setTimeout(resolve, 40));
+
+  assert.equal(resets, 1);
+  assert.deepEqual(client.queue, []);
+  assert.deepEqual(client.pendingQueue, []);
+  assert.equal(client.paymentSessionResetPending, false);
+});
+
+test('putting the headset back on cancels a pending presence timeout', async () => {
+  const client = {
+    ...createClient(),
+    userPresent: true,
+    ws: { send() {} },
+  };
+  let resets = 0;
+  const resetSession = async () => {
+    resets += 1;
+    return true;
+  };
+
+  updateViewerPresenceTimeout(client, true, { timeoutMs: 25, resetSession });
+  client.userPresent = false;
+  updateViewerPresenceTimeout(client, false, { timeoutMs: 25, resetSession });
+  client.userPresent = true;
+  updateViewerPresenceTimeout(client, true, { timeoutMs: 25, resetSession });
+  await new Promise(resolve => setTimeout(resolve, 50));
+
+  assert.equal(resets, 0);
 });
 
 test('an unpaid headset playback does not create a statistics session', () => {

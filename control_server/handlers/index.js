@@ -2,16 +2,26 @@ import WebSocket from 'ws';
 import fs from 'fs/promises';
 import path from 'path';
 import {
+  checkViewerFilmAccess,
   ensurePaidPlaybackSession,
   finalizePaidPlaybackSession,
   inheritClientPlayback,
   markPaidAuthorization,
   restoreClientPlayback,
+  updateViewerPresenceTimeout,
   updatePaidPlaybackSession,
   verifyPaidAccess,
 } from '../services/paidPlayback.js';
 
 const ip_regex = /^::ffff:[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/
+
+const PAYMENT_REQUIRED_MESSAGE = (
+  'Для просмотра этого фильма оплатите его на странице покупки\n' +
+  '(открывается через QR-код на очках)'
+);
+const PAYMENT_CHECK_FAILED_MESSAGE = (
+  'Не удалось проверить оплату. Проверьте соединение и повторите попытку.'
+);
 
 const isVideoIdPresent = (videoId) => (
   videoId !== null && videoId !== undefined && videoId !== ''
@@ -338,11 +348,23 @@ const onSingleClientVideo = async (ws, req, payload, clients) => {
       const paidAuthorization = payload.token
           ? await verifyPaidAccess(payload.token, payload.videoId)
           : null;
+      const expectedViewerId = `${payload.location}/${payload.clientId}`;
       const paymentVerified = markPaidAuthorization(
           client,
           payload.videoId,
-          paidAuthorization,
+          paidAuthorization?.viewerId === expectedViewerId ? paidAuthorization : null,
       );
+
+      if (!paymentVerified || client.paymentSessionResetPending) {
+          return ws.send(JSON.stringify({
+              type: 'requestResponse',
+              success: false,
+              paymentVerified: false,
+              message: client.paymentSessionResetPending
+                  ? 'Предыдущий сеанс завершается. Повторите через несколько секунд.'
+                  : 'Оплата фильма не подтверждена'
+          }));
+      }
 
       if (isVideoAlreadyRequested(client, payload.videoId)) {
           return ws.send(JSON.stringify({
@@ -499,13 +521,13 @@ const onResetClient = (ws, req, payload, clients) => {
 
 };
 
-const blockClient = (ws) => {
+const blockClient = (ws, text = PAYMENT_REQUIRED_MESSAGE) => {
     if (ws.readyState === WebSocket.OPEN) {
         const msg = JSON.stringify({
             type: "resetClient",
             data: {
                 allowUnblock: "true",
-                text: "Запустите фильм с телефона",  
+                text,
                 button: {
                     label: "Продолжить"
                 }
@@ -661,8 +683,19 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
     }
 
     if (!queueHasVideo(client.queue, currentVideoId)) {
-      handleMissingVideo(client, currentVideoId, ws);
-      return;
+      const access = await checkViewerFilmAccess(client, currentVideoId);
+      if (!access.paid || client.paymentSessionResetPending) {
+        handleMissingVideo(
+          client,
+          ws,
+          access.available ? PAYMENT_REQUIRED_MESSAGE : PAYMENT_CHECK_FAILED_MESSAGE,
+        );
+        return;
+      }
+
+      markPaidAuthorization(client, currentVideoId, access.authorization);
+      client.queue.push(currentVideoId);
+      handleVideoFound(client, currentVideoId);
     } else {
       handleVideoFound(client, currentVideoId);
     }
@@ -678,15 +711,12 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
     handlePlayback(client, details, playbackPosition);
   };
   
-  const handleMissingVideo = (client, currentVideoId, ws) => {
-    if (client.missingVideoTimer === null) {
-      console.log(`Фильм ${currentVideoId} отсутствует в очереди клиента. Отсчет 5 секунд перед блокировкой.`);
-      client.missingVideoTimer = setTimeout(() => {
-        console.log(`Время на просмотр истекло. Блокировка устройства.`);
-        blockClient(ws);
-        client.missingVideoTimer = null;
-      }, 5000);
+  const handleMissingVideo = (client, ws, message) => {
+    if (client.missingVideoTimer) {
+      clearTimeout(client.missingVideoTimer);
+      client.missingVideoTimer = null;
     }
+    blockClient(ws, message);
   };
   
   const handleVideoFound = (client, currentVideoId) => {
@@ -812,6 +842,7 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
           foundClient.activity = currentActivity;
           foundClient.userPresent = payload.params.userPresent;
           foundClient.lastSeenAt = Date.now();
+          updateViewerPresenceTimeout(foundClient, foundClient.userPresent);
           console.log(`Обновлен activity клиента ${foundClient.id}: ${currentActivity}, userPresent: ${foundClient.userPresent}`);
 
           if (currentActivity === 0 && foundClient.pendingQueue && Array.isArray(foundClient.pendingQueue) && foundClient.pendingQueue.length > 0 && foundClient.userPresent === true) {

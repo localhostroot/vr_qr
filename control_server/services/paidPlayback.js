@@ -7,8 +7,41 @@ const STATISTICS_API_URL = process.env.STATISTICS_API_URL
   || 'https://stats.local.vr360.pro/api/api/update_statistics/';
 const MAX_PLAYING_STATE_GAP_SECONDS = 30;
 const RECONNECT_GRACE_MS = 30_000;
+const secondsFromEnvironment = (name, fallback) => {
+  const rawValue = process.env[name];
+  if (rawValue === undefined || rawValue.trim() === '') return fallback;
+
+  const value = Number(rawValue);
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
+};
+
+// The headset currently resets itself after 60 seconds. The control server
+// keeps an additional grace period before ending paid access, so this can be
+// tuned without replacing application.json on every headset.
+export const HEADSET_RESET_TIMEOUT_SECONDS = secondsFromEnvironment(
+  'HEADSET_RESET_TIMEOUT_SECONDS',
+  60,
+);
+export const PAYMENT_SESSION_RESET_GRACE_SECONDS = secondsFromEnvironment(
+  'PAYMENT_SESSION_RESET_GRACE_SECONDS',
+  30,
+);
+export const PAYMENT_SESSION_IDLE_TIMEOUT_MS = (
+  HEADSET_RESET_TIMEOUT_SECONDS + PAYMENT_SESSION_RESET_GRACE_SECONDS
+) * 1_000;
+
+const PAYMENT_SESSION_RESET_RETRY_MS = secondsFromEnvironment(
+  'PAYMENT_SESSION_RESET_RETRY_SECONDS',
+  10,
+) * 1_000;
+const PAYMENT_SESSION_RESET_URL = process.env.PAYMENT_SESSION_RESET_URL
+  || 'http://127.0.0.1:8000/api/tokens/end_viewer_session/';
+const PAYMENT_VIEWER_FILM_ACCESS_URL = process.env.PAYMENT_VIEWER_FILM_ACCESS_URL
+  || 'http://127.0.0.1:8000/api/tokens/viewer_film_access/';
+const CONTROL_SERVER_SHARED_SECRET = process.env.CONTROL_SERVER_SHARED_SECRET || '';
 
 const suspendedClients = new Map();
+const viewerSessionResetTimers = new Map();
 const catalogDurations = new Map();
 
 try {
@@ -69,6 +102,188 @@ export const verifyPaidAccess = async (token, videoId, fetchImplementation = fet
     console.error('Не удалось проверить оплату перед запуском:', error);
     return null;
   }
+};
+
+export const resetViewerPaymentSession = async (
+  client,
+  endedAt,
+  fetchImplementation = fetch,
+) => {
+  if (!client?.location || !client?.id) return false;
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (CONTROL_SERVER_SHARED_SECRET) {
+    headers['X-Control-Server-Secret'] = CONTROL_SERVER_SHARED_SECRET;
+  }
+
+  try {
+    const response = await fetchImplementation(PAYMENT_SESSION_RESET_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        user_id: `${client.location}/${client.id}`,
+        ended_at: endedAt,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`Не удалось завершить оплаченный сеанс: HTTP ${response.status}`);
+      return false;
+    }
+
+    const data = await response.json();
+    return data.success === true;
+  } catch (error) {
+    console.error('Не удалось завершить оплаченный сеанс:', error);
+    return false;
+  }
+};
+
+export const checkViewerFilmAccess = async (
+  client,
+  filmId,
+  fetchImplementation = fetch,
+) => {
+  if (!client?.location || !client?.id || !filmId) {
+    return { available: true, paid: false, authorization: null };
+  }
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (CONTROL_SERVER_SHARED_SECRET) {
+    headers['X-Control-Server-Secret'] = CONTROL_SERVER_SHARED_SECRET;
+  }
+
+  try {
+    const response = await fetchImplementation(PAYMENT_VIEWER_FILM_ACCESS_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        user_id: `${client.location}/${client.id}`,
+        film_id: String(filmId),
+      }),
+    });
+
+    if (!response.ok) {
+      return { available: false, paid: false, authorization: null };
+    }
+
+    const data = await response.json();
+    const paid = data.success === true && data.valid === true;
+    return {
+      available: true,
+      paid,
+      authorization: paid
+        ? { verifiedAt: Date.now(), viewerId: data.viewer_id || null }
+        : null,
+    };
+  } catch (error) {
+    console.error('Не удалось проверить оплату фильма для очков:', error);
+    return { available: false, paid: false, authorization: null };
+  }
+};
+
+const clearViewerSessionState = async (client) => {
+  try {
+    client.ws?.send?.(JSON.stringify({ type: 'videoStopRequested' }));
+  } catch (error) {
+    console.warn('Не удалось отправить остановку видео после тайм-аута:', error);
+  }
+
+  await finalizePaidPlaybackSession(client, 'viewer_presence_timeout');
+  client.paidAuthorizations = {};
+  client.queue = [];
+  client.pendingQueue = [];
+  client.currentVideoId = null;
+  client.playbackPosition = null;
+  client.currentVideoDuration = null;
+  client.isPlaying = false;
+  client.stopRequestedVideoId = null;
+};
+
+const runViewerSessionReset = async (key, entry) => {
+  if (viewerSessionResetTimers.get(key) !== entry) return;
+
+  if (entry.phase === 'waiting') {
+    if (entry.client.userPresent !== false) {
+      viewerSessionResetTimers.delete(key);
+      return;
+    }
+
+    entry.phase = 'resetting';
+    entry.endedAt = new Date().toISOString();
+    entry.client.paymentSessionResetPending = true;
+    entry.client.hasDetectedViewer = false;
+    await clearViewerSessionState(entry.client);
+  }
+
+  const resetSucceeded = await entry.resetSession(entry.client, entry.endedAt);
+  if (resetSucceeded) {
+    entry.client.paymentSessionResetPending = false;
+    viewerSessionResetTimers.delete(key);
+    console.log(`Оплаченный сеанс ${key} завершен по тайм-ауту присутствия`);
+    return;
+  }
+
+  entry.timer = setTimeout(
+    () => void runViewerSessionReset(key, entry),
+    entry.retryMs,
+  );
+  entry.timer.unref?.();
+};
+
+export const updateViewerPresenceTimeout = (
+  client,
+  userPresent,
+  {
+    timeoutMs = PAYMENT_SESSION_IDLE_TIMEOUT_MS,
+    retryMs = PAYMENT_SESSION_RESET_RETRY_MS,
+    resetSession = resetViewerPaymentSession,
+  } = {},
+) => {
+  if (!client?.location || !client?.id || typeof userPresent !== 'boolean') {
+    return false;
+  }
+
+  const key = clientKey(client.location, client.id);
+  const existing = viewerSessionResetTimers.get(key);
+
+  if (userPresent) {
+    client.hasDetectedViewer = true;
+    if (existing?.phase === 'waiting') {
+      clearTimeout(existing.timer);
+      viewerSessionResetTimers.delete(key);
+    } else if (existing?.phase === 'resetting') {
+      existing.client = client;
+      client.paymentSessionResetPending = true;
+    }
+    return false;
+  }
+
+  if (existing) {
+    existing.client = client;
+    if (existing.phase === 'resetting') client.paymentSessionResetPending = true;
+    return false;
+  }
+
+  // Do not burn a newly purchased token merely because unused glasses are
+  // lying on a table. Arm the timeout only after presence was observed.
+  if (!client.hasDetectedViewer) return false;
+
+  const entry = {
+    client,
+    phase: 'waiting',
+    endedAt: null,
+    resetSession,
+    retryMs,
+    timer: null,
+  };
+  entry.timer = setTimeout(
+    () => void runViewerSessionReset(key, entry),
+    timeoutMs,
+  );
+  entry.timer.unref?.();
+  viewerSessionResetTimers.set(key, entry);
+  return true;
 };
 
 export const markPaidAuthorization = (client, videoId, authorization) => {
@@ -203,7 +418,7 @@ export const finalizePaidPlaybackSession = async (
 
 const copyPlaybackFields = (target, source) => {
   for (const field of (
-    'activePlaybackSession paidAuthorizations queue pendingQueue currentVideoId playbackPosition currentVideoDuration isPlaying playbackTimeCounter lastPlaybackPosition stopRequestedVideoId'
+    'activePlaybackSession paidAuthorizations queue pendingQueue currentVideoId playbackPosition currentVideoDuration isPlaying playbackTimeCounter lastPlaybackPosition stopRequestedVideoId hasDetectedViewer paymentSessionResetPending'
   ).split(' ')) {
     if (source[field] !== undefined) target[field] = source[field];
   }

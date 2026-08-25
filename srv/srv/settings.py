@@ -20,6 +20,10 @@ PAYMENT_PROVIDER_PASSWORD = os.environ.get('PAYMENT_PROVIDER_PASSWORD', 'Provr4n
 PAYMENT_PROVIDER_SERVER = os.environ.get('PAYMENT_PROVIDER_SERVER', '4-neba.server.paykeeper.ru')
 PAYMENT_VERIFICATION_ENABLED = os.environ.get('PAYMENT_VERIFICATION_ENABLED', 'true').lower() == 'true'
 
+# Optional shared secret for control-server requests when Django and the
+# control server do not communicate directly over loopback.
+CONTROL_SERVER_SHARED_SECRET = os.environ.get('CONTROL_SERVER_SHARED_SECRET', '')
+
 # Stats API URL for recording film views
 STAT_API_URL = os.environ.get('STAT_API_URL', 'https://stats.local.vr360.pro/')
 

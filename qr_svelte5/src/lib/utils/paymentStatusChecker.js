@@ -40,12 +40,11 @@ export async function syncLatestAccessForUser(userId) {
 
     const data = await response.json();
     if (!data.valid || !data.token || !Array.isArray(data.films)) {
-      const tokenExpiry = globals.get('tokenExpiry');
-      if (tokenExpiry && new Date(tokenExpiry) <= new Date()) {
-        globals.set('token', null);
-        globals.set('tokenExpiry', null);
-        globals.set('paidFilms', []);
-      }
+      // latest_for_user is authoritative. Access can end before its original
+      // two-hour expiry when the headset presence timeout closes the session.
+      globals.set('token', null);
+      globals.set('tokenExpiry', null);
+      globals.set('paidFilms', []);
       return { success: false, pending: false };
     }
 

@@ -3,11 +3,42 @@ import test from 'node:test';
 
 import { APIHandler, VRHandler } from '../handlers/index.js';
 
+const originalFetch = globalThis.fetch;
+
+test.before(() => {
+  globalThis.fetch = async (url, options = {}) => ({
+    ok: true,
+    async json() {
+      if (options.body) {
+        const payload = JSON.parse(options.body);
+        if (payload.user_id && payload.film_id) {
+          return {
+            success: true,
+            valid: payload.film_id !== 'film-unpaid',
+            viewer_id: payload.user_id,
+          };
+        }
+      }
+      return {
+        valid: true,
+        film_valid: true,
+        payment_confirmed: true,
+        viewer_id: 'museum/7',
+      };
+    },
+  });
+});
+
+test.after(() => {
+  globalThis.fetch = originalFetch;
+});
+
 const createSocket = () => {
   const messages = [];
 
   return {
     messages,
+    readyState: 1,
     send(message) {
       messages.push(JSON.parse(message));
     },
@@ -26,15 +57,16 @@ const createClient = (overrides = {}) => ({
   ...overrides,
 });
 
-const request = (handler, client, payload = {}) => {
+const request = async (handler, client, payload = {}) => {
   const ws = createSocket();
-  handler(
+  await handler(
     ws,
     { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
     {
       clientId: client.id,
       location: client.location,
       videoId: 'film-1',
+      token: 'paid-token',
       ...payload,
     },
     [client],
@@ -43,12 +75,12 @@ const request = (handler, client, payload = {}) => {
   return ws;
 };
 
-test('repeated immediate watch requests start a film only once', () => {
+test('repeated immediate watch requests start a film only once', async () => {
   const client = createClient();
 
-  const firstResponse = request(APIHandler.videoForClient, client);
-  const secondResponse = request(APIHandler.videoForClient, client);
-  const thirdResponse = request(APIHandler.videoForClient, client);
+  const firstResponse = await request(APIHandler.videoForClient, client);
+  const secondResponse = await request(APIHandler.videoForClient, client);
+  const thirdResponse = await request(APIHandler.videoForClient, client);
 
   assert.deepEqual(client.queue, ['film-1']);
   assert.equal(client.ws.messages.length, 1);
@@ -58,34 +90,34 @@ test('repeated immediate watch requests start a film only once', () => {
   assert.equal(thirdResponse.messages[0].duplicate, true);
 });
 
-test('repeated watch requests while the headset is waiting create one pending item', () => {
+test('repeated watch requests while the headset is waiting create one pending item', async () => {
   const client = createClient({ userPresent: false, activity: 2 });
 
-  request(APIHandler.videoForClient, client);
-  request(APIHandler.videoForClient, client);
-  request(APIHandler.videoForClient, client);
+  await request(APIHandler.videoForClient, client);
+  await request(APIHandler.videoForClient, client);
+  await request(APIHandler.videoForClient, client);
 
   assert.deepEqual(client.pendingQueue, ['film-1']);
   assert.deepEqual(client.queue, []);
   assert.equal(client.ws.messages.length, 0);
 });
 
-test('a request for the currently playing film does not restart it', () => {
+test('a request for the currently playing film does not restart it', async () => {
   const client = createClient({ currentVideoId: 'film-1', queue: ['film-1'] });
-  const response = request(APIHandler.videoForClient, client);
+  const response = await request(APIHandler.videoForClient, client);
 
   assert.deepEqual(client.queue, ['film-1']);
   assert.equal(client.ws.messages.length, 0);
   assert.equal(response.messages[0].duplicate, true);
 });
 
-test('stop removes all legacy copies of only the requested film', () => {
+test('stop removes all legacy copies of only the requested film', async () => {
   const client = createClient({
     currentVideoId: 'film-1',
     queue: ['film-1', 'film-1', 'film-2'],
     pendingQueue: ['film-1', 'film-1', 'film-3'],
   });
-  const response = request(APIHandler.stop, client);
+  const response = await request(APIHandler.stop, client);
 
   assert.deepEqual(client.queue, ['film-2']);
   assert.deepEqual(client.pendingQueue, ['film-3']);
@@ -98,7 +130,7 @@ test('a late playing state after stop does not authorize or block the stopped fi
     currentVideoId: 'film-1',
     queue: ['film-1'],
   });
-  request(APIHandler.stop, client);
+  await request(APIHandler.stop, client);
 
   const headsetSocket = client.ws;
   headsetSocket.location = client.location;
@@ -144,4 +176,66 @@ test('legacy duplicate pending entries are promoted only once', async () => {
   assert.deepEqual(client.queue, ['film-1']);
   assert.equal(client.ws.messages.length, 1);
   assert.equal(client.ws.messages[0].type, 'videoChangeRequested');
+});
+
+test('watch request is rejected when payment is not confirmed', async () => {
+  const client = createClient();
+  const response = await request(APIHandler.videoForClient, client, { token: null });
+
+  assert.deepEqual(client.queue, []);
+  assert.deepEqual(client.pendingQueue, []);
+  assert.equal(client.ws.messages.length, 0);
+  assert.equal(response.messages[0].success, false);
+  assert.equal(response.messages[0].paymentVerified, false);
+});
+
+test('paid film selected in the headset starts without the phone block screen', async () => {
+  const client = createClient({ activity: 0, queue: [] });
+  const headsetSocket = client.ws;
+  headsetSocket.location = client.location;
+  headsetSocket.userId = client.id;
+
+  await VRHandler.updateState(
+    headsetSocket,
+    { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
+    {
+      params: {
+        activity: 1,
+        userPresent: true,
+        details: { videoId: 'film-paid', isPlaying: true, playbackPosition: 0 },
+      },
+    },
+    [client],
+    [],
+  );
+
+  assert.deepEqual(client.queue, ['film-paid']);
+  assert.equal(client.ws.messages.some(message => message.type === 'resetClient'), false);
+  assert.equal(client.activePlaybackSession.videoId, 'film-paid');
+});
+
+test('unpaid film selected in the headset shows the payment QR instruction', async () => {
+  const client = createClient({ activity: 0, queue: [] });
+  const headsetSocket = client.ws;
+  headsetSocket.location = client.location;
+  headsetSocket.userId = client.id;
+
+  await VRHandler.updateState(
+    headsetSocket,
+    { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
+    {
+      params: {
+        activity: 1,
+        userPresent: true,
+        details: { videoId: 'film-unpaid', isPlaying: true, playbackPosition: 0 },
+      },
+    },
+    [client],
+    [],
+  );
+
+  assert.deepEqual(client.queue, []);
+  const blockMessage = client.ws.messages.find(message => message.type === 'resetClient');
+  assert.match(blockMessage.data.text, /оплатите его на странице покупки/);
+  assert.match(blockMessage.data.text, /QR-код на очках/);
 });

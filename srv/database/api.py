@@ -18,6 +18,8 @@ from decimal import Decimal
 import logging
 from django.http import Http404
 from django.http import HttpResponse, Http404
+from django.utils.dateparse import parse_datetime
+import ipaddress
 
 logger = logging.getLogger('database')
 
@@ -356,6 +358,31 @@ class TokenViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
 
     @staticmethod
+    def _control_server_request_is_authorized(request):
+        configured_secret = getattr(settings, 'CONTROL_SERVER_SHARED_SECRET', '')
+        provided_secret = request.headers.get('X-Control-Server-Secret', '')
+
+        if (
+            configured_secret
+            and provided_secret
+            and secrets.compare_digest(configured_secret, provided_secret)
+        ):
+            return True
+
+        # The production control server and Django currently run on the same
+        # host. A direct request has no proxy forwarding headers; requests that
+        # arrived through nginx do, even though Django sees nginx as loopback.
+        remote_address = request.META.get('REMOTE_ADDR', '')
+        forwarded = (
+            request.META.get('HTTP_X_FORWARDED_FOR')
+            or request.META.get('HTTP_X_REAL_IP')
+        )
+        try:
+            return ipaddress.ip_address(remote_address).is_loopback and not forwarded
+        except ValueError:
+            return False
+
+    @staticmethod
     def _serialize_films(token):
         films_data = []
 
@@ -588,6 +615,83 @@ class TokenViewSet(viewsets.ViewSet):
                 "valid": False,
                 "error": f"Внутренняя ошибка сервера: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'])
+    def viewer_film_access(self, request):
+        """Check whether the current headset session has paid for a film."""
+        if not self._control_server_request_is_authorized(request):
+            return Response(
+                {"success": False, "error": "Запрос разрешен только control server"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        user_id = str(request.data.get('user_id', '')).strip()
+        film_id = str(request.data.get('film_id', '')).strip()
+        if not user_id or len(user_id) > 255 or not film_id or len(film_id) > 100:
+            return Response(
+                {"success": False, "error": "user_id и film_id обязательны"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        access_exists = PaidFilm.objects.filter(
+            token__order__user_id=user_id,
+            token__order__status__in=('paid', 'checked'),
+            token__is_active=True,
+            token__expires_at__gt=timezone.now(),
+            film_id=film_id,
+        ).exists()
+
+        return Response({
+            "success": True,
+            "valid": access_exists,
+            "viewer_id": user_id,
+            "film_id": film_id,
+        })
+
+    @action(detail=False, methods=['post'])
+    def end_viewer_session(self, request):
+        """Deactivate access issued before a headset presence timeout."""
+        if not self._control_server_request_is_authorized(request):
+            return Response(
+                {"success": False, "error": "Запрос разрешен только control server"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        user_id = str(request.data.get('user_id', '')).strip()
+        ended_at_raw = str(request.data.get('ended_at', '')).strip()
+
+        if not user_id or len(user_id) > 255:
+            return Response(
+                {"success": False, "error": "user_id обязателен"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        ended_at = parse_datetime(ended_at_raw) if ended_at_raw else timezone.now()
+        if ended_at is None:
+            return Response(
+                {"success": False, "error": "ended_at имеет неверный формат"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if timezone.is_naive(ended_at):
+            ended_at = timezone.make_aware(ended_at, timezone.get_current_timezone())
+
+        active_tokens = PaymentToken.objects.filter(
+            order__user_id=user_id,
+            is_active=True,
+            created_at__lte=ended_at,
+        )
+        deactivated_count = active_tokens.update(is_active=False)
+
+        logger.info(
+            "Сеанс зрителя %s завершен по тайм-ауту очков; токенов отключено: %s",
+            user_id,
+            deactivated_count,
+        )
+        return Response({
+            "success": True,
+            "user_id": user_id,
+            "deactivated": deactivated_count,
+        })
 
     @action(detail=False, methods=['get'])
     def latest_for_user(self, request):
