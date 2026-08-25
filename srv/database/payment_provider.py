@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from django.conf import settings
 from typing import Optional, List, Dict, Any
+from urllib.parse import urlencode
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +139,38 @@ class PaymentProviderClient:
             return invoice_url
 
         return f"{self.base_url}/bill/{invoice_id}"
+
+    def get_invoice_url_by_order_id(
+        self,
+        order_id: str,
+        search_days: int = 1,
+    ) -> Optional[str]:
+        """Find an existing PayKeeper invoice and return its hosted URL."""
+        current_date = datetime.now()
+        start_date = current_date - timedelta(days=max(search_days - 1, 0))
+        end_date = current_date + timedelta(days=1)
+        query = urlencode({
+            'query': order_id,
+            'start_date': start_date.strftime('%Y-%m-%d'),
+            'end_date': end_date.strftime('%Y-%m-%d'),
+        })
+
+        try:
+            invoices = self._get_json(f'/info/invoice/search/?{query}')
+        except PaymentProviderError:
+            return None
+
+        if not isinstance(invoices, list):
+            return None
+
+        for invoice in invoices:
+            if not isinstance(invoice, dict) or invoice.get('orderid') != order_id:
+                continue
+            invoice_id = str(invoice.get('id') or '')
+            if invoice_id.isdigit():
+                return f"{self.base_url}/bill/{invoice_id}"
+
+        return None
     
     def get_payments_by_date(self, date: str) -> Optional[List[Dict[str, Any]]]:
         """

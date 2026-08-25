@@ -257,7 +257,15 @@ class PaymentStatusViewSet(viewsets.ViewSet):
                     )
                 else:
                     logger.warning(f"No successful payment found for order {order_id} in provider")
-                    return Response({'status': 'pending', 'verified': False}, status=status.HTTP_200_OK)
+                    response_data = {'status': 'pending', 'verified': False}
+                    if request.query_params.get('include_payment_url') == 'true':
+                        payment_url = payment_client.get_invoice_url_by_order_id(
+                            order_id,
+                            search_days=1,
+                        )
+                        if payment_url:
+                            response_data['payment_url'] = payment_url
+                    return Response(response_data, status=status.HTTP_200_OK)
 
             # Return current status
             if order.status == 'paid':

@@ -4,6 +4,27 @@ import { globals } from '$lib/stores/+stores.svelte.js';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 
 
+/** @param {string} paymentUrl */
+const getPaymentTarget = (paymentUrl) => {
+  if (typeof paymentUrl !== 'string') return null;
+
+  try {
+    const paymentTarget = new URL(paymentUrl);
+    if (
+      paymentTarget.protocol === 'https:'
+      && paymentTarget.hostname === '4-neba.server.paykeeper.ru'
+      && paymentTarget.pathname.startsWith('/bill/')
+    ) {
+      return paymentTarget;
+    }
+  } catch (error) {
+    console.warn('PayKeeper returned an invalid payment URL:', error);
+  }
+
+  return null;
+};
+
+
 /**
  * Factory function for creating Paykeeper payment handlers
  * @returns {Object} Payment handling functions and state setters
@@ -53,20 +74,37 @@ export function createPaykeeperPayment() {
     if (existingOrderId) {
       try {
         const existingResponse = await fetch(
-          `${PUBLIC_DATABASE}api/status/status/?order_id=${encodeURIComponent(existingOrderId)}`,
+          `${PUBLIC_DATABASE}api/status/status/?order_id=${encodeURIComponent(existingOrderId)}&include_payment_url=true`,
         );
 
         if (existingResponse.ok) {
           const existingData = await existingResponse.json();
-          if (['pending', 'success', 'checked'].includes(existingData.status)) {
+          if (existingData.status === 'pending') {
+            const existingPaymentTarget = getPaymentTarget(existingData.payment_url);
+            if (existingPaymentTarget) {
+              globals.set('queueErrorState', 'Открываем ранее созданный счёт...');
+              window.location.assign(existingPaymentTarget.href);
+              return;
+            }
+
             globals.set(
               'queueErrorState',
-              existingData.status === 'pending'
-                ? 'Предыдущий заказ уже создан и ожидает подтверждения.'
-                : 'Предыдущий заказ уже подтверждён. Доступ обновляется автоматически.',
+              'Предыдущий заказ уже создан и ожидает подтверждения.',
             );
             return;
           }
+
+          if (['success', 'checked'].includes(existingData.status)) {
+            globals.set(
+              'queueErrorState',
+              'Предыдущий заказ уже подтверждён. Доступ обновляется автоматически.',
+            );
+            return;
+          }
+
+          localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
+          localStorage.removeItem(LOCAL_STORAGE_KEYS.ORDER_TIME);
+          localStorage.removeItem(LOCAL_STORAGE_KEYS.QUEUE_PENDING_PAYMENT);
         } else if (existingResponse.status === 404) {
           localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
         } else {
@@ -114,12 +152,8 @@ export function createPaykeeperPayment() {
         return;
       }
 
-      const paymentTarget = new URL(paymentUrl);
-      if (
-        paymentTarget.protocol !== 'https:'
-        || paymentTarget.hostname !== '4-neba.server.paykeeper.ru'
-        || !paymentTarget.pathname.startsWith('/bill/')
-      ) {
+      const paymentTarget = getPaymentTarget(paymentUrl);
+      if (!paymentTarget) {
         globals.set('queueErrorState', 'Платёжный шлюз вернул некорректную ссылку');
         loadingState = false;
         return;

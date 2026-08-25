@@ -336,6 +336,45 @@ class PaymentInvoiceTests(TestCase):
         order.refresh_from_db()
         self.assertEqual(order.status, 'payment_error')
 
+    @override_settings(PAYMENT_VERIFICATION_ENABLED=True)
+    @patch(
+        'database.api.PaymentProviderClient.get_invoice_url_by_order_id',
+        return_value='https://4-neba.server.paykeeper.ru/bill/20260825163109904',
+    )
+    @patch(
+        'database.api.PaymentProviderClient.verify_payment_by_order_id',
+        return_value=None,
+    )
+    def test_pending_order_can_return_existing_invoice(
+        self,
+        verify_payment,
+        get_invoice_url,
+    ):
+        order = Order.objects.create(
+            user_id='VDNH/30',
+            amount=50,
+            description='Invoice awaiting payment',
+            order_id='pending-with-invoice',
+            status='pending',
+        )
+
+        response = self.client.get(
+            reverse('status-status'),
+            {
+                'order_id': order.order_id,
+                'include_payment_url': 'true',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], 'pending')
+        self.assertEqual(
+            response.data['payment_url'],
+            'https://4-neba.server.paykeeper.ru/bill/20260825163109904',
+        )
+        verify_payment.assert_called_once_with(order.order_id, search_days=1)
+        get_invoice_url.assert_called_once_with(order.order_id, search_days=1)
+
     def test_failed_invoice_is_hidden_from_recent_manual_approvals(self):
         Order.objects.create(
             user_id='VDNH/30',
@@ -367,6 +406,26 @@ class PaymentInvoiceTests(TestCase):
     PAYMENT_PROVIDER_SERVER='paykeeper.example',
 )
 class PaymentProviderInvoiceTests(SimpleTestCase):
+    @patch.object(PaymentProviderClient, '_get_json')
+    def test_existing_invoice_url_can_be_recovered(self, get_json):
+        get_json.return_value = [{
+            'id': '20260825163109904',
+            'orderid': 'order-123',
+            'status': 'created',
+        }]
+
+        payment_url = PaymentProviderClient().get_invoice_url_by_order_id(
+            'order-123',
+        )
+
+        self.assertEqual(
+            payment_url,
+            'https://paykeeper.example/bill/20260825163109904',
+        )
+        request_path = get_json.call_args.args[0]
+        self.assertIn('/info/invoice/search/?', request_path)
+        self.assertIn('query=order-123', request_path)
+
     @patch('database.payment_provider.requests.get')
     def test_payment_lookup_uses_iso_date_expected_by_gateway(self, get_request):
         response = Mock()
