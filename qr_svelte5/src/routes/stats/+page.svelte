@@ -416,7 +416,7 @@
                 <h3>Локации по оплаченным запускам</h3>
                 <div class="location-chart">
                   {#if locationStats}
-                    {#each locationStats.slice(0, 5) as location}
+                    {#each locationStats as location}
                       <div class="location-bar">
                         <div class="location-name">{location.name}</div>
                         <div class="location-bar-container">
