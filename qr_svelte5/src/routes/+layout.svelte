@@ -67,6 +67,34 @@
 
 		return startPaymentStatusMonitor({ userId: viewerUserId });
 	});
+
+	$effect(() => {
+		const userId = viewerUserId;
+		if (!browser || !userId) {
+			globals.set('freeAccess', false);
+			return;
+		}
+
+		const controller = new AbortController();
+		globals.set('freeAccess', false);
+		fetch(
+			`${PUBLIC_DATABASE}api/payments/free_access_status/?user_id=${encodeURIComponent(userId)}`,
+			{ signal: controller.signal },
+		)
+			.then((response) => response.ok ? response.json() : null)
+			.then((data) => {
+				if (!controller.signal.aborted) {
+					globals.set('freeAccess', data?.free_access === true);
+				}
+			})
+			.catch((error) => {
+				if (error?.name !== 'AbortError') {
+					globals.set('freeAccess', false);
+				}
+			});
+
+		return () => controller.abort();
+	});
 </script>
 
 <svelte:head>

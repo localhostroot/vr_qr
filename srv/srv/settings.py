@@ -33,6 +33,10 @@ FREE_VIEWER_IDS = frozenset(
     for viewer_id in os.environ.get('FREE_VIEWER_IDS', '').split(',')
     if viewer_id.strip()
 )
+FREE_ACCESS_DURATION_HOURS = max(
+    1,
+    int(os.environ.get('FREE_ACCESS_DURATION_HOURS', '168')),
+)
 
 # Optional shared secret for control-server requests when Django and the
 # control server do not communicate directly over loopback.

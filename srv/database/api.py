@@ -178,7 +178,13 @@ class PaymentViewSet(viewsets.ViewSet):
 
             if free_access:
                 payment_id = f'free:{order.order_id}'
-                if not PaymentProcessor.process_successful_payment(order, payment_id):
+                if not PaymentProcessor.process_successful_payment(
+                    order,
+                    payment_id,
+                    access_duration=timezone.timedelta(
+                        hours=settings.FREE_ACCESS_DURATION_HOURS,
+                    ),
+                ):
                     order.status = 'payment_error'
                     order.save(update_fields=('status',))
                     return Response(
@@ -825,6 +831,10 @@ class TokenViewSet(viewsets.ViewSet):
             order__user_id=user_id,
             is_active=True,
             created_at__lte=ended_at,
+        ).exclude(
+            # Free/headset-specific access is intentionally long-lived and
+            # must survive the ordinary viewer-presence timeout.
+            order__payment_id__startswith='free:',
         )
         deactivated_count = active_tokens.update(is_active=False)
 

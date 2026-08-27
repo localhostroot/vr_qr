@@ -12,7 +12,6 @@ import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 import { getCookie } from '$lib/utils/+helpers.svelte.js';
   import { createPaykeeperPayment } from '$lib/utils/+paykeeperPayment.svelte.js';
   import { getSubfolder } from '$lib/utils/+helpers.svelte';
-  import { PUBLIC_DATABASE } from '$env/static/public';
 
   let queue = $derived(globals.get('queue'));
 
@@ -26,7 +25,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
   let queueErrorState = $derived(globals.get('queueErrorState'))
 
   let modalVisible = $state(false);
-  let freeAccess = $state(false);
+  let freeAccess = $derived(globals.get('freeAccess'));
 
   // Add onMount to restore currentClient
   import { onMount } from 'svelte';
@@ -45,19 +44,6 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
       }
     }
 
-    const viewerId = currentClient?.location && currentClient?.id
-      ? `${currentClient.location}/${currentClient.id}`
-      : null;
-    if (browser && viewerId) {
-      fetch(`${PUBLIC_DATABASE}api/payments/free_access_status/?user_id=${encodeURIComponent(viewerId)}`)
-        .then((response) => response.ok ? response.json() : null)
-        .then((data) => {
-          freeAccess = data?.free_access === true;
-        })
-        .catch(() => {
-          freeAccess = false;
-        });
-    }
   });
 
   function handleClick() {

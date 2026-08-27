@@ -11,6 +11,7 @@
   let paidFilms = $derived(globals.get('paidFilms'));
   let queue = $derived(globals.get('queue'));
   let currentClient = $derived(globals.get('currentClient'));
+  let freeAccess = $derived(globals.get('freeAccess'));
 
   function checkIsInPaidFilms() {
     return paidFilms.some(film => film.film_id === item.film_id);
@@ -67,7 +68,8 @@
 
 <div class="movie-bottom-info">
   <div class="upper-info">
-    <div class="name">{item.name_short}</div><div class="price">{item.price}₽</div>
+    <div class="name">{item.name_short}</div>
+    {#if !freeAccess}<div class="price">{item.price}₽</div>{/if}
     <!-- <div class="title-with-btn">
       <div class="link-container">
         <div class="home" onclick={handleHomeClick}>
@@ -123,10 +125,12 @@
           <div class="par">Длительность</div>
           <div class="par-descr">{item.time}</div>
         </div>
-        <div class="info-upper-par">
-          <div class="par">Цена</div>
-          <div class="par-descr">{item.price}₽</div>
-        </div>
+        {#if !freeAccess}
+          <div class="info-upper-par">
+            <div class="par">Цена</div>
+            <div class="par-descr">{item.price}₽</div>
+          </div>
+        {/if}
       </div>
     </div>
   </div>

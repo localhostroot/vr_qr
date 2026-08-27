@@ -5,6 +5,7 @@
 
   let { item } = $props();
   let currentClient = $derived(globals.get('currentClient'));
+  let freeAccess = $derived(globals.get('freeAccess'));
 
   function handleClick() {
     goto(getViewerRoute(currentClient, 'film', item.route_id));
@@ -25,9 +26,11 @@
         {item.time}
       </div>
     </div>
-    <div class="price">
-      {item.price}₽
-    </div>
+    {#if !freeAccess}
+      <div class="price">
+        {item.price}₽
+      </div>
+    {/if}
   </div>
 </div>
 

@@ -68,6 +68,10 @@ let globalStorage = $state({
   
   // Current client info
   currentClient: persistedClient,
+
+  // Server-controlled free-viewer mode. This is deliberately not persisted:
+  // every concrete viewer route refreshes it from the backend.
+  freeAccess: false,
   
   // WebSocket connection
   socket: null,

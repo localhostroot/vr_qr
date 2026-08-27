@@ -7,6 +7,7 @@
 
   let { item } = $props();
   let currentClient = $derived(globals.get('currentClient'));
+  let freeAccess = $derived(globals.get('freeAccess'));
 
   function handleClick() {
     if (item.series) {
@@ -53,7 +54,7 @@
   </div>
   <div class="bottomInfo">
     <div class="name">{item.name || item.title}</div>
-    <div class="price">{item.price}₽</div>
+    {#if !freeAccess}<div class="price">{item.price}₽</div>{/if}
   </div>
 </div>
 

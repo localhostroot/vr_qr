@@ -346,6 +346,10 @@ class PaymentInvoiceTests(TestCase):
         self.assertEqual(order.amount, Decimal('0.00'))
         self.assertEqual(order.items.get().price, Decimal('0.00'))
         self.assertEqual(order.payment_token.paid_films.get().price, Decimal('0.00'))
+        self.assertGreater(
+            order.payment_token.expires_at,
+            timezone.now() + timezone.timedelta(days=6),
+        )
 
         access_response = self.client.post(
             reverse('tokens-viewer-film-access'),
@@ -355,6 +359,17 @@ class PaymentInvoiceTests(TestCase):
         )
         self.assertEqual(access_response.status_code, 200)
         self.assertTrue(access_response.data['valid'])
+
+        reset_response = self.client.post(
+            reverse('tokens-end-viewer-session'),
+            {'user_id': 'VDNH/30', 'ended_at': timezone.now().isoformat()},
+            format='json',
+            REMOTE_ADDR='127.0.0.1',
+        )
+        self.assertEqual(reset_response.status_code, 200)
+        self.assertEqual(reset_response.data['deactivated'], 0)
+        order.payment_token.refresh_from_db()
+        self.assertTrue(order.payment_token.is_active)
 
     @override_settings(FREE_VIEWER_IDS=frozenset({'vdnh/30'}))
     def test_free_access_status_is_exact_and_case_insensitive(self):

@@ -49,7 +49,11 @@ class PaymentProcessor:
         return copied_count
     
     @staticmethod
-    def process_successful_payment(order: Order, payment_id: str) -> bool:
+    def process_successful_payment(
+        order: Order,
+        payment_id: str,
+        access_duration=None,
+    ) -> bool:
         """
         Process a successful payment by updating order status and creating tokens/films
         
@@ -68,7 +72,9 @@ class PaymentProcessor:
             logger.info(f"Payment processor: Order {order.order_id} status updated to 'paid', payment_id: {payment_id}")
             
             # Create payment token
-            expires_at = timezone.now() + timezone.timedelta(hours=2)
+            expires_at = timezone.now() + (
+                access_duration or timezone.timedelta(hours=2)
+            )
             token_string = secrets.token_hex(32)
             
             logger.info(f"Payment processor: Creating payment token for order {order.order_id}")
