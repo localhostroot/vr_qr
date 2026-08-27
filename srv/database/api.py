@@ -55,6 +55,8 @@ class PaymentViewSet(viewsets.ViewSet):
             
             total_amount = Decimal('0.00')
             validated_films = []
+            series_groups = {}
+            seen_films = set()
             
             for film_item in films_data:
                 film_id = film_item.get('film_id')
@@ -62,6 +64,11 @@ class PaymentViewSet(viewsets.ViewSet):
                 
                 if not film_id:
                     continue
+
+                film_key = (bool(is_series), str(film_id))
+                if film_key in seen_films:
+                    continue
+                seen_films.add(film_key)
                     
                 if not is_series:
                     try:
@@ -77,16 +84,49 @@ class PaymentViewSet(viewsets.ViewSet):
                         continue
                 else:
                     try:
-                        film = Movie.objects.get(film_id=film_id)
+                        film = Movie.objects.select_related('cat_id').get(film_id=film_id)
                         price = Decimal(str(film.price))
-                        validated_films.append({
+                        validated_film = {
                             'film_id': film_id,
                             'is_series': True,
                             'price': price
-                        })
-                        total_amount += price
+                        }
+                        validated_films.append(validated_film)
+                        group = series_groups.setdefault(
+                            film.cat_id_id,
+                            {'category': film.cat_id, 'films': []},
+                        )
+                        group['films'].append(validated_film)
                     except Movie.DoesNotExist:
                         continue
+
+            applied_bundles = []
+            for category_id, group in series_groups.items():
+                selected_film_ids = {
+                    str(film['film_id']) for film in group['films']
+                }
+                bundle_film_ids = {
+                    str(film_id)
+                    for film_id in Movie.objects.filter(
+                        cat_id_id=category_id,
+                    ).values_list('film_id', flat=True)
+                }
+                regular_total = sum(
+                    (film['price'] for film in group['films']),
+                    Decimal('0.00'),
+                )
+
+                if bundle_film_ids and selected_film_ids == bundle_film_ids:
+                    bundle_price = Decimal(str(group['category'].price))
+                    total_amount += bundle_price
+                    applied_bundles.append({
+                        'cat_id': group['category'].cat_id,
+                        'name': group['category'].name_short,
+                        'regular_amount': regular_total,
+                        'bundle_amount': bundle_price,
+                    })
+                else:
+                    total_amount += regular_total
             
             if not validated_films:
                 return Response(
@@ -137,6 +177,7 @@ class PaymentViewSet(viewsets.ViewSet):
                 'order_id': order.order_id,
                 'amount': float(total_amount),
                 'films': validated_films,
+                'bundles': applied_bundles,
                 'payment_url': payment_url,
             }, status=status.HTTP_201_CREATED)
             

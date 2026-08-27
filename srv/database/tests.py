@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from .models import Category, Order, PaidFilm, PaymentToken
+from .models import Category, Movie, Order, PaidFilm, PaymentToken
 from .payment_provider import PaymentProviderClient, PaymentProviderError
 from .payment_processor import PaymentProcessor
 
@@ -244,12 +244,60 @@ class PaymentInvoiceTests(TestCase):
             name_short='Payment test',
             description='Payment test film',
         )
+        self.bundle = Category.objects.create(
+            film_id='bundle',
+            cat_id='bundle-test',
+            name='Discounted bundle',
+            year='2026',
+            format='VR',
+            price=150,
+            route_id='bundle',
+            time='30',
+            serial=True,
+            isAdded=True,
+            country='RU',
+            image='category_images/bundle.jpg',
+            queueImg='queue_category_images/bundle.jpg',
+            name_short='Discounted bundle',
+            description='Three films sold together at a discount',
+        )
+        self.bundle_films = []
+        for index in range(1, 4):
+            self.bundle_films.append(Movie.objects.create(
+                film_id=f'bundle-{index}',
+                name=f'Bundle film {index}',
+                name_short=f'Bundle film {index}',
+                description='Bundle film',
+                route_id=f'bundle-{index}',
+                year='2026',
+                country='RU',
+                number=str(index),
+                serial=True,
+                isAdded=True,
+                cat_id=self.bundle,
+                image=f'movie_images/bundle-{index}.jpg',
+                queueImg=f'queue_movie_images/bundle-{index}.jpg',
+                time='10',
+                format='VR',
+                price=100,
+                series=True,
+            ))
 
     def order_payload(self):
         return {
             'user_id': 'VDNH/30',
             'description': 'Оплата за просмотр фильмов',
             'films': [{'film_id': self.film.film_id, 'series': False}],
+        }
+
+    def bundle_payload(self, films=None):
+        return {
+            'user_id': 'VDNH/30',
+            'description': 'Оплата за просмотр фильмов',
+            'films': [
+                {'film_id': film.film_id, 'series': True}
+                for film in (films or self.bundle_films)
+            ],
         }
 
     @patch('database.api.PaymentProviderClient.create_invoice')
@@ -275,6 +323,54 @@ class PaymentInvoiceTests(TestCase):
             client_id='VDNH/30',
             service_name='Оплата за просмотр фильмов',
             result_callback='https://cinema.local.vr360.pro/payment-result',
+        )
+
+    @patch('database.api.PaymentProviderClient.create_invoice')
+    def test_complete_series_uses_discounted_bundle_price(self, create_invoice):
+        create_invoice.return_value = 'https://4-neba.server.paykeeper.ru/bill/124/'
+
+        response = self.client.post(
+            reverse('payments-create-order'),
+            self.bundle_payload(),
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['amount'], 150.0)
+        self.assertEqual(response.data['bundles'], [{
+            'cat_id': 'bundle-test',
+            'name': 'Discounted bundle',
+            'regular_amount': Decimal('300.00'),
+            'bundle_amount': Decimal('150.00'),
+        }])
+        order = Order.objects.get(order_id=response.data['order_id'])
+        self.assertEqual(order.amount, Decimal('150.00'))
+        self.assertEqual(order.items.count(), 3)
+        self.assertEqual(
+            list(order.items.order_by('film_id').values_list('price', flat=True)),
+            [Decimal('100.00')] * 3,
+        )
+        self.assertEqual(
+            create_invoice.call_args.kwargs['amount'],
+            Decimal('150.00'),
+        )
+
+    @patch('database.api.PaymentProviderClient.create_invoice')
+    def test_partial_series_uses_individual_film_prices(self, create_invoice):
+        create_invoice.return_value = 'https://4-neba.server.paykeeper.ru/bill/125/'
+
+        response = self.client.post(
+            reverse('payments-create-order'),
+            self.bundle_payload(self.bundle_films[:2]),
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['amount'], 200.0)
+        self.assertEqual(response.data['bundles'], [])
+        self.assertEqual(
+            create_invoice.call_args.kwargs['amount'],
+            Decimal('200.00'),
         )
 
     @patch('database.api.PaymentProviderClient.create_invoice')
