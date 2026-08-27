@@ -132,7 +132,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
         </button>
         {#if freeAccess}
           <div class="free-access-message">
-            Для этих очков просмотр бесплатный. Выбранные фильмы будут доступны на 2 часа.
+            Для этих очков просмотр бесплатный. Выбранные фильмы будут доступны на 7 дней.
           </div>
         {:else}
         <div class="instructions">
