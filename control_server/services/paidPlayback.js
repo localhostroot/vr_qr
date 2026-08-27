@@ -15,16 +15,15 @@ const secondsFromEnvironment = (name, fallback) => {
   return Number.isFinite(value) && value >= 0 ? value : fallback;
 };
 
-// The headset currently resets itself after 60 seconds. The control server
-// keeps an additional grace period before ending paid access, so this can be
-// tuned without replacing application.json on every headset.
+// Match the headset's 60-second reset by default. An optional server-side
+// grace period can still be configured without replacing application.json.
 export const HEADSET_RESET_TIMEOUT_SECONDS = secondsFromEnvironment(
   'HEADSET_RESET_TIMEOUT_SECONDS',
   60,
 );
 export const PAYMENT_SESSION_RESET_GRACE_SECONDS = secondsFromEnvironment(
   'PAYMENT_SESSION_RESET_GRACE_SECONDS',
-  30,
+  0,
 );
 export const PAYMENT_SESSION_IDLE_TIMEOUT_MS = (
   HEADSET_RESET_TIMEOUT_SECONDS + PAYMENT_SESSION_RESET_GRACE_SECONDS

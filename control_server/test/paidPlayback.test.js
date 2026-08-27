@@ -37,8 +37,8 @@ test('payment verification requires confirmed access to the requested film', asy
   assert.equal(authorization.viewerId, 'CDH/30');
 });
 
-test('default presence timeout is headset 60 seconds plus server 30 seconds', () => {
-  assert.equal(PAYMENT_SESSION_IDLE_TIMEOUT_MS, 90_000);
+test('default presence timeout matches the headset 60 second timeout', () => {
+  assert.equal(PAYMENT_SESSION_IDLE_TIMEOUT_MS, 60_000);
 });
 
 test('session reset request identifies the headset viewer and cutoff time', async () => {
