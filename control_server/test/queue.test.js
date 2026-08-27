@@ -235,7 +235,25 @@ test('unpaid film selected in the headset shows the payment QR instruction', asy
   );
 
   assert.deepEqual(client.queue, []);
+  assert.deepEqual(client.ws.messages.map(message => message.type), ['videoStopRequested']);
+
+  await VRHandler.updateState(
+    headsetSocket,
+    { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
+    {
+      params: {
+        activity: 0,
+        userPresent: true,
+        details: {},
+      },
+    },
+    [client],
+    [],
+  );
+
   const blockMessage = client.ws.messages.find(message => message.type === 'resetClient');
   assert.match(blockMessage.data.text, /оплатите его на странице покупки/);
   assert.match(blockMessage.data.text, /QR-код на очках/);
+  assert.equal(client.pendingPaymentBlock, null);
+  assert.equal(client.missingVideoTimer, null);
 });

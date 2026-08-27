@@ -22,6 +22,7 @@ const PAYMENT_REQUIRED_MESSAGE = (
 const PAYMENT_CHECK_FAILED_MESSAGE = (
   'Не удалось проверить оплату. Проверьте соединение и повторите попытку.'
 );
+const PAYMENT_BLOCK_FALLBACK_MS = 3_000;
 
 const isVideoIdPresent = (videoId) => (
   videoId !== null && videoId !== undefined && videoId !== ''
@@ -540,6 +541,39 @@ const blockClient = (ws, text = PAYMENT_REQUIRED_MESSAGE) => {
     }
 };
 
+const showPendingPaymentBlock = (client, ws) => {
+  const pendingBlock = client.pendingPaymentBlock;
+  if (!pendingBlock) return false;
+
+  if (client.missingVideoTimer) {
+    clearTimeout(client.missingVideoTimer);
+    client.missingVideoTimer = null;
+  }
+
+  client.pendingPaymentBlock = null;
+  blockClient(ws, pendingBlock.message);
+  return true;
+};
+
+const stopVideoBeforePaymentBlock = (client, ws, videoId, message) => {
+  if (client.pendingPaymentBlock) return;
+
+  client.pendingPaymentBlock = { videoId, message };
+  client.stopRequestedVideoId = videoId;
+
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'videoStopRequested' }));
+  }
+
+  // Normally the headset reports its return to the intro scene and the block
+  // is shown from updateState. Keep a fallback so a lost state update cannot
+  // leave the viewer on a black screen indefinitely.
+  client.missingVideoTimer = setTimeout(() => {
+    showPendingPaymentBlock(client, ws);
+  }, PAYMENT_BLOCK_FALLBACK_MS);
+  client.missingVideoTimer.unref?.();
+};
+
 const fillQueue = (ws, req, payload, clients) => {
     console.log('Полученные данные в fillQueue:', payload);
 
@@ -638,6 +672,7 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
         isPlaying: false,
         activePlaybackSession: null,
         paidAuthorizations: {},
+        pendingPaymentBlock: null,
       };
 
     if (previousClient) {
@@ -688,6 +723,7 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
         handleMissingVideo(
           client,
           ws,
+          currentVideoId,
           access.available ? PAYMENT_REQUIRED_MESSAGE : PAYMENT_CHECK_FAILED_MESSAGE,
         );
         return;
@@ -711,12 +747,8 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
     handlePlayback(client, details, playbackPosition);
   };
   
-  const handleMissingVideo = (client, ws, message) => {
-    if (client.missingVideoTimer) {
-      clearTimeout(client.missingVideoTimer);
-      client.missingVideoTimer = null;
-    }
-    blockClient(ws, message);
+  const handleMissingVideo = (client, ws, currentVideoId, message) => {
+    stopVideoBeforePaymentBlock(client, ws, currentVideoId, message);
   };
   
   const handleVideoFound = (client, currentVideoId) => {
@@ -845,7 +877,10 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
           updateViewerPresenceTimeout(foundClient, foundClient.userPresent);
           console.log(`Обновлен activity клиента ${foundClient.id}: ${currentActivity}, userPresent: ${foundClient.userPresent}`);
 
-          if (currentActivity === 0 && foundClient.pendingQueue && Array.isArray(foundClient.pendingQueue) && foundClient.pendingQueue.length > 0 && foundClient.userPresent === true) {
+          if (currentActivity !== 1 && foundClient.pendingPaymentBlock) {
+              await handleEndVideo(foundClient);
+              showPendingPaymentBlock(foundClient, ws);
+          } else if (currentActivity === 0 && foundClient.pendingQueue && Array.isArray(foundClient.pendingQueue) && foundClient.pendingQueue.length > 0 && foundClient.userPresent === true) {
               const pendingQueue = foundClient.pendingQueue[0];
               foundClient.pendingQueue = removeVideoFromQueue(foundClient.pendingQueue, pendingQueue);
 
