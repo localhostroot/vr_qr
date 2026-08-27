@@ -718,6 +718,15 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
     }
 
     if (!queueHasVideo(client.queue, currentVideoId)) {
+      // Some headset builds briefly report the previously selected video while
+      // returning from the lock screen.  Do not treat that inactive snapshot as
+      // a new viewing attempt; the normal access check still runs as soon as the
+      // headset explicitly reports playback.
+      if (details.isPlaying === false) {
+        console.log(`Неактивное состояние фильма ${currentVideoId} без очереди пропущено до фактического запуска.`);
+        return;
+      }
+
       const access = await checkViewerFilmAccess(client, currentVideoId);
       if (!access.paid || client.paymentSessionResetPending) {
         handleMissingVideo(

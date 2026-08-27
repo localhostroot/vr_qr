@@ -214,6 +214,47 @@ test('paid film selected in the headset starts without the phone block screen', 
   assert.equal(client.activePlaybackSession.videoId, 'film-paid');
 });
 
+test('inactive stale headset film state does not re-block the unlocked main screen', async () => {
+  const client = createClient({ activity: 0, queue: [] });
+  const headsetSocket = client.ws;
+  headsetSocket.location = client.location;
+  headsetSocket.userId = client.id;
+
+  await VRHandler.updateState(
+    headsetSocket,
+    { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
+    {
+      params: {
+        activity: 1,
+        userPresent: true,
+        details: { videoId: 'stale-film', isPlaying: false, playbackPosition: 0 },
+      },
+    },
+    [client],
+    [],
+  );
+
+  await VRHandler.updateState(
+    headsetSocket,
+    { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
+    {
+      params: {
+        activity: 0,
+        userPresent: true,
+        details: {},
+      },
+    },
+    [client],
+    [],
+  );
+
+  assert.deepEqual(client.queue, []);
+  assert.deepEqual(client.ws.messages, []);
+  assert.equal(client.pendingPaymentBlock, undefined);
+  assert.equal(client.currentVideoId, null);
+  assert.equal(client.activity, 0);
+});
+
 test('unpaid film selected in the headset shows the payment QR instruction', async () => {
   const client = createClient({ activity: 0, queue: [] });
   const headsetSocket = client.ws;
