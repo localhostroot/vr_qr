@@ -3,15 +3,16 @@
   import AddToQueueBtn from '$lib/components/SingleMovieItem/AddToQueueBtn.svelte';
   import { icons } from '$lib/icons/icons';
   import { globals } from '$lib/stores/+stores.svelte';
-  import { getSubfolder } from '$lib/utils/+helpers.svelte';
+  import { getViewerRoute } from '$lib/utils/viewerRoutes.js';
 
   let { item } = $props();
+  let currentClient = $derived(globals.get('currentClient'));
 
   function handleClick() {
     if (item.series) {
-      goto(`${getSubfolder()}/film/${item.route_id}`);
+      goto(getViewerRoute(currentClient, 'film', item.route_id));
     } else {
-      goto(`${getSubfolder()}/content/${item.route_id}`);
+      goto(getViewerRoute(currentClient, 'content', item.route_id));
     }
   }
 
@@ -19,16 +20,9 @@
 
     e.stopPropagation()
 
-    // if (item.serial) {
-
-    //   goto(`${getSubfolder()}/content/${item.id}`);
-
-    // } else {
-
       globals.update('queue', currentQueue => 
         currentQueue.filter(queueItem => queueItem.id !== item.id)
       );
-    // }
   }
 
 </script>

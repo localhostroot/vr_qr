@@ -2,12 +2,13 @@
   import { goto } from '$app/navigation';
   import { PUBLIC_DATABASE } from '$env/static/public';
   import { globals } from '$lib/stores/+stores.svelte.js';
-  import { getSubfolder } from '$lib/utils/+helpers.svelte';
+  import { getViewerRoute } from '$lib/utils/viewerRoutes.js';
 
   let token = $state('');
   let isLoading = $state(false);
   let error = $state(null);
   let success = $state(false);
+  let currentClient = $derived(globals.get('currentClient'));
 
   function handleTokenChange(e) {
     token = e.target.value;
@@ -56,7 +57,7 @@
         token = '';
 
         setTimeout(() => {
-          goto(`${getSubfolder()}/films/`);
+          goto(getViewerRoute(currentClient, 'films'));
         }, 2000);
       } else {
         error = data.error || 'Недействительный токен';

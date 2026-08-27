@@ -12,7 +12,7 @@
   let isListLoading = $state(true);
   let error = $state(null);
 
-  let id = $derived($page.params.id);
+  let id = $derived($page.params.filmId ?? $page.params.id);
 
   async function fetchItem() {
     if (!id) return;

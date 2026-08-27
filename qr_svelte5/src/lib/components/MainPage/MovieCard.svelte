@@ -3,12 +3,13 @@
 
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { goto } from '$app/navigation';
-  import { getSubfolder } from '$lib/utils/+helpers.svelte';
+  import { getViewerRoute } from '$lib/utils/viewerRoutes.js';
   import { PUBLIC_DATABASE } from '$env/static/public';
   import axios from 'axios';
   import { icons } from '$lib/icons/icons.js';
   
   let { item } = $props();
+  let currentClient = $derived(globals.get('currentClient'));
   
   let queue = $derived(globals.get('queue'));
   let seriesData = $state([]);
@@ -93,7 +94,7 @@
   }
 
   function goToContent(item) {
-    goto(`${getSubfolder()}/content/${item.route_id}`);
+    goto(getViewerRoute(currentClient, 'content', item.route_id));
   }
   
   // Load series episodes when component mounts if it's a series

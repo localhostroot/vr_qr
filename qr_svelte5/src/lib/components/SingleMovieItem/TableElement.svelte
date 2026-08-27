@@ -1,11 +1,13 @@
 <script>
   import { goto } from '$app/navigation';
-  import { getSubfolder } from '$lib/utils/+helpers.svelte';
+  import { globals } from '$lib/stores/+stores.svelte.js';
+  import { getViewerRoute } from '$lib/utils/viewerRoutes.js';
 
   let { item } = $props();
+  let currentClient = $derived(globals.get('currentClient'));
 
   function handleClick() {
-    goto(`${getSubfolder()}/film/${item.route_id}`);
+    goto(getViewerRoute(currentClient, 'film', item.route_id));
   }
 </script>
 

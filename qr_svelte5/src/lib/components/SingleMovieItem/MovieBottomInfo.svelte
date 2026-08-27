@@ -2,23 +2,15 @@
   import { goto } from '$app/navigation';
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { icons } from '$lib/icons/icons.js';
-  import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
   import AddToQueueBtn from './AddToQueueBtn.svelte';
   import AddSeriesBtn from './AddSeriesBtn.svelte';
-  import { getSubfolder } from '$lib/utils/+helpers.svelte';
+  import { getViewerBasePath, getViewerRoute } from '$lib/utils/viewerRoutes.js';
 
   let { item, seriesData } = $props();
 
   let paidFilms = $derived(globals.get('paidFilms'));
   let queue = $derived(globals.get('queue'));
-
-  function getCurrentClient() {
-    const clientString = localStorage.getItem(LOCAL_STORAGE_KEYS.CLIENT);
-    const client = clientString ? JSON.parse(clientString) : null;
-    const clLocation = client?.location || null;
-    const id = client?.id || null;
-    return clLocation && id ? `${clLocation}/${id}` : null;
-  }
+  let currentClient = $derived(globals.get('currentClient'));
 
   function checkIsInPaidFilms() {
     return paidFilms.some(film => film.film_id === item.film_id);
@@ -32,15 +24,14 @@
 
   function handleClick() {
     if (isInPaidFilms) {
-      goto(`${getSubfolder()}/films`);
+      goto(getViewerRoute(currentClient, 'films'));
     } else {
-      goto(`${getSubfolder()}/queue`);
+      goto(getViewerRoute(currentClient, 'queue'));
     }
   }
 
   function handleHomeClick() {
-    const userId = getCurrentClient();
-    goto(`${getSubfolder()}/${userId}`);
+    goto(getViewerBasePath(currentClient));
   }
 
   const styles = {

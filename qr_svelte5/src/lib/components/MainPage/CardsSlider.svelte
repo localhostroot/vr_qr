@@ -2,9 +2,10 @@
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { goto } from '$app/navigation';
   import { icons } from '$lib/icons/icons.js';
-  import { getSubfolder } from '$lib/utils/+helpers.svelte';
+  import { getViewerRoute } from '$lib/utils/viewerRoutes.js';
   
   let { library } = $props();
+  let currentClient = $derived(globals.get('currentClient'));
 
   let currentSlideIndex = $derived(globals.get('currentSlideIndex'));
   let sliderContainer = $state();
@@ -50,7 +51,7 @@
 
   function goToContent(item) {
 
-    goto(`${getSubfolder()}/content/${item.route_id}`);
+    goto(getViewerRoute(currentClient, 'content', item.route_id));
   }
 </script>
 

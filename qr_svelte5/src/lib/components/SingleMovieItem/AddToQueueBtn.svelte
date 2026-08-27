@@ -2,11 +2,12 @@
   import { goto } from '$app/navigation';
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { icons } from '$lib/icons/icons.js';
-  import { getSubfolder } from '$lib/utils/+helpers.svelte';
+  import { getViewerRoute } from '$lib/utils/viewerRoutes.js';
 
   let { item, styles } = $props();
 
   let queue = $derived(globals.get('queue'));
+  let currentClient = $derived(globals.get('currentClient'));
 
   let isAdded = $derived(queue.some(i => i.id === item.id));
 
@@ -15,7 +16,7 @@
     event.stopPropagation();
     
     if (item.serial) {
-      goto(`${getSubfolder()}/content/${item.id}`);
+      goto(getViewerRoute(currentClient, 'content', item.route_id ?? item.id));
     } else {
       if (isAdded) {
         globals.update('queue', currentQueue => 

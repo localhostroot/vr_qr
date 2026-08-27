@@ -2,7 +2,8 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-import { getSubfolder, getCookie } from '$lib/utils/+helpers.svelte';
+import { getCookie } from '$lib/utils/+helpers.svelte';
+  import { getViewerRoute } from '$lib/utils/viewerRoutes.js';
   import { checkPaymentStatus } from '$lib/utils/paymentStatusChecker.js';
   import { browser } from '$app/environment';
   import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
@@ -196,16 +197,16 @@ import { getSubfolder, getCookie } from '$lib/utils/+helpers.svelte';
       redirectCountdown--;
       if (redirectCountdown <= 0) {
         clearInterval(interval);
-        goto(`${getSubfolder()}/films/`);
+        goto(getViewerRoute(currentClient, 'films'));
       }
     }, 1000);
   }
 
   function handleContinue() {
     if (status === 'success') {
-      goto(`${getSubfolder()}/films/`);
+      goto(getViewerRoute(currentClient, 'films'));
     } else {
-      goto(`${getSubfolder()}/queue/`);
+      goto(getViewerRoute(currentClient, 'queue'));
     }
   }
 </script>

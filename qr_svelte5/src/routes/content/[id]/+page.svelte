@@ -18,7 +18,7 @@ import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
   let error = $state(null);
   let pageInitialized = $state(false);
 
-  let id = $derived($page.params.id);
+  let id = $derived($page.params.contentId ?? $page.params.id);
   let currentClient = $derived(globals.get('currentClient'));
 
   const singleMovieItemLoading = $derived(globals.get('singleMovieItemLoading'))

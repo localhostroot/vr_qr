@@ -7,13 +7,14 @@
   import MovieBottomInfo from './MovieBottomInfo.svelte';
   import SerialTable from './SerialTable.svelte';
   import Loader from '$lib/components/widgets/Loader.svelte';
-  import { getSubfolder } from '$lib/utils/+helpers.svelte';
+  import { getViewerBasePath, getViewerRoute } from '$lib/utils/viewerRoutes.js';
 
   let { item, list, itemRouteId } = $props();
 
   let imageLoading = $state(true);
 
   let singleMovieItemLoading = $derived(globals.get('singleMovieItemLoading'))
+  let currentClient = $derived(globals.get('currentClient'));
 
   function handleClick() {
     history.back();
@@ -46,12 +47,12 @@
     }
 
     if (nextItem) {
-      goto(`${getSubfolder()}/film/${nextItem.route_id}`);
+      goto(getViewerRoute(currentClient, 'film', nextItem.route_id));
     }
   }
 
   function handleClickReturn() {
-    goto(`${getSubfolder()}/content/${itemRouteId}`);
+    goto(getViewerRoute(currentClient, 'content', itemRouteId));
   }
 
   function handleVrClick() {
@@ -63,7 +64,7 @@
     const userId = clLocation && id ? `${clLocation}/${id}` : null;
 
     if (item.serial) {
-      goto(userId ? `${getSubfolder()}/${userId}` : `/`);
+      goto(userId ? getViewerBasePath(client) : `/`);
     } else {
       handleClick();
     }
