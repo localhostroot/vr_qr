@@ -325,6 +325,64 @@ class PaymentInvoiceTests(TestCase):
             result_callback='https://cinema.local.vr360.pro/payment-result',
         )
 
+    @override_settings(FREE_VIEWER_IDS=frozenset({'vdnh/30'}))
+    @patch('database.api.PaymentProviderClient.create_invoice')
+    def test_free_viewer_receives_access_without_gateway_invoice(self, create_invoice):
+        response = self.client.post(
+            reverse('payments-create-order'),
+            self.order_payload(),
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.data['free_access'])
+        self.assertEqual(response.data['amount'], 0.0)
+        self.assertNotIn('payment_url', response.data)
+        create_invoice.assert_not_called()
+
+        order = Order.objects.get(order_id=response.data['order_id'])
+        self.assertEqual(order.status, 'checked')
+        self.assertTrue(order.payment_id.startswith('free:'))
+        self.assertEqual(order.amount, Decimal('0.00'))
+        self.assertEqual(order.items.get().price, Decimal('0.00'))
+        self.assertEqual(order.payment_token.paid_films.get().price, Decimal('0.00'))
+
+        access_response = self.client.post(
+            reverse('tokens-viewer-film-access'),
+            {'user_id': 'VDNH/30', 'film_id': self.film.film_id},
+            format='json',
+            REMOTE_ADDR='127.0.0.1',
+        )
+        self.assertEqual(access_response.status_code, 200)
+        self.assertTrue(access_response.data['valid'])
+
+    @override_settings(FREE_VIEWER_IDS=frozenset({'vdnh/30'}))
+    def test_free_access_status_is_exact_and_case_insensitive(self):
+        enabled_response = self.client.get(
+            reverse('payments-free-access-status'),
+            {'user_id': 'VDNH/30'},
+        )
+        other_response = self.client.get(
+            reverse('payments-free-access-status'),
+            {'user_id': 'VDNH/11'},
+        )
+
+        self.assertTrue(enabled_response.data['free_access'])
+        self.assertFalse(other_response.data['free_access'])
+
+    @override_settings(FREE_VIEWER_IDS=frozenset({'vdnh/30'}))
+    def test_free_orders_are_hidden_from_recent_manual_approvals(self):
+        response = self.client.post(
+            reverse('payments-create-order'),
+            self.order_payload(),
+            format='json',
+        )
+        self.assertEqual(response.status_code, 201)
+
+        admin_response = self.client.get(reverse('admin-search-orders'))
+        self.assertEqual(admin_response.status_code, 200)
+        self.assertEqual(admin_response.data['orders'], [])
+
     @patch('database.api.PaymentProviderClient.create_invoice')
     def test_complete_series_uses_discounted_bundle_price(self, create_invoice):
         create_invoice.return_value = 'https://4-neba.server.paykeeper.ru/bill/124/'

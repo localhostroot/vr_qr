@@ -1,7 +1,10 @@
 import { browser } from '$app/environment';
+import { goto } from '$app/navigation';
 import { PUBLIC_DATABASE } from '$env/static/public';
 import { globals } from '$lib/stores/+stores.svelte.js';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
+import { syncLatestAccessForUser } from '$lib/utils/paymentStatusChecker.js';
+import { getViewerRoute } from '$lib/utils/viewerRoutes.js';
 
 
 /** @param {string} paymentUrl */
@@ -71,7 +74,27 @@ export function createPaykeeperPayment() {
     }
 
     const existingOrderId = localStorage.getItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
-    if (existingOrderId) {
+    let freeAccess = false;
+    try {
+      const freeAccessResponse = await fetch(
+        `${PUBLIC_DATABASE}api/payments/free_access_status/?user_id=${encodeURIComponent(userId)}`,
+      );
+      if (freeAccessResponse.ok) {
+        const freeAccessData = await freeAccessResponse.json();
+        freeAccess = freeAccessData.free_access === true;
+      }
+    } catch (error) {
+      console.warn('Не удалось проверить бесплатный режим:', error);
+    }
+
+    // A bank invoice created before free mode was enabled must not block the
+    // explicitly configured free viewer.  The provider order itself is left
+    // untouched; only this browser's recovery pointer is discarded.
+    if (freeAccess && existingOrderId) {
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.ORDER_TIME);
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.QUEUE_PENDING_PAYMENT);
+    } else if (existingOrderId) {
       try {
         const existingResponse = await fetch(
           `${PUBLIC_DATABASE}api/status/status/?order_id=${encodeURIComponent(existingOrderId)}&include_payment_url=true`,
@@ -145,6 +168,25 @@ export function createPaykeeperPayment() {
       const orderId = orderData.order_id;
       const totalAmount = orderData.amount;
       const paymentUrl = orderData.payment_url;
+
+      if (orderData.free_access === true) {
+        const accessResult = await syncLatestAccessForUser(userId);
+        if (!accessResult.success) {
+          globals.set(
+            'queueErrorState',
+            'Доступ выдан, но список фильмов пока не обновился. Повторите через несколько секунд.',
+          );
+          loadingState = false;
+          return;
+        }
+
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.ORDER_TIME);
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.QUEUE_PENDING_PAYMENT);
+        await goto(getViewerRoute(globals.get('currentClient'), 'films'));
+        loadingState = false;
+        return;
+      }
 
       if (!orderId || !totalAmount || !paymentUrl) {
         globals.set('queueErrorState', 'Ошибка создания заказа, попробуйте ещё раз');

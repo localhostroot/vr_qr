@@ -24,6 +24,16 @@ PAYMENT_RESULT_URL = os.environ.get(
     'https://cinema.local.vr360.pro/payment-result',
 )
 
+# Comma-separated viewer ids (for example ``VDNH/30``) that receive a local
+# zero-price access token instead of being redirected to the payment gateway.
+# Keep the default empty so free viewing can only be enabled deliberately in
+# the production service configuration.
+FREE_VIEWER_IDS = frozenset(
+    viewer_id.strip().casefold()
+    for viewer_id in os.environ.get('FREE_VIEWER_IDS', '').split(',')
+    if viewer_id.strip()
+)
+
 # Optional shared secret for control-server requests when Django and the
 # control server do not communicate directly over loopback.
 CONTROL_SERVER_SHARED_SECRET = os.environ.get('CONTROL_SERVER_SHARED_SECRET', '')

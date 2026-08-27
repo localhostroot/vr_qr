@@ -12,6 +12,7 @@ import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 import { getCookie } from '$lib/utils/+helpers.svelte.js';
   import { createPaykeeperPayment } from '$lib/utils/+paykeeperPayment.svelte.js';
   import { getSubfolder } from '$lib/utils/+helpers.svelte';
+  import { PUBLIC_DATABASE } from '$env/static/public';
 
   let queue = $derived(globals.get('queue'));
 
@@ -25,6 +26,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
   let queueErrorState = $derived(globals.get('queueErrorState'))
 
   let modalVisible = $state(false);
+  let freeAccess = $state(false);
 
   // Add onMount to restore currentClient
   import { onMount } from 'svelte';
@@ -41,6 +43,20 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
           console.error('Error parsing stored client data:', error);
         }
       }
+    }
+
+    const viewerId = currentClient?.location && currentClient?.id
+      ? `${currentClient.location}/${currentClient.id}`
+      : null;
+    if (browser && viewerId) {
+      fetch(`${PUBLIC_DATABASE}api/payments/free_access_status/?user_id=${encodeURIComponent(viewerId)}`)
+        .then((response) => response.ok ? response.json() : null)
+        .then((data) => {
+          freeAccess = data?.free_access === true;
+        })
+        .catch(() => {
+          freeAccess = false;
+        });
     }
   });
 
@@ -83,7 +99,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
     {#if queue && queue.length > 0}
       <div class="info">
         <div class="paymentBtn" onclick={handleOpenModal}>
-          Оплатить все
+          {freeAccess ? 'Получить бесплатно' : 'Оплатить все'}
         </div>
       </div>
       {#if currentClient}
@@ -101,7 +117,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
         "
       >
         <div class="paymentBtn" onclick={handleOpenModal}>
-          Оплатить все
+          {freeAccess ? 'Получить бесплатно' : 'Оплатить все'}
         </div>
       </div>
     {:else}
@@ -128,6 +144,11 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
         <button class="modalCloseButton" onclick={handleCloseModal}>
           {@html icons.buttonClose}
         </button>
+        {#if freeAccess}
+          <div class="free-access-message">
+            Для этих очков просмотр бесплатный. Выбранные фильмы будут доступны на 2 часа.
+          </div>
+        {:else}
         <div class="instructions">
 
           <div class="instEl"><div style="color: #900000" class="number"><b>1.</b></div>
@@ -147,19 +168,22 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
             <div class="descr">Если есть вопросы - обратитесь к администратору площадки.</div>
           </div>
         </div>
+        {/if}
         <button
           class="payBtn"
           onclick={paykeeperPayment.handlePaymentClick}
           disabled={paykeeperPayment.isLoading}
         >
-          {paykeeperPayment.isLoading ? 'Обработка...' : 'Оплата'}
+          {paykeeperPayment.isLoading ? 'Обработка...' : freeAccess ? 'Получить доступ' : 'Оплата'}
         </button>
         {#if queueErrorState}
           <div class="error">{queueErrorState}</div>
         {/if}
-        <div class="agreement">
-          Нажимая на "Оплатить", вы соглашаетесь с условиями просмотра.
-        </div>
+        {#if !freeAccess}
+          <div class="agreement">
+            Нажимая на "Оплатить", вы соглашаетесь с условиями просмотра.
+          </div>
+        {/if}
       </div>
     </div>
   {/if}
@@ -368,6 +392,16 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
     align-items: center;
     gap: var(--spacing-vw-15);
     margin-top: var(--spacing-vw-40);
+  }
+
+  .free-access-message {
+    width: 80%;
+    margin-top: var(--spacing-vw-50);
+    color: var(--color-dark-primary);
+    font-size: var(--font-vw-35);
+    font-weight: var(--font-weight-600);
+    line-height: 1.35;
+    text-align: center;
   }
 
   .instEl {

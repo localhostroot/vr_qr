@@ -40,6 +40,24 @@ class MovieViewSet(viewsets.ModelViewSet):
 class PaymentViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
 
+    @staticmethod
+    def _is_free_viewer(user_id):
+        return str(user_id or '').strip().casefold() in settings.FREE_VIEWER_IDS
+
+    @action(detail=False, methods=['get'])
+    def free_access_status(self, request):
+        user_id = str(request.query_params.get('user_id', '')).strip()
+        if not user_id or len(user_id) > 255:
+            return Response(
+                {"error": "user_id обязателен"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response({
+            'user_id': user_id,
+            'free_access': self._is_free_viewer(user_id),
+        })
+
     @action(detail=False, methods=['post'])
     def create_order(self, request):
         try:
@@ -100,6 +118,7 @@ class PaymentViewSet(viewsets.ViewSet):
                     except Movie.DoesNotExist:
                         continue
 
+            free_access = self._is_free_viewer(user_id)
             applied_bundles = []
             for category_id, group in series_groups.items():
                 selected_film_ids = {
@@ -133,6 +152,13 @@ class PaymentViewSet(viewsets.ViewSet):
                     {"error": "Не найдено ни одного действительного фильма"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+
+            if free_access:
+                total_amount = Decimal('0.00')
+                applied_bundles = []
+                description = 'Бесплатный просмотр'
+                for film in validated_films:
+                    film['price'] = Decimal('0.00')
         
             order = Order.objects.create(
                 user_id=user_id,
@@ -149,6 +175,37 @@ class PaymentViewSet(viewsets.ViewSet):
                     is_series=film['is_series'],
                     price=film['price']
                 )
+
+            if free_access:
+                payment_id = f'free:{order.order_id}'
+                if not PaymentProcessor.process_successful_payment(order, payment_id):
+                    order.status = 'payment_error'
+                    order.save(update_fields=('status',))
+                    return Response(
+                        {"error": "Не удалось выдать бесплатный доступ"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    )
+
+                # "checked" is the normal terminal state used by all existing
+                # access validation paths.  No PayKeeper invoice is created.
+                order.status = 'checked'
+                order.save(update_fields=('status',))
+                payment_token = order.payment_token
+
+                logger.info(
+                    "Бесплатный доступ выдан зрителю %s, заказ %s",
+                    user_id,
+                    order.order_id,
+                )
+                return Response({
+                    'order_id': order.order_id,
+                    'amount': 0.0,
+                    'films': validated_films,
+                    'bundles': [],
+                    'free_access': True,
+                    'token': payment_token.token,
+                    'expires_at': payment_token.expires_at.isoformat(),
+                }, status=status.HTTP_201_CREATED)
 
             try:
                 payment_url = PaymentProviderClient().create_invoice(
@@ -833,6 +890,8 @@ class AdminViewSet(viewsets.ViewSet):
             # Failed invoice initialization is not a purchase awaiting approval.
             orders = Order.objects.exclude(
                 status__in=('created', 'payment_error'),
+            ).exclude(
+                payment_id__startswith='free:',
             ).order_by('-created_at')[:20]
         else:
             # Search by order_id (partial match)
