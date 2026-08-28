@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { buildViewerId, normalizeHeadsetId } from '../utils/viewerIdentity.js';
 
 const STATISTICS_API_URL = process.env.STATISTICS_API_URL
   || 'https://stats.local.vr360.pro/api/api/update_statistics/';
@@ -67,7 +68,7 @@ try {
   console.error('Не удалось прочитать длительности из gallery.json:', error);
 }
 
-const clientKey = (location, clientId) => `${location}:${clientId}`;
+const clientKey = (location, clientId) => `${location}:${normalizeHeadsetId(clientId)}`;
 const videoKey = (videoId) => String(videoId);
 const finiteNonNegative = (value, fallback = 0) => {
   const number = Number(value);
@@ -104,6 +105,12 @@ export const verifyPaidAccess = async (
     if (!response.ok) return null;
 
     const data = await response.json();
+    if (data.occupied === true) {
+      return {
+        occupied: true,
+        message: data.error || 'Очки сейчас используются другим зрителем',
+      };
+    }
     if (!data.valid || !data.film_valid || !data.payment_confirmed) return null;
 
     return {
@@ -133,7 +140,7 @@ export const resetViewerPaymentSession = async (
       method: 'POST',
       headers,
       body: JSON.stringify({
-        user_id: `${client.location}/${client.id}`,
+        user_id: buildViewerId(client.location, client.id),
         ended_at: endedAt,
       }),
     });
@@ -170,7 +177,7 @@ export const checkViewerFilmAccess = async (
       method: 'POST',
       headers,
       body: JSON.stringify({
-        user_id: `${client.location}/${client.id}`,
+        user_id: buildViewerId(client.location, client.id),
         film_id: String(filmId),
       }),
     });

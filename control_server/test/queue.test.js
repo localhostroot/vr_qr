@@ -93,6 +93,19 @@ test('repeated immediate watch requests start a film only once', async () => {
   assert.equal(thirdResponse.messages[0].duplicate, true);
 });
 
+test('zero-padded phone route controls the matching canonical headset id', async () => {
+  const client = createClient({ id: '2', location: 'VDNH' });
+  const response = await request(APIHandler.videoForClient, client, {
+    clientId: '02',
+    location: 'VDNH',
+  });
+
+  assert.deepEqual(client.queue, ['film-1']);
+  assert.equal(client.ws.messages[0].type, 'videoChangeRequested');
+  assert.equal(response.messages[0].success, true);
+  assert.equal(response.messages[0].paymentVerified, true);
+});
+
 test('repeated watch requests while the headset is waiting create one pending item', async () => {
   const client = createClient({ userPresent: false, activity: 2 });
 

@@ -5,6 +5,7 @@ import { globals } from '$lib/stores/+stores.svelte.js';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 import { syncLatestAccessForUser } from '$lib/utils/paymentStatusChecker.js';
 import { getViewerRoute } from '$lib/utils/viewerRoutes.js';
+import { getViewerSessionId, setViewerSessionId } from '$lib/utils/viewerSession.js';
 
 
 /** @param {string} paymentUrl */
@@ -167,6 +168,8 @@ export function createPaykeeperPayment() {
         },
         body: JSON.stringify({
           user_id: userId,
+          viewer_session_id: getViewerSessionId(),
+          current_token: globals.get('token') || null,
           description: "Оплата за просмотр фильмов",
           films: queue
         }),
@@ -183,6 +186,7 @@ export function createPaykeeperPayment() {
       const orderId = orderData.order_id;
       const totalAmount = orderData.amount;
       const paymentUrl = orderData.payment_url;
+      setViewerSessionId(orderData.viewer_session_id);
 
       if (orderData.free_access === true) {
         const accessResult = await syncLatestAccessForUser(userId, { orderId });

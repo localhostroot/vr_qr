@@ -114,6 +114,33 @@ test('headset can check paid film access without receiving a browser token', asy
   assert.equal(unpaid.paid, false);
 });
 
+test('headset access requests canonicalize zero-padded numeric ids', async () => {
+  let requestBody = null;
+  const fetchImplementation = async (url, options) => {
+    requestBody = JSON.parse(options.body);
+    return {
+      ok: true,
+      async json() {
+        return {
+          success: true,
+          valid: true,
+          viewer_id: requestBody.user_id,
+        };
+      },
+    };
+  };
+
+  const access = await checkViewerFilmAccess(
+    { ...createClient(), id: '02', location: 'VDNH' },
+    'film-paid',
+    fetchImplementation,
+  );
+
+  assert.equal(access.paid, true);
+  assert.equal(access.authorization.viewerId, 'VDNH/2');
+  assert.equal(requestBody.user_id, 'VDNH/2');
+});
+
 test('presence timeout starts only after a viewer was detected', async () => {
   const client = {
     ...createClient(),

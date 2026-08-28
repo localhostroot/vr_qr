@@ -2,12 +2,14 @@ from django.utils import timezone
 import secrets
 import uuid
 from django.conf import settings
+from django.db import transaction
 import requests
 from .models import Category, Movie, Order, OrderItem, PaidFilm, PaymentToken
 from rest_framework import viewsets, permissions, status
 from .serializers import CategorySerializer, MovieSerializer, OrderSerializer
 from .payment_provider import PaymentProviderClient, PaymentProviderError
 from .payment_processor import PaymentProcessor
+from .viewer_identity import normalize_viewer_id
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
@@ -42,11 +44,15 @@ class PaymentViewSet(viewsets.ViewSet):
 
     @staticmethod
     def _is_free_viewer(user_id):
-        return str(user_id or '').strip().casefold() in settings.FREE_VIEWER_IDS
+        normalized = normalize_viewer_id(user_id).casefold()
+        return normalized in {
+            normalize_viewer_id(configured_id).casefold()
+            for configured_id in settings.FREE_VIEWER_IDS
+        }
 
     @action(detail=False, methods=['get'])
     def free_access_status(self, request):
-        user_id = str(request.query_params.get('user_id', '')).strip()
+        user_id = normalize_viewer_id(request.query_params.get('user_id'))
         if not user_id or len(user_id) > 255:
             return Response(
                 {"error": "user_id обязателен"},
@@ -61,7 +67,9 @@ class PaymentViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'])
     def create_order(self, request):
         try:
-            user_id = request.data.get('user_id')
+            user_id = normalize_viewer_id(request.data.get('user_id'))
+            viewer_session_raw = str(request.data.get('viewer_session_id', '')).strip()
+            current_token_string = str(request.data.get('current_token', '')).strip()
             description = request.data.get('description', 'Оплата за просмотр фильмов')
             films_data = request.data.get('films', [])
             
@@ -153,6 +161,30 @@ class PaymentViewSet(viewsets.ViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            viewer_session_id = None
+            if viewer_session_raw:
+                try:
+                    viewer_session_id = uuid.UUID(viewer_session_raw)
+                except (ValueError, AttributeError):
+                    return Response(
+                        {"error": "Некорректный идентификатор сессии зрителя"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            if current_token_string and len(current_token_string) <= 64:
+                current_token = PaymentToken.objects.select_related('order').filter(
+                    token=current_token_string,
+                    order__user_id=user_id,
+                ).first()
+                if current_token is not None:
+                    if current_token.order.viewer_session_id is not None:
+                        # Possession of the existing token is the stronger
+                        # proof if browser storage was partially cleared.
+                        viewer_session_id = current_token.order.viewer_session_id
+                    elif viewer_session_id is not None:
+                        current_token.order.viewer_session_id = viewer_session_id
+                        current_token.order.save(update_fields=('viewer_session_id',))
+
             if free_access:
                 total_amount = Decimal('0.00')
                 applied_bundles = []
@@ -162,6 +194,7 @@ class PaymentViewSet(viewsets.ViewSet):
         
             order = Order.objects.create(
                 user_id=user_id,
+                viewer_session_id=viewer_session_id,
                 amount=total_amount,
                 description=description,
                 order_id=str(uuid.uuid4()),
@@ -184,6 +217,7 @@ class PaymentViewSet(viewsets.ViewSet):
                     access_duration=timezone.timedelta(
                         hours=settings.FREE_ACCESS_DURATION_HOURS,
                     ),
+                    activate_headset_session=True,
                 ):
                     order.status = 'payment_error'
                     order.save(update_fields=('status',))
@@ -211,6 +245,7 @@ class PaymentViewSet(viewsets.ViewSet):
                     'free_access': True,
                     'token': payment_token.token,
                     'expires_at': payment_token.expires_at.isoformat(),
+                    'viewer_session_id': str(order.viewer_session_id) if order.viewer_session_id else None,
                 }, status=status.HTTP_201_CREATED)
 
             try:
@@ -242,6 +277,7 @@ class PaymentViewSet(viewsets.ViewSet):
                 'films': validated_films,
                 'bundles': applied_bundles,
                 'payment_url': payment_url,
+                'viewer_session_id': str(order.viewer_session_id) if order.viewer_session_id else None,
             }, status=status.HTTP_201_CREATED)
             
         except Exception as e:
@@ -567,6 +603,7 @@ class TokenViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def get_token_by_order(self, request):
         order_id = request.query_params.get('order_id')
+        current_token_string = request.query_params.get('current_token', '')
 
         if not order_id:
             return Response({"error": "ID заказа не указан"}, status=status.HTTP_400_BAD_REQUEST)
@@ -576,15 +613,22 @@ class TokenViewSet(viewsets.ViewSet):
             try:
                 new_payment_token = PaymentToken.objects.get(order=order)
                 
-                # Keep access cumulative for this viewer.  The old token is
-                # not deleted: another tab/device may still be using it while
-                # it learns about the newly issued token.
-                PaymentProcessor.merge_active_user_films(new_payment_token)
+                if current_token_string:
+                    PaymentProcessor.link_tokens_to_browser_session(
+                        new_payment_token,
+                        current_token_string,
+                    )
+                else:
+                    PaymentProcessor.merge_active_session_films(new_payment_token)
                 
                 return Response({
                     "valid": new_payment_token.is_valid(),
                     "token": new_payment_token.token,
-                    "expires_at": new_payment_token.expires_at.isoformat()
+                    "expires_at": new_payment_token.expires_at.isoformat(),
+                    "viewer_session_id": (
+                        str(new_payment_token.order.viewer_session_id)
+                        if new_payment_token.order.viewer_session_id else None
+                    ),
                 }, status=status.HTTP_200_OK)
                     
             except PaymentToken.DoesNotExist:
@@ -777,7 +821,7 @@ class TokenViewSet(viewsets.ViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        user_id = str(request.data.get('user_id', '')).strip()
+        user_id = normalize_viewer_id(request.data.get('user_id'))
         film_id = str(request.data.get('film_id', '')).strip()
         if not user_id or len(user_id) > 255 or not film_id or len(film_id) > 100:
             return Response(
@@ -810,7 +854,7 @@ class TokenViewSet(viewsets.ViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        user_id = str(request.data.get('user_id', '')).strip()
+        user_id = normalize_viewer_id(request.data.get('user_id'))
         film_id = str(request.data.get('film_id', '')).strip()
         token_string = str(request.data.get('token', '')).strip()
         if (
@@ -823,31 +867,65 @@ class TokenViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
-            token = PaymentToken.objects.select_related('order').get(
-                token=token_string,
-                order__user_id=user_id,
-            )
-        except PaymentToken.DoesNotExist:
-            return Response({
-                "success": True,
-                "valid": False,
-                "viewer_id": user_id,
-                "film_id": film_id,
-            })
+        with transaction.atomic():
+            try:
+                token = PaymentToken.objects.select_for_update().select_related('order').get(
+                    token=token_string,
+                    order__user_id=user_id,
+                )
+            except PaymentToken.DoesNotExist:
+                return Response({
+                    "success": True,
+                    "valid": False,
+                    "viewer_id": user_id,
+                    "film_id": film_id,
+                })
 
-        payment_confirmed = token.order.status in ('paid', 'checked')
-        film_exists = PaidFilm.objects.filter(token=token, film_id=film_id).exists()
-        valid = token.is_valid() and payment_confirmed and film_exists
+            payment_confirmed = token.order.status in ('paid', 'checked')
+            film_exists = PaidFilm.objects.filter(token=token, film_id=film_id).exists()
+            valid = token.is_valid() and payment_confirmed and film_exists
+            is_free_access = str(token.order.payment_id or '').startswith('free:')
 
-        if valid and not token.headset_session_active:
-            token.headset_session_active = True
-            token.save(update_fields=('headset_session_active',))
-            logger.info(
-                "Сеанс зрителя %s возобновлен токеном заказа %s",
-                user_id,
-                token.order.order_id,
-            )
+            if valid and not is_free_access:
+                active_other_tokens = PaymentToken.objects.select_for_update().filter(
+                    order__user_id=user_id,
+                    order__status__in=('paid', 'checked'),
+                    is_active=True,
+                    headset_session_active=True,
+                    expires_at__gt=timezone.now(),
+                ).exclude(pk=token.pk).exclude(order__payment_id__startswith='free:')
+
+                if token.order.viewer_session_id is None:
+                    conflicting_session_exists = active_other_tokens.exists()
+                else:
+                    conflicting_session_exists = active_other_tokens.exclude(
+                        order__viewer_session_id=token.order.viewer_session_id,
+                    ).exists()
+
+                if conflicting_session_exists:
+                    return Response({
+                        "success": True,
+                        "valid": False,
+                        "occupied": True,
+                        "film_valid": film_exists,
+                        "payment_confirmed": payment_confirmed,
+                        "viewer_id": user_id,
+                        "film_id": film_id,
+                        "error": "Очки сейчас используются другим зрителем",
+                    })
+
+                # Keep exactly one paid entitlement as the current headset
+                # lease. Its token is cumulative within this browser session.
+                active_other_tokens.update(headset_session_active=False)
+
+            if valid and not token.headset_session_active:
+                token.headset_session_active = True
+                token.save(update_fields=('headset_session_active',))
+                logger.info(
+                    "Сеанс зрителя %s возобновлен токеном заказа %s",
+                    user_id,
+                    token.order.order_id,
+                )
 
         return Response({
             "success": True,
@@ -868,7 +946,7 @@ class TokenViewSet(viewsets.ViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        user_id = str(request.data.get('user_id', '')).strip()
+        user_id = normalize_viewer_id(request.data.get('user_id'))
         ended_at_raw = str(request.data.get('ended_at', '')).strip()
 
         if not user_id or len(user_id) > 255:
@@ -915,7 +993,7 @@ class TokenViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def latest_for_user(self, request):
         """Restore access only when this browser proves an earlier purchase."""
-        user_id = request.query_params.get('user_id', '').strip()
+        user_id = normalize_viewer_id(request.query_params.get('user_id'))
         known_token = request.query_params.get('known_token', '').strip()
         order_id = request.query_params.get('order_id', '').strip()
 
@@ -944,24 +1022,37 @@ class TokenViewSet(viewsets.ViewSet):
         else:
             token_query = token_query.filter(order__order_id=order_id)
 
-        token = token_query.select_related('order').first()
+        proof_token = token_query.select_related('order').first()
         if (
-            token is None
-            or not token.is_valid()
-            or token.order.status not in ('paid', 'checked')
+            proof_token is None
+            or not proof_token.is_valid()
+            or proof_token.order.status not in ('paid', 'checked')
         ):
             return Response({"valid": False, "films": []}, status=status.HTTP_200_OK)
 
-        # Each browser keeps its own random token/order id. Make that proven
-        # token cumulative without exposing purchases to a new phone that only
-        # knows the public headset route.
-        PaymentProcessor.merge_active_user_films(token)
+        token = proof_token
+        if proof_token.order.viewer_session_id is not None:
+            token = PaymentToken.objects.filter(
+                order__user_id=user_id,
+                order__viewer_session_id=proof_token.order.viewer_session_id,
+                order__status__in=('paid', 'checked'),
+                is_active=True,
+                expires_at__gt=timezone.now(),
+            ).select_related('order').order_by('-expires_at', '-created_at').first()
+
+        # Return the newest entitlement in the proven browser session.  A new
+        # phone that only knows the public headset route cannot enter it.
+        PaymentProcessor.merge_active_session_films(token)
         films_data = self._serialize_films(token)
 
         return Response({
             "valid": True,
             "token": token.token,
             "expires_at": token.expires_at.isoformat(),
+            "viewer_session_id": (
+                str(token.order.viewer_session_id)
+                if token.order.viewer_session_id else None
+            ),
             "films": films_data,
         }, status=status.HTTP_200_OK)
 
@@ -1089,7 +1180,8 @@ class AdminViewSet(viewsets.ViewSet):
             payment_token = PaymentToken.objects.create(
                 token=token_string,
                 order=order,
-                expires_at=expires_at
+                expires_at=expires_at,
+                headset_session_active=False,
             )
             
             # Create PaidFilm entries for all order items
@@ -1110,7 +1202,7 @@ class AdminViewSet(viewsets.ViewSet):
                 })
                 logger.info(f"Admin: создана запись об оплаченном фильме {item.film_id} для заказа {order_id}")
 
-            PaymentProcessor.merge_active_user_films(payment_token)
+            PaymentProcessor.merge_active_session_films(payment_token)
             
             logger.info(f"Admin: токен {token_string} создан для заказа {order_id}")
             
@@ -1185,7 +1277,8 @@ class AdminViewSet(viewsets.ViewSet):
             payment_token = PaymentToken.objects.create(
                 token=token_string,
                 order=order,
-                expires_at=expires_at
+                expires_at=expires_at,
+                headset_session_active=False,
             )
             
             # Create PaidFilm entries for all order items
@@ -1206,7 +1299,7 @@ class AdminViewSet(viewsets.ViewSet):
                 })
                 logger.info(f"Admin: создана запись об оплаченном фильме {item.film_id} для заказа {order_id}")
 
-            PaymentProcessor.merge_active_user_films(payment_token)
+            PaymentProcessor.merge_active_session_films(payment_token)
             
             logger.info(f"Admin: токен {token_string} создан для заказа {order_id}")
             

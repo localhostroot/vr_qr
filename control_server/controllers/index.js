@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { PresenceHistory } from '../state/presenceHistory.js';
 import { suspendClientPlayback } from '../services/paidPlayback.js';
+import { normalizeHeadsetId } from '../utils/viewerIdentity.js';
 
 const clients = []
 const ids = []
@@ -95,7 +96,8 @@ export const VRController = (ws, req) => {
 
       if (type === 'login' && payload.params && payload.params.location) {
         const locationAndId = payload.params.location;
-        const [location, userId] = locationAndId.split(":");
+        const [location, rawUserId] = locationAndId.split(":");
+        const userId = normalizeHeadsetId(rawUserId);
         ws.location = location;
         ws.userId = userId;
 

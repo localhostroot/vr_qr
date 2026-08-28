@@ -8,7 +8,8 @@ const LOCAL_STORAGE_KEYS = {
   PAYKEEPER_ORDER_ID: 'paykeeperOrderID',
   ORDER_TIME: 'orderTime',
   PAYMENT_TOKEN: 'payment_token',
-  TOKEN_EXPIRY: 'token_expiry'
+  TOKEN_EXPIRY: 'token_expiry',
+  VIEWER_SESSION_ID: 'viewer_session_id'
 };
 
 export default LOCAL_STORAGE_KEYS;

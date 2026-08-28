@@ -3,6 +3,7 @@ Shared payment processing utilities for handling successful payments
 """
 import logging
 import secrets
+import uuid
 from decimal import Decimal
 from django.conf import settings
 from django.utils import timezone
@@ -20,16 +21,20 @@ class PaymentProcessor:
         return timezone.timedelta(hours=settings.PAID_ACCESS_DURATION_HOURS)
 
     @staticmethod
-    def merge_active_user_films(target_token: PaymentToken) -> int:
-        """Copy active access for the same viewer into the target token.
+    def merge_active_session_films(target_token: PaymentToken) -> int:
+        """Copy active access from this browser session into the target token.
 
-        Source tokens are deliberately kept until their natural expiry.  A
-        viewer can therefore finish switching devices/tabs without an older
-        page suddenly losing access, and historical orders do not reappear in
-        the admin UI as paid orders without a token.
+        ``user_id`` identifies a headset, not a person.  It must never be used
+        by itself to combine purchases because several visitors can use the
+        same headset during one access window.
         """
+        session_id = target_token.order.viewer_session_id
+        if session_id is None:
+            return 0
+
         source_films = PaidFilm.objects.filter(
             token__order__user_id=target_token.order.user_id,
+            token__order__viewer_session_id=session_id,
             token__is_active=True,
             token__expires_at__gt=timezone.now(),
         ).exclude(token=target_token)
@@ -47,18 +52,60 @@ class PaymentProcessor:
 
         if copied_count:
             logger.info(
-                "Payment processor: merged %s active films for viewer %s",
+                "Payment processor: merged %s active films for viewer session %s/%s",
                 copied_count,
                 target_token.order.user_id,
+                session_id,
             )
 
         return copied_count
+
+    @staticmethod
+    def link_tokens_to_browser_session(
+        target_token: PaymentToken,
+        current_token_string: str,
+    ) -> bool:
+        """Link a new purchase to a token proven by the same browser.
+
+        The token is a capability secret.  A public headset URL alone is not
+        sufficient to join purchases.  This also provides a safe transition
+        for orders created before ``viewer_session_id`` existed.
+        """
+        current_token_string = str(current_token_string or '').strip()
+        if not current_token_string or len(current_token_string) > 64:
+            return False
+
+        try:
+            current_token = PaymentToken.objects.select_related('order').get(
+                token=current_token_string,
+                order__user_id=target_token.order.user_id,
+            )
+        except PaymentToken.DoesNotExist:
+            return False
+
+        session_id = (
+            current_token.order.viewer_session_id
+            or target_token.order.viewer_session_id
+            or uuid.uuid4()
+        )
+
+        if current_token.order.viewer_session_id != session_id:
+            current_token.order.viewer_session_id = session_id
+            current_token.order.save(update_fields=('viewer_session_id',))
+
+        if target_token.order.viewer_session_id != session_id:
+            target_token.order.viewer_session_id = session_id
+            target_token.order.save(update_fields=('viewer_session_id',))
+
+        PaymentProcessor.merge_active_session_films(target_token)
+        return True
     
     @staticmethod
     def process_successful_payment(
         order: Order,
         payment_id: str,
         access_duration=None,
+        activate_headset_session=False,
     ) -> bool:
         """
         Process a successful payment by updating order status and creating tokens/films
@@ -89,7 +136,8 @@ class PaymentProcessor:
             payment_token = PaymentToken.objects.create(
                 token=token_string,
                 order=order,
-                expires_at=expires_at
+                expires_at=expires_at,
+                headset_session_active=activate_headset_session,
             )
             logger.info(f"Payment processor: Token {token_string} created for order {order.order_id}")
             
@@ -106,7 +154,7 @@ class PaymentProcessor:
                 )
                 logger.info(f"Payment processor: Created paid film record {item.film_id} for order {order.order_id}")
                 
-            PaymentProcessor.merge_active_user_films(payment_token)
+            PaymentProcessor.merge_active_session_films(payment_token)
 
             logger.info(f"Payment processor: Order {order.order_id} fully processed with token {token_string}")
             return True

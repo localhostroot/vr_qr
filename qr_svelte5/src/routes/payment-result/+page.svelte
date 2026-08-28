@@ -9,6 +9,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte';
   import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
   import { PUBLIC_DATABASE } from '$env/static/public';
   import { globals } from '$lib/stores/+stores.svelte.js';
+  import { setViewerSessionId } from '$lib/utils/viewerSession.js';
 
   let status = $state('loading');
   let retryCount = $state(0);
@@ -26,10 +27,9 @@ import { getCookie } from '$lib/utils/+helpers.svelte';
     try {
       // Check if there's a token for this order
       const currentToken = globals.get('token');
-      let getTokenUrl = `${PUBLIC_DATABASE}api/tokens/get_token_by_order/?order_id=${orderId}`;
-      if (currentToken) {
-        getTokenUrl += `&current_token=${currentToken}`;
-      }
+      const tokenQuery = new URLSearchParams({ order_id: orderId });
+      if (currentToken) tokenQuery.set('current_token', currentToken);
+      const getTokenUrl = `${PUBLIC_DATABASE}api/tokens/get_token_by_order/?${tokenQuery}`;
       
       const getTokenResponse = await fetch(getTokenUrl);
       
@@ -47,6 +47,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte';
               // Update token and expiry
               globals.set('token', tokenData.token);
               globals.set('tokenExpiry', filmsData.expires_at);
+              setViewerSessionId(tokenData.viewer_session_id);
               
               // Clear and set paid films
               globals.set('paidFilms', filmsData.films);

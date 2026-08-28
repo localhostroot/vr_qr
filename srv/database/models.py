@@ -59,6 +59,7 @@ class Movie(models.Model):
 
 class Order(models.Model):
     user_id = models.CharField(max_length=255)
+    viewer_session_id = models.UUIDField(null=True, blank=True, db_index=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField()
     order_id = models.CharField(max_length=255, unique=True, blank=True, null=True)

@@ -1,4 +1,5 @@
 import json
+import uuid
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
@@ -11,12 +12,23 @@ from rest_framework.test import APIClient
 from .models import Category, Movie, Order, PaidFilm, PaymentToken
 from .payment_provider import PaymentProviderClient, PaymentProviderError
 from .payment_processor import PaymentProcessor
+from .viewer_identity import normalize_viewer_id
+
+
+class ViewerIdentityTests(SimpleTestCase):
+    def test_numeric_headset_ids_ignore_leading_zeroes(self):
+        self.assertEqual(normalize_viewer_id('VDNH/02'), 'VDNH/2')
+        self.assertEqual(normalize_viewer_id('VDNH/2'), 'VDNH/2')
+
+    def test_non_numeric_headset_ids_are_preserved(self):
+        self.assertEqual(normalize_viewer_id('CDH/demo'), 'CDH/demo')
 
 
 class ViewerAccessRecoveryTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.viewer_id = 'TEST/30'
+        self.viewer_session_id = uuid.uuid4()
 
         for suffix in ('a', 'b'):
             Category.objects.create(
@@ -39,6 +51,7 @@ class ViewerAccessRecoveryTests(TestCase):
 
         self.old_order = Order.objects.create(
             user_id=self.viewer_id,
+            viewer_session_id=self.viewer_session_id,
             amount=100,
             description='Old purchase',
             order_id='old-order',
@@ -58,6 +71,7 @@ class ViewerAccessRecoveryTests(TestCase):
 
         self.new_order = Order.objects.create(
             user_id=self.viewer_id,
+            viewer_session_id=self.viewer_session_id,
             amount=100,
             description='New purchase',
             order_id='new-order',
@@ -76,10 +90,45 @@ class ViewerAccessRecoveryTests(TestCase):
         )
 
     def test_merge_keeps_source_token_and_is_idempotent(self):
-        PaymentProcessor.merge_active_user_films(self.new_token)
-        PaymentProcessor.merge_active_user_films(self.new_token)
+        PaymentProcessor.merge_active_session_films(self.new_token)
+        PaymentProcessor.merge_active_session_films(self.new_token)
 
         self.assertTrue(PaymentToken.objects.filter(pk=self.old_token.pk).exists())
+        self.assertEqual(self.new_token.paid_films.count(), 2)
+
+    def test_purchases_from_different_phone_sessions_are_not_merged(self):
+        self.old_order.viewer_session_id = uuid.uuid4()
+        self.old_order.save(update_fields=('viewer_session_id',))
+
+        PaymentProcessor.merge_active_session_films(self.new_token)
+
+        self.assertEqual(
+            set(self.new_token.paid_films.values_list('film_id', flat=True)),
+            {'film-b'},
+        )
+
+    def test_current_token_can_link_a_new_order_to_legacy_browser_session(self):
+        self.old_order.viewer_session_id = None
+        self.old_order.save(update_fields=('viewer_session_id',))
+        self.new_order.viewer_session_id = None
+        self.new_order.save(update_fields=('viewer_session_id',))
+
+        response = self.client.get(
+            reverse('tokens-get-token-by-order'),
+            {
+                'order_id': self.new_order.order_id,
+                'current_token': self.old_token.token,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.old_order.refresh_from_db()
+        self.new_order.refresh_from_db()
+        self.assertIsNotNone(self.old_order.viewer_session_id)
+        self.assertEqual(
+            self.old_order.viewer_session_id,
+            self.new_order.viewer_session_id,
+        )
         self.assertEqual(self.new_token.paid_films.count(), 2)
 
     def test_latest_for_user_returns_cumulative_access(self):
@@ -98,6 +147,18 @@ class ViewerAccessRecoveryTests(TestCase):
             {'film-a', 'film-b'},
         )
         self.assertTrue(PaymentToken.objects.filter(pk=self.old_token.pk).exists())
+
+    def test_zero_padded_phone_route_finds_canonical_headset_access(self):
+        response = self.client.get(
+            reverse('tokens-latest-for-user'),
+            {
+                'user_id': 'TEST/030',
+                'known_token': self.new_token.token,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['valid'])
 
     def test_latest_for_user_requires_browser_purchase_proof(self):
         response = self.client.get(
@@ -209,6 +270,87 @@ class ViewerAccessRecoveryTests(TestCase):
         self.new_token.refresh_from_db()
         self.assertTrue(self.new_token.is_active)
         self.assertTrue(self.new_token.headset_session_active)
+        self.old_token.refresh_from_db()
+        self.assertFalse(self.old_token.headset_session_active)
+
+    def test_different_phone_cannot_take_over_an_active_headset_session(self):
+        other_order = Order.objects.create(
+            user_id=self.viewer_id,
+            viewer_session_id=uuid.uuid4(),
+            amount=100,
+            description='Different visitor',
+            order_id='different-visitor-order',
+            status='paid',
+        )
+        other_token = PaymentToken.objects.create(
+            token='different-visitor-token',
+            order=other_order,
+            expires_at=timezone.now() + timezone.timedelta(hours=1),
+            headset_session_active=False,
+        )
+        PaidFilm.objects.create(
+            token=other_token,
+            film_id='film-b',
+            is_series=False,
+            price=100,
+        )
+
+        response = self.client.post(
+            reverse('tokens-resume-viewer-session'),
+            {
+                'user_id': self.viewer_id,
+                'film_id': 'film-b',
+                'token': other_token.token,
+            },
+            format='json',
+            REMOTE_ADDR='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data['valid'])
+        self.assertTrue(response.data['occupied'])
+        other_token.refresh_from_db()
+        self.assertFalse(other_token.headset_session_active)
+
+    def test_different_phone_can_take_over_after_headset_lease_is_released(self):
+        PaymentToken.objects.filter(
+            order__user_id=self.viewer_id,
+        ).update(headset_session_active=False)
+        other_order = Order.objects.create(
+            user_id=self.viewer_id,
+            viewer_session_id=uuid.uuid4(),
+            amount=100,
+            description='Next visitor',
+            order_id='next-visitor-order',
+            status='paid',
+        )
+        other_token = PaymentToken.objects.create(
+            token='next-visitor-token',
+            order=other_order,
+            expires_at=timezone.now() + timezone.timedelta(hours=1),
+            headset_session_active=False,
+        )
+        PaidFilm.objects.create(
+            token=other_token,
+            film_id='film-b',
+            is_series=False,
+            price=100,
+        )
+
+        response = self.client.post(
+            reverse('tokens-resume-viewer-session'),
+            {
+                'user_id': self.viewer_id,
+                'film_id': 'film-b',
+                'token': other_token.token,
+            },
+            format='json',
+            REMOTE_ADDR='127.0.0.1',
+        )
+
+        self.assertTrue(response.data['valid'])
+        other_token.refresh_from_db()
+        self.assertTrue(other_token.headset_session_active)
 
     def test_browser_token_cannot_resume_another_headset(self):
         PaymentToken.objects.filter(pk=self.new_token.pk).update(
@@ -323,6 +465,7 @@ class ViewerAccessRecoveryTests(TestCase):
 class PaymentInvoiceTests(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.viewer_session_id = uuid.uuid4()
         self.film = Category.objects.create(
             film_id='payment-film',
             cat_id='payment-test',
@@ -382,6 +525,7 @@ class PaymentInvoiceTests(TestCase):
     def order_payload(self):
         return {
             'user_id': 'VDNH/30',
+            'viewer_session_id': str(self.viewer_session_id),
             'description': 'Оплата за просмотр фильмов',
             'films': [{'film_id': self.film.film_id, 'series': False}],
         }
@@ -405,6 +549,7 @@ class PaymentInvoiceTests(TestCase):
         token = order.payment_token
         self.assertGreaterEqual(token.expires_at, earliest_expiry)
         self.assertLessEqual(token.expires_at, latest_expiry)
+        self.assertFalse(token.headset_session_active)
 
     def bundle_payload(self, films=None):
         return {
@@ -433,6 +578,7 @@ class PaymentInvoiceTests(TestCase):
         )
         order = Order.objects.get(order_id=response.data['order_id'])
         self.assertEqual(order.status, 'pending')
+        self.assertEqual(order.viewer_session_id, self.viewer_session_id)
         create_invoice.assert_called_once_with(
             order_id=order.order_id,
             amount=Decimal('150.00'),
@@ -440,6 +586,23 @@ class PaymentInvoiceTests(TestCase):
             service_name='Оплата за просмотр фильмов',
             result_callback='https://cinema.local.vr360.pro/payment-result',
         )
+
+    @patch('database.api.PaymentProviderClient.create_invoice')
+    def test_zero_padded_phone_route_is_stored_as_headset_id(self, create_invoice):
+        create_invoice.return_value = 'https://4-neba.server.paykeeper.ru/bill/126/'
+        payload = self.order_payload()
+        payload['user_id'] = 'VDNH/02'
+
+        response = self.client.post(
+            reverse('payments-create-order'),
+            payload,
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        order = Order.objects.get(order_id=response.data['order_id'])
+        self.assertEqual(order.user_id, 'VDNH/2')
+        self.assertEqual(create_invoice.call_args.kwargs['client_id'], 'VDNH/2')
 
     @override_settings(FREE_VIEWER_IDS=frozenset({'vdnh/30'}))
     @patch('database.api.PaymentProviderClient.create_invoice')
@@ -466,6 +629,7 @@ class PaymentInvoiceTests(TestCase):
             order.payment_token.expires_at,
             timezone.now() + timezone.timedelta(days=6),
         )
+        self.assertTrue(order.payment_token.headset_session_active)
 
         access_response = self.client.post(
             reverse('tokens-viewer-film-access'),

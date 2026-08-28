@@ -12,6 +12,11 @@ import {
   updatePaidPlaybackSession,
   verifyPaidAccess,
 } from '../services/paidPlayback.js';
+import {
+  buildViewerId,
+  normalizeHeadsetId,
+  sameHeadsetId,
+} from '../utils/viewerIdentity.js';
 
 const ip_regex = /^::ffff:[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/
 
@@ -224,7 +229,9 @@ const onGetClient = (ws, req, payload, clients) => {
       }));
   }
 
-  const client = clients.find(client => client.location === location && client.id === clientId);
+  const client = clients.find(client => (
+      client.location === location && sameHeadsetId(client.id, clientId)
+  ));
 
   if (client) {
       console.log(`getClient: Вовращаем данные клиента ${clientId} локации ${location}.`);
@@ -280,7 +287,7 @@ const onStop = (ws, req, payload, clients) => {
   const msg = JSON.stringify({
       type: 'videoStopRequested'
   });
-  const cl = clients.find(cl => cl.id == payload.clientId && cl.location === payload.location); 
+  const cl = clients.find(cl => sameHeadsetId(cl.id, payload.clientId) && cl.location === payload.location);
   if (cl) {
       normalizeClientQueues(cl);
       const videoId = isVideoIdPresent(payload.videoId) ? payload.videoId : cl.currentVideoId;
@@ -317,7 +324,7 @@ const onNotification = (ws, req, payload, clients) => {
           duration: 2
       }
   });
-  const cl = clients.find(cl => cl.id == payload.clientId && cl.location === payload.location); 
+  const cl = clients.find(cl => sameHeadsetId(cl.id, payload.clientId) && cl.location === payload.location);
   if (cl) {
       cl.ws.send(msg);
   } else {
@@ -334,7 +341,9 @@ const onSingleClientVideo = async (ws, req, payload, clients) => {
           allowUserInput: true,
       }
   });
-  const client = clients.find(client => client.id === payload.clientId && client.location === payload.location);
+  const client = clients.find(client => (
+      sameHeadsetId(client.id, payload.clientId) && client.location === payload.location
+  ));
 
   if (client) {
       normalizeClientQueues(client);
@@ -347,7 +356,7 @@ const onSingleClientVideo = async (ws, req, payload, clients) => {
           }));
       }
 
-      const expectedViewerId = `${payload.location}/${payload.clientId}`;
+      const expectedViewerId = buildViewerId(payload.location, payload.clientId);
       const paidAuthorization = payload.token
           ? await verifyPaidAccess(payload.token, payload.videoId, expectedViewerId)
           : null;
@@ -364,6 +373,8 @@ const onSingleClientVideo = async (ws, req, payload, clients) => {
               paymentVerified: false,
               message: client.paymentSessionResetPending
                   ? 'Предыдущий сеанс завершается. Повторите через несколько секунд.'
+                  : paidAuthorization?.occupied
+                    ? paidAuthorization.message
                   : 'Оплата фильма не подтверждена'
           }));
       }
@@ -408,7 +419,9 @@ const onSingleClientVideo = async (ws, req, payload, clients) => {
 };
 
 const onAddToQueue = (ws, req, payload, clients) => {
-  const client = clients.find(client => client.id === payload.clientId && client.location === payload.location);
+  const client = clients.find(client => (
+      sameHeadsetId(client.id, payload.clientId) && client.location === payload.location
+  ));
   if (client) {
       normalizeClientQueues(client);
 
@@ -441,7 +454,9 @@ const onAddToQueue = (ws, req, payload, clients) => {
 };
 
 const onRemoveFromQueue = (ws, req, payload, clients) => {
-  const client = clients.find(client => client.id === payload.clientId && client.location === payload.location);
+  const client = clients.find(client => (
+      sameHeadsetId(client.id, payload.clientId) && client.location === payload.location
+  ));
   if (client) {
       if (Array.isArray(client.pendingQueue)) {
           client.pendingQueue = removeVideoFromQueue(client.pendingQueue, payload.videoId);
@@ -468,7 +483,9 @@ const onRemoveFromQueue = (ws, req, payload, clients) => {
 };
 
 const onCleanQueue = (ws, req, payload, clients) => {
-  const client = clients.find(client => client.id === payload.clientId && client.location === payload.location);
+  const client = clients.find(client => (
+      sameHeadsetId(client.id, payload.clientId) && client.location === payload.location
+  ));
   if (client) {
       client.pendingQueue = [];
 
@@ -494,7 +511,7 @@ const onMainMenu = (ws, req, payload, clients) => {
           allowUserInput: true,
       }
   });
-  const cl = clients.find(cl => cl.id == payload.clientId && cl.location === payload.location); 
+  const cl = clients.find(cl => sameHeadsetId(cl.id, payload.clientId) && cl.location === payload.location);
   if (cl) {
       cl.ws.send(msg);
   } else {
@@ -514,7 +531,7 @@ const onResetClient = (ws, req, payload, clients) => {
       }
 
   });
-  const cl = clients.find(cl => cl.id == payload.clientId && cl.location === payload.location); 
+  const cl = clients.find(cl => sameHeadsetId(cl.id, payload.clientId) && cl.location === payload.location);
   if (cl) {
       cl.ws.send(msg);
   } else {
@@ -616,7 +633,9 @@ const fillQueue = (ws, req, payload, clients) => {
         return;
     }
 
-    const cl = clients.find(client => client.id == payload.clientId && client.location === payload.location);
+    const cl = clients.find(client => (
+      sameHeadsetId(client.id, payload.clientId) && client.location === payload.location
+    ));
 
     if (cl) {
         console.log(`Найден клиент ${cl.id}, обновляем очередь.`);
@@ -657,7 +676,7 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
 
     if (parts.length === 2) {
       location = parts[0];
-      userId = parts[1];
+      userId = normalizeHeadsetId(parts[1]);
     } else {
       console.warn("Неправильный формат locationAndId. Ожидается 'location:userId'");
     }
@@ -671,6 +690,8 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
   });
 
   if (userId && location) {
+    ws.location = location;
+    ws.userId = userId;
     const existingClientIndex = clients.findIndex(client => client.id === userId && client.location === location);
 
     const previousClient = existingClientIndex !== -1

@@ -2,6 +2,7 @@ import { browser } from '$app/environment';
 import { PUBLIC_DATABASE } from '$env/static/public';
 import { globals } from '$lib/stores/+stores.svelte.js';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
+import { setViewerSessionId } from '$lib/utils/viewerSession.js';
 
 const filmSignature = (films) => (films || [])
   .map((film) => `${film.film_id || film.id}:${film.is_series ? 1 : 0}`)
@@ -14,6 +15,7 @@ function applyAccessData(data) {
 
   globals.set('token', data.token);
   globals.set('tokenExpiry', data.expires_at);
+  setViewerSessionId(data.viewer_session_id);
 
   if (filmSignature(globals.get('paidFilms')) !== filmSignature(films)) {
     globals.set('paidFilms', films);
@@ -86,10 +88,9 @@ async function processSuccessfulPayment(orderId) {
     const currentToken = globals.get('token');
     
     // Get token by order ID
-    let getTokenUrl = `${PUBLIC_DATABASE}api/tokens/get_token_by_order/?order_id=${orderId}`;
-    if (currentToken) {
-      getTokenUrl += `&current_token=${currentToken}`;
-    }
+    const tokenQuery = new URLSearchParams({ order_id: orderId });
+    if (currentToken) tokenQuery.set('current_token', currentToken);
+    const getTokenUrl = `${PUBLIC_DATABASE}api/tokens/get_token_by_order/?${tokenQuery}`;
     
     const getTokenResponse = await fetch(getTokenUrl);
     
@@ -131,6 +132,7 @@ async function processSuccessfulPayment(orderId) {
     applyAccessData({
       token: tokenData.token,
       expires_at: filmsData.expires_at,
+      viewer_session_id: tokenData.viewer_session_id,
       films: filmsData.films,
     });
 
