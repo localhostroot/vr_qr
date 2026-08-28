@@ -789,6 +789,7 @@ class TokenViewSet(viewsets.ViewSet):
             token__order__user_id=user_id,
             token__order__status__in=('paid', 'checked'),
             token__is_active=True,
+            token__headset_session_active=True,
             token__expires_at__gt=timezone.now(),
             film_id=film_id,
         ).exists()
@@ -801,8 +802,66 @@ class TokenViewSet(viewsets.ViewSet):
         })
 
     @action(detail=False, methods=['post'])
+    def resume_viewer_session(self, request):
+        """Resume a suspended headset lease using the browser payment token."""
+        if not self._control_server_request_is_authorized(request):
+            return Response(
+                {"success": False, "error": "Запрос разрешен только control server"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        user_id = str(request.data.get('user_id', '')).strip()
+        film_id = str(request.data.get('film_id', '')).strip()
+        token_string = str(request.data.get('token', '')).strip()
+        if (
+            not user_id or len(user_id) > 255
+            or not film_id or len(film_id) > 100
+            or not token_string or len(token_string) > 64
+        ):
+            return Response(
+                {"success": False, "valid": False, "error": "user_id, film_id и token обязательны"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            token = PaymentToken.objects.select_related('order').get(
+                token=token_string,
+                order__user_id=user_id,
+            )
+        except PaymentToken.DoesNotExist:
+            return Response({
+                "success": True,
+                "valid": False,
+                "viewer_id": user_id,
+                "film_id": film_id,
+            })
+
+        payment_confirmed = token.order.status in ('paid', 'checked')
+        film_exists = PaidFilm.objects.filter(token=token, film_id=film_id).exists()
+        valid = token.is_valid() and payment_confirmed and film_exists
+
+        if valid and not token.headset_session_active:
+            token.headset_session_active = True
+            token.save(update_fields=('headset_session_active',))
+            logger.info(
+                "Сеанс зрителя %s возобновлен токеном заказа %s",
+                user_id,
+                token.order.order_id,
+            )
+
+        return Response({
+            "success": True,
+            "valid": valid,
+            "film_valid": film_exists,
+            "payment_confirmed": payment_confirmed,
+            "viewer_id": token.order.user_id,
+            "film_id": film_id,
+            "expires_at": token.expires_at.isoformat(),
+        })
+
+    @action(detail=False, methods=['post'])
     def end_viewer_session(self, request):
-        """Deactivate access issued before a headset presence timeout."""
+        """Suspend the headset lease without revoking paid entitlement."""
         if not self._control_server_request_is_authorized(request):
             return Response(
                 {"success": False, "error": "Запрос разрешен только control server"},
@@ -830,29 +889,35 @@ class TokenViewSet(viewsets.ViewSet):
         active_tokens = PaymentToken.objects.filter(
             order__user_id=user_id,
             is_active=True,
+            headset_session_active=True,
             created_at__lte=ended_at,
         ).exclude(
             # Free/headset-specific access is intentionally long-lived and
             # must survive the ordinary viewer-presence timeout.
             order__payment_id__startswith='free:',
         )
-        deactivated_count = active_tokens.update(is_active=False)
+        suspended_count = active_tokens.update(headset_session_active=False)
 
         logger.info(
-            "Сеанс зрителя %s завершен по тайм-ауту очков; токенов отключено: %s",
+            "Сеанс зрителя %s завершен по тайм-ауту очков; сеансов приостановлено: %s",
             user_id,
-            deactivated_count,
+            suspended_count,
         )
         return Response({
             "success": True,
             "user_id": user_id,
-            "deactivated": deactivated_count,
+            # Keep the established response field for the control server and
+            # older diagnostics; it now counts suspended headset leases.
+            "deactivated": suspended_count,
+            "suspended": suspended_count,
         })
 
     @action(detail=False, methods=['get'])
     def latest_for_user(self, request):
-        """Restore the best active access token for a viewer route."""
+        """Restore access only when this browser proves an earlier purchase."""
         user_id = request.query_params.get('user_id', '').strip()
+        known_token = request.query_params.get('known_token', '').strip()
+        order_id = request.query_params.get('order_id', '').strip()
 
         if not user_id or len(user_id) > 255:
             return Response(
@@ -860,23 +925,36 @@ class TokenViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        active_tokens = list(
-            PaymentToken.objects.filter(
-                order__user_id=user_id,
-                is_active=True,
-                expires_at__gt=timezone.now(),
-            ).select_related('order').prefetch_related('paid_films')
-        )
+        if not known_token and not order_id:
+            return Response({
+                "valid": False,
+                "films": [],
+                "proof_required": True,
+            }, status=status.HTTP_200_OK)
 
-        if not active_tokens:
+        if len(known_token) > 64 or len(order_id) > 255:
+            return Response(
+                {"error": "Некорректное подтверждение покупки"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        token_query = PaymentToken.objects.filter(order__user_id=user_id)
+        if known_token:
+            token_query = token_query.filter(token=known_token)
+        else:
+            token_query = token_query.filter(order__order_id=order_id)
+
+        token = token_query.select_related('order').first()
+        if (
+            token is None
+            or not token.is_valid()
+            or token.order.status not in ('paid', 'checked')
+        ):
             return Response({"valid": False, "films": []}, status=status.HTTP_200_OK)
 
-        # Legacy data may contain several live tokens.  Pick the one with the
-        # broadest access and make it cumulative before returning it.
-        token = max(
-            active_tokens,
-            key=lambda item: (len(item.paid_films.all()), item.created_at),
-        )
+        # Each browser keeps its own random token/order id. Make that proven
+        # token cumulative without exposing purchases to a new phone that only
+        # knows the public headset route.
         PaymentProcessor.merge_active_user_films(token)
         films_data = self._serialize_films(token)
 

@@ -12,9 +12,12 @@ test.before(() => {
       if (options.body) {
         const payload = JSON.parse(options.body);
         if (payload.user_id && payload.film_id) {
+          const valid = payload.film_id !== 'film-unpaid';
           return {
             success: true,
-            valid: payload.film_id !== 'film-unpaid',
+            valid,
+            film_valid: valid,
+            payment_confirmed: true,
             viewer_id: payload.user_id,
           };
         }

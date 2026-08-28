@@ -76,6 +76,7 @@ class PaymentToken(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     is_active = models.BooleanField(default=True)
+    headset_session_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"Token {self.token} for order {self.order.order_id}"

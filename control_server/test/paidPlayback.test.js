@@ -21,24 +21,39 @@ const createClient = () => ({
 });
 
 test('payment verification requires confirmed access to the requested film', async () => {
-  const fetchImplementation = async () => ({
-    ok: true,
-    async json() {
-      return {
-        valid: true,
-        film_valid: true,
-        payment_confirmed: true,
-        viewer_id: 'CDH/30',
-      };
-    },
-  });
+  let requestData = null;
+  const fetchImplementation = async (url, options) => {
+    requestData = { url, options };
+    return {
+      ok: true,
+      async json() {
+        return {
+          valid: true,
+          film_valid: true,
+          payment_confirmed: true,
+          viewer_id: 'CDH/30',
+        };
+      },
+    };
+  };
 
-  const authorization = await verifyPaidAccess('paid-token', 'film-1', fetchImplementation);
+  const authorization = await verifyPaidAccess(
+    'paid-token',
+    'film-1',
+    'CDH/30',
+    fetchImplementation,
+  );
   assert.equal(authorization.viewerId, 'CDH/30');
+  assert.equal(requestData.options.method, 'POST');
+  assert.deepEqual(JSON.parse(requestData.options.body), {
+    token: 'paid-token',
+    film_id: 'film-1',
+    user_id: 'CDH/30',
+  });
 });
 
-test('default presence timeout matches the headset 60 second timeout', () => {
-  assert.equal(PAYMENT_SESSION_IDLE_TIMEOUT_MS, 60_000);
+test('default paid session timeout is ten minutes', () => {
+  assert.equal(PAYMENT_SESSION_IDLE_TIMEOUT_MS, 600_000);
 });
 
 test('session reset request identifies the headset viewer and cutoff time', async () => {

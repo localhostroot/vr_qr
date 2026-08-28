@@ -1,8 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
-const PAYMENT_VALIDATION_URL = process.env.PAYMENT_VALIDATION_URL
-  || 'http://127.0.0.1:8000/api/tokens/validate/';
 const STATISTICS_API_URL = process.env.STATISTICS_API_URL
   || 'https://stats.local.vr360.pro/api/api/update_statistics/';
 const MAX_PLAYING_STATE_GAP_SECONDS = 30;
@@ -15,11 +13,12 @@ const secondsFromEnvironment = (name, fallback) => {
   return Number.isFinite(value) && value >= 0 ? value : fallback;
 };
 
-// Match the headset's 60-second reset by default. An optional server-side
-// grace period can still be configured without replacing application.json.
+// The installed headset config still shows its local lock screen after 60
+// seconds. Keep paid session state for ten minutes so a short false absence or
+// a viewer returning to that screen does not revoke their purchase.
 export const HEADSET_RESET_TIMEOUT_SECONDS = secondsFromEnvironment(
   'HEADSET_RESET_TIMEOUT_SECONDS',
-  60,
+  600,
 );
 export const PAYMENT_SESSION_RESET_GRACE_SECONDS = secondsFromEnvironment(
   'PAYMENT_SESSION_RESET_GRACE_SECONDS',
@@ -35,6 +34,8 @@ const PAYMENT_SESSION_RESET_RETRY_MS = secondsFromEnvironment(
 ) * 1_000;
 const PAYMENT_SESSION_RESET_URL = process.env.PAYMENT_SESSION_RESET_URL
   || 'http://127.0.0.1:8000/api/tokens/end_viewer_session/';
+const PAYMENT_SESSION_RESUME_URL = process.env.PAYMENT_SESSION_RESUME_URL
+  || 'http://127.0.0.1:8000/api/tokens/resume_viewer_session/';
 const PAYMENT_VIEWER_FILM_ACCESS_URL = process.env.PAYMENT_VIEWER_FILM_ACCESS_URL
   || 'http://127.0.0.1:8000/api/tokens/viewer_film_access/';
 const CONTROL_SERVER_SHARED_SECRET = process.env.CONTROL_SERVER_SHARED_SECRET || '';
@@ -75,18 +76,30 @@ const finiteNonNegative = (value, fallback = 0) => {
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-export const verifyPaidAccess = async (token, videoId, fetchImplementation = fetch) => {
-  if (!token || videoId === null || videoId === undefined || videoId === '') {
+export const verifyPaidAccess = async (
+  token,
+  videoId,
+  viewerId,
+  fetchImplementation = fetch,
+) => {
+  if (!token || !viewerId || videoId === null || videoId === undefined || videoId === '') {
     return null;
   }
 
   try {
-    const url = new URL(PAYMENT_VALIDATION_URL);
-    url.searchParams.set('token', token);
-    url.searchParams.set('film_id', String(videoId));
+    const headers = { 'Content-Type': 'application/json' };
+    if (CONTROL_SERVER_SHARED_SECRET) {
+      headers['X-Control-Server-Secret'] = CONTROL_SERVER_SHARED_SECRET;
+    }
 
-    const response = await fetchImplementation(url, {
-      headers: { Accept: 'application/json' },
+    const response = await fetchImplementation(PAYMENT_SESSION_RESUME_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        token,
+        film_id: String(videoId),
+        user_id: viewerId,
+      }),
     });
     if (!response.ok) return null;
 

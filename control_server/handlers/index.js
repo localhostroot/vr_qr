@@ -347,10 +347,10 @@ const onSingleClientVideo = async (ws, req, payload, clients) => {
           }));
       }
 
-      const paidAuthorization = payload.token
-          ? await verifyPaidAccess(payload.token, payload.videoId)
-          : null;
       const expectedViewerId = `${payload.location}/${payload.clientId}`;
+      const paidAuthorization = payload.token
+          ? await verifyPaidAccess(payload.token, payload.videoId, expectedViewerId)
+          : null;
       const paymentVerified = markPaidAuthorization(
           client,
           payload.videoId,

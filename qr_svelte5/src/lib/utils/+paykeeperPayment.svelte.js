@@ -185,7 +185,7 @@ export function createPaykeeperPayment() {
       const paymentUrl = orderData.payment_url;
 
       if (orderData.free_access === true) {
-        const accessResult = await syncLatestAccessForUser(userId);
+        const accessResult = await syncLatestAccessForUser(userId, { orderId });
         if (!accessResult.success) {
           globals.set(
             'queueErrorState',

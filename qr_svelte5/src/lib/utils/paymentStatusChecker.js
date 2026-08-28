@@ -23,16 +23,29 @@ function applyAccessData(data) {
 }
 
 /**
- * Restore current access by viewer id.  This is the F5/manual-issuance path:
- * it does not depend on a pending order id surviving in localStorage.
+ * Restore current access only when this browser still owns a token or the
+ * random order id used for payment/manual approval.
  */
-export async function syncLatestAccessForUser(userId) {
+export async function syncLatestAccessForUser(userId, { orderId = null } = {}) {
   if (!browser || !userId) return { success: false, pending: false };
 
+  const knownToken = globals.get('token');
+  const recoveryOrderId = orderId
+    || localStorage.getItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
+
+  if (!knownToken && !recoveryOrderId) {
+    globals.set('token', null);
+    globals.set('tokenExpiry', null);
+    globals.set('paidFilms', []);
+    return { success: false, pending: false };
+  }
+
   try {
-    const response = await fetch(
-      `${PUBLIC_DATABASE}api/tokens/latest_for_user/?user_id=${encodeURIComponent(userId)}`,
-    );
+    const query = new URLSearchParams({ user_id: userId });
+    if (knownToken) query.set('known_token', knownToken);
+    else query.set('order_id', recoveryOrderId);
+
+    const response = await fetch(`${PUBLIC_DATABASE}api/tokens/latest_for_user/?${query}`);
 
     if (!response.ok) {
       return { success: false, pending: true };
@@ -40,8 +53,7 @@ export async function syncLatestAccessForUser(userId) {
 
     const data = await response.json();
     if (!data.valid || !data.token || !Array.isArray(data.films)) {
-      // latest_for_user is authoritative. Access can end before its original
-      // two-hour expiry when the headset presence timeout closes the session.
+      // Entitlement ends only at its configured expiry or explicit revocation.
       globals.set('token', null);
       globals.set('tokenExpiry', null);
       globals.set('paidFilms', []);
