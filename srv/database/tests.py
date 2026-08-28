@@ -330,7 +330,7 @@ class ViewerAccessRecoveryTests(TestCase):
         self.assertFalse(response.data['valid'])
         self.assertFalse(response.data['payment_confirmed'])
 
-    def test_presence_timeout_suspends_headset_without_revoking_payment(self):
+    def test_legacy_session_reset_does_not_hide_a_live_purchase(self):
         ended_at = timezone.now().isoformat()
 
         response = self.client.post(
@@ -371,9 +371,11 @@ class ViewerAccessRecoveryTests(TestCase):
             format='json',
             REMOTE_ADDR='127.0.0.1',
         )
-        self.assertFalse(headset_response.data['valid'])
+        self.assertTrue(headset_response.data['valid'])
+        self.assertTrue(headset_response.data['paid'])
+        self.assertFalse(headset_response.data['free_access'])
 
-    def test_browser_token_resumes_suspended_headset_session(self):
+    def test_phone_token_authorizes_exact_film_without_acquiring_a_lease(self):
         PaymentToken.objects.filter(pk=self.new_token.pk).update(
             headset_session_active=False,
         )
@@ -393,11 +395,27 @@ class ViewerAccessRecoveryTests(TestCase):
         self.assertTrue(response.data['valid'])
         self.new_token.refresh_from_db()
         self.assertTrue(self.new_token.is_active)
-        self.assertTrue(self.new_token.headset_session_active)
+        self.assertFalse(self.new_token.headset_session_active)
         self.old_token.refresh_from_db()
-        self.assertFalse(self.old_token.headset_session_active)
+        self.assertTrue(self.old_token.headset_session_active)
 
-    def test_different_phone_cannot_take_over_an_active_headset_session(self):
+    def test_phone_token_cannot_launch_a_film_missing_from_that_token(self):
+        response = self.client.post(
+            reverse('tokens-resume-viewer-session'),
+            {
+                'user_id': self.viewer_id,
+                'film_id': 'film-b',
+                'token': self.old_token.token,
+            },
+            format='json',
+            REMOTE_ADDR='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data['valid'])
+        self.assertFalse(response.data['film_valid'])
+
+    def test_explicit_phone_start_is_not_rejected_by_an_old_headset_lease(self):
         other_order = Order.objects.create(
             user_id=self.viewer_id,
             viewer_session_id=uuid.uuid4(),
@@ -431,12 +449,12 @@ class ViewerAccessRecoveryTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.data['valid'])
-        self.assertTrue(response.data['occupied'])
+        self.assertTrue(response.data['valid'])
+        self.assertNotIn('occupied', response.data)
         other_token.refresh_from_db()
         self.assertFalse(other_token.headset_session_active)
 
-    def test_different_phone_can_take_over_after_headset_lease_is_released(self):
+    def test_explicit_phone_start_does_not_create_a_new_headset_lease(self):
         PaymentToken.objects.filter(
             order__user_id=self.viewer_id,
         ).update(headset_session_active=False)
@@ -474,7 +492,7 @@ class ViewerAccessRecoveryTests(TestCase):
 
         self.assertTrue(response.data['valid'])
         other_token.refresh_from_db()
-        self.assertTrue(other_token.headset_session_active)
+        self.assertFalse(other_token.headset_session_active)
 
     def test_browser_token_cannot_resume_another_headset(self):
         PaymentToken.objects.filter(pk=self.new_token.pk).update(
@@ -554,8 +572,12 @@ class ViewerAccessRecoveryTests(TestCase):
 
         self.assertEqual(paid_response.status_code, 200)
         self.assertTrue(paid_response.data['valid'])
+        self.assertTrue(paid_response.data['paid'])
+        self.assertFalse(paid_response.data['free_access'])
         self.assertEqual(unpaid_response.status_code, 200)
         self.assertFalse(unpaid_response.data['valid'])
+        self.assertFalse(unpaid_response.data['paid'])
+        self.assertFalse(unpaid_response.data['free_access'])
 
     def test_active_browser_session_unlocks_film_from_inactive_follow_up_token(self):
         self.new_token.headset_session_active = False
@@ -571,7 +593,7 @@ class ViewerAccessRecoveryTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data['valid'])
 
-    def test_active_headset_does_not_unlock_another_browser_session(self):
+    def test_direct_check_only_classifies_another_browser_purchase(self):
         self.new_order.viewer_session_id = uuid.uuid4()
         self.new_order.save(update_fields=('viewer_session_id',))
         self.new_token.headset_session_active = False
@@ -585,7 +607,9 @@ class ViewerAccessRecoveryTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.data['valid'])
+        self.assertTrue(response.data['valid'])
+        self.assertTrue(response.data['paid'])
+        self.assertFalse(response.data['free_access'])
 
     @override_settings(CONTROL_SERVER_SHARED_SECRET='test-control-secret')
     def test_forwarded_session_reset_requires_control_server_secret(self):
@@ -793,6 +817,8 @@ class PaymentInvoiceTests(TestCase):
         )
         self.assertEqual(access_response.status_code, 200)
         self.assertTrue(access_response.data['valid'])
+        self.assertTrue(access_response.data['free_access'])
+        self.assertFalse(access_response.data['paid'])
 
         reset_response = self.client.post(
             reverse('tokens-end-viewer-session'),

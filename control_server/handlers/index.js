@@ -8,7 +8,6 @@ import {
   inheritClientPlayback,
   markPaidAuthorization,
   restoreClientPlayback,
-  updateViewerPresenceTimeout,
   updatePaidPlaybackSession,
   verifyPaidAccess,
 } from '../services/paidPlayback.js';
@@ -21,8 +20,11 @@ import {
 const ip_regex = /^::ffff:[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/
 
 const PAYMENT_REQUIRED_MESSAGE = (
-  'Для просмотра этого фильма оплатите его на странице покупки\n' +
-  '(открывается через QR-код на очках)'
+  'Оплатите фильм по QR-коду, нанесенному на очки,\n' +
+  'затем нажмите «Смотреть» на телефоне.'
+);
+const PHONE_START_REQUIRED_MESSAGE = (
+  'Нажмите «Смотреть» на телефоне, чтобы запустить фильм.'
 );
 const PAYMENT_CHECK_FAILED_MESSAGE = (
   'Не удалось проверить оплату. Проверьте соединение и повторите попытку.'
@@ -366,16 +368,12 @@ const onSingleClientVideo = async (ws, req, payload, clients) => {
           paidAuthorization?.viewerId === expectedViewerId ? paidAuthorization : null,
       );
 
-      if (!paymentVerified || client.paymentSessionResetPending) {
+      if (!paymentVerified) {
           return ws.send(JSON.stringify({
               type: 'requestResponse',
               success: false,
               paymentVerified: false,
-              message: client.paymentSessionResetPending
-                  ? 'Предыдущий сеанс завершается. Повторите через несколько секунд.'
-                  : paidAuthorization?.occupied
-                    ? paidAuthorization.message
-                  : 'Оплата фильма не подтверждена'
+              message: 'Оплата фильма не подтверждена'
           }));
       }
 
@@ -588,7 +586,11 @@ const isUnblockTransitionProtected = (client) => (
 );
 
 const stopVideoBeforePaymentBlock = (client, ws, videoId, message) => {
-  if (isUnblockTransitionProtected(client)) {
+  // Directly after unlocking, some headset builds replay one stale "playing"
+  // snapshot while the proximity sensor still reports no viewer. Suppress only
+  // that ghost state. A real viewer selection must always show the applicable
+  // payment/phone instruction, even during the transition window.
+  if (isUnblockTransitionProtected(client) && client.userPresent !== true) {
     client.stopRequestedVideoId = videoId;
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'videoStopRequested' }));
@@ -763,23 +765,6 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
     }
 
     if (!queueHasVideo(client.queue, currentVideoId)) {
-      if (queueHasVideo(client.expiredSessionVideoIds, currentVideoId)) {
-        if (details.isPlaying !== false) {
-          client.expiredSessionVideoIds = removeVideoFromQueue(
-            client.expiredSessionVideoIds,
-            currentVideoId,
-          );
-          client.stopRequestedVideoId = currentVideoId;
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'videoStopRequested' }));
-          }
-          console.log(`Запоздалый автозапуск фильма ${currentVideoId} из завершенного сеанса остановлен без повторной блокировки.`);
-        } else {
-          console.log(`Неактивное состояние фильма ${currentVideoId} из завершенного сеанса пропущено.`);
-        }
-        return;
-      }
-
       // Some headset builds briefly report the previously selected video while
       // returning from the lock screen.  Do not treat that inactive snapshot as
       // a new viewing attempt; the normal access check still runs as soon as the
@@ -790,12 +775,16 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
       }
 
       const access = await checkViewerFilmAccess(client, currentVideoId);
-      if (!access.paid || client.paymentSessionResetPending) {
+      if (!access.available || !access.freeAccess) {
         handleMissingVideo(
           client,
           ws,
           currentVideoId,
-          access.available ? PAYMENT_REQUIRED_MESSAGE : PAYMENT_CHECK_FAILED_MESSAGE,
+          !access.available
+            ? PAYMENT_CHECK_FAILED_MESSAGE
+            : access.paid
+              ? PHONE_START_REQUIRED_MESSAGE
+              : PAYMENT_REQUIRED_MESSAGE,
         );
         return;
       }
@@ -954,7 +943,6 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
           foundClient.activity = currentActivity;
           foundClient.userPresent = payload.params.userPresent;
           foundClient.lastSeenAt = Date.now();
-          updateViewerPresenceTimeout(foundClient, foundClient.userPresent);
           console.log(`Обновлен activity клиента ${foundClient.id}: ${currentActivity}, userPresent: ${foundClient.userPresent}`);
 
           if (currentActivity !== 1 && foundClient.pendingPaymentBlock) {

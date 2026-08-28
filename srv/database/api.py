@@ -3,7 +3,6 @@ import secrets
 import uuid
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q
 import requests
 from .models import Category, Movie, Order, OrderItem, PaidFilm, PaymentToken
 from rest_framework import viewsets, permissions, status
@@ -815,7 +814,7 @@ class TokenViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['post'])
     def viewer_film_access(self, request):
-        """Check whether the current headset session has paid for a film."""
+        """Classify direct headset access without authorizing paid playback."""
         if not self._control_server_request_is_authorized(request):
             return Response(
                 {"success": False, "error": "Запрос разрешен только control server"},
@@ -830,41 +829,32 @@ class TokenViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        active_browser_sessions = PaymentToken.objects.filter(
-            order__user_id=user_id,
-            order__status__in=('paid', 'checked'),
-            order__viewer_session_id__isnull=False,
-            is_active=True,
-            headset_session_active=True,
-            expires_at__gt=timezone.now(),
-        ).values('order__viewer_session_id')
-
-        # The lease belongs to the visitor/browser session, not to one order.
-        # A later purchase in the same session may still be represented by an
-        # inactive token until the phone is used again.  Its films must remain
-        # available while another token from that exact session owns the
-        # active headset lease.
-        access_exists = PaidFilm.objects.filter(
+        entitlements = PaidFilm.objects.filter(
             token__order__user_id=user_id,
             token__order__status__in=('paid', 'checked'),
             token__is_active=True,
             token__expires_at__gt=timezone.now(),
             film_id=film_id,
-        ).filter(
-            Q(token__headset_session_active=True)
-            | Q(token__order__viewer_session_id__in=active_browser_sessions)
+        )
+        free_access = entitlements.filter(
+            token__order__payment_id__startswith='free:',
+        ).exists()
+        paid_access = entitlements.exclude(
+            token__order__payment_id__startswith='free:',
         ).exists()
 
         return Response({
             "success": True,
-            "valid": access_exists,
+            "valid": free_access or paid_access,
+            "free_access": free_access,
+            "paid": paid_access,
             "viewer_id": user_id,
             "film_id": film_id,
         })
 
     @action(detail=False, methods=['post'])
     def resume_viewer_session(self, request):
-        """Resume a suspended headset lease using the browser payment token."""
+        """Authorize one exact phone-requested film using its purchase token."""
         if not self._control_server_request_is_authorized(request):
             return Response(
                 {"success": False, "error": "Запрос разрешен только control server"},
@@ -884,65 +874,22 @@ class TokenViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        with transaction.atomic():
-            try:
-                token = PaymentToken.objects.select_for_update().select_related('order').get(
-                    token=token_string,
-                    order__user_id=user_id,
-                )
-            except PaymentToken.DoesNotExist:
-                return Response({
-                    "success": True,
-                    "valid": False,
-                    "viewer_id": user_id,
-                    "film_id": film_id,
-                })
+        try:
+            token = PaymentToken.objects.select_related('order').get(
+                token=token_string,
+                order__user_id=user_id,
+            )
+        except PaymentToken.DoesNotExist:
+            return Response({
+                "success": True,
+                "valid": False,
+                "viewer_id": user_id,
+                "film_id": film_id,
+            })
 
-            payment_confirmed = token.order.status in ('paid', 'checked')
-            film_exists = PaidFilm.objects.filter(token=token, film_id=film_id).exists()
-            valid = token.is_valid() and payment_confirmed and film_exists
-            is_free_access = str(token.order.payment_id or '').startswith('free:')
-
-            if valid and not is_free_access:
-                active_other_tokens = PaymentToken.objects.select_for_update().filter(
-                    order__user_id=user_id,
-                    order__status__in=('paid', 'checked'),
-                    is_active=True,
-                    headset_session_active=True,
-                    expires_at__gt=timezone.now(),
-                ).exclude(pk=token.pk).exclude(order__payment_id__startswith='free:')
-
-                if token.order.viewer_session_id is None:
-                    conflicting_session_exists = active_other_tokens.exists()
-                else:
-                    conflicting_session_exists = active_other_tokens.exclude(
-                        order__viewer_session_id=token.order.viewer_session_id,
-                    ).exists()
-
-                if conflicting_session_exists:
-                    return Response({
-                        "success": True,
-                        "valid": False,
-                        "occupied": True,
-                        "film_valid": film_exists,
-                        "payment_confirmed": payment_confirmed,
-                        "viewer_id": user_id,
-                        "film_id": film_id,
-                        "error": "Очки сейчас используются другим зрителем",
-                    })
-
-                # Keep exactly one paid entitlement as the current headset
-                # lease. Its token is cumulative within this browser session.
-                active_other_tokens.update(headset_session_active=False)
-
-            if valid and not token.headset_session_active:
-                token.headset_session_active = True
-                token.save(update_fields=('headset_session_active',))
-                logger.info(
-                    "Сеанс зрителя %s возобновлен токеном заказа %s",
-                    user_id,
-                    token.order.order_id,
-                )
+        payment_confirmed = token.order.status in ('paid', 'checked')
+        film_exists = PaidFilm.objects.filter(token=token, film_id=film_id).exists()
+        valid = token.is_valid() and payment_confirmed and film_exists
 
         return Response({
             "success": True,
