@@ -61,13 +61,15 @@ tar -tzf "$CODE_ARCHIVE" | while IFS= read -r archive_path; do
   case "$archive_path" in
     control_server/handlers/index.js|\
     control_server/services/paidPlayback.js|\
+    control_server/test/paidPlayback.test.js|\
+    control_server/test/queue.test.js|\
     srv/database/payment_processor.py|\
     srv/database/management/commands/backup_database.py|\
     system_stuff/qr-access-maintenance.service) ;;
     *) echo "Unexpected path in archive: $archive_path" >&2; exit 1 ;;
   esac
 done
-[ "$(tar -tzf "$CODE_ARCHIVE" | wc -l)" -eq 5 ]
+[ "$(tar -tzf "$CODE_ARCHIVE" | wc -l)" -eq 7 ]
 
 mkdir -p "$BACKUP_DIR" "$WORK_DIR/code"
 sqlite3 "$SRV_DIR/db.sqlite3" ".backup '$BACKUP_DIR/srv-db.sqlite3'"
@@ -75,6 +77,8 @@ sqlite3 "$BACKUP_DIR/srv-db.sqlite3" 'PRAGMA quick_check;' | grep '^ok$' >/dev/n
 tar -czf "$BACKUP_DIR/source-files.tar.gz" -C "$APP_ROOT" \
   control_server/handlers/index.js \
   control_server/services/paidPlayback.js \
+  control_server/test/paidPlayback.test.js \
+  control_server/test/queue.test.js \
   srv/database/payment_processor.py
 if [ -f "$SRV_DIR/database/management/commands/backup_database.py" ]; then
   cp -a "$SRV_DIR/database/management/commands/backup_database.py" "$BACKUP_DIR/"
@@ -89,6 +93,10 @@ cp -a "$WORK_DIR/code/control_server/handlers/index.js" \
   "$CONTROL_DIR/handlers/index.js"
 cp -a "$WORK_DIR/code/control_server/services/paidPlayback.js" \
   "$CONTROL_DIR/services/paidPlayback.js"
+cp -a "$WORK_DIR/code/control_server/test/paidPlayback.test.js" \
+  "$CONTROL_DIR/test/paidPlayback.test.js"
+cp -a "$WORK_DIR/code/control_server/test/queue.test.js" \
+  "$CONTROL_DIR/test/queue.test.js"
 cp -a "$WORK_DIR/code/srv/database/payment_processor.py" \
   "$SRV_DIR/database/payment_processor.py"
 mkdir -p "$SRV_DIR/database/management/commands"
