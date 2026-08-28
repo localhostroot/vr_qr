@@ -119,6 +119,30 @@ BACKUP_READY=1
 tar -xzf "$CODE_ARCHIVE" -C "$WORK_DIR/code"
 tar -xzf "$FRONTEND_ARCHIVE" -C "$WORK_DIR/frontend"
 ln -s "$FRONTEND_DIR/node_modules" "$WORK_DIR/frontend/node_modules"
+
+# The production directory intentionally keeps only the compiled frontend.
+# Preserve the existing private statistics settings by reading them from that
+# build without printing or copying the values into Git or deployment logs.
+set -- "$FRONTEND_DIR"/build/server/chunks/private-*.js
+[ "$#" -eq 1 ]
+private_chunk=$1
+[ -f "$private_chunk" ]
+read_private_export() {
+  node --input-type=module -e '
+    import { pathToFileURL } from "node:url";
+    const module = await import(pathToFileURL(process.argv[1]));
+    process.stdout.write(String(module[process.argv[2]] ?? ""));
+  ' "$private_chunk" "$1"
+}
+private_stats_login=$(read_private_export P)
+private_stats_password=$(read_private_export a)
+private_statistics_server_url=$(read_private_export b)
+private_stats_token=$(read_private_export c)
+[ -n "$private_stats_login" ]
+[ -n "$private_stats_password" ]
+[ -n "$private_statistics_server_url" ]
+[ -n "$private_stats_token" ]
+
 mkdir -p "$WORK_DIR/frontend/src/routes/site-admin"
 cp -a "$WORK_DIR/code/qr_svelte5/src/routes/+layout.svelte" \
   "$WORK_DIR/frontend/src/routes/+layout.svelte"
@@ -128,6 +152,10 @@ cp -a "$WORK_DIR/code/qr_svelte5/src/routes/site-admin/+page.svelte" \
   PUBLIC_DATABASE=https://cinema.local.vr360.pro/ \
   PUBLIC_BACKEND=wss://cinema.local.vr360.pro/control/api/ \
   PUBLIC_STAT=https://cinema.local.vr360.pro/ \
+  PRIVATE_STATS_LOGIN="$private_stats_login" \
+  PRIVATE_STATS_PASSWORD="$private_stats_password" \
+  PRIVATE_STATISTICS_SERVER_URL="$private_statistics_server_url" \
+  PRIVATE_STATS_TOKEN="$private_stats_token" \
   npm run build)
 [ -f "$WORK_DIR/frontend/build/index.js" ]
 
