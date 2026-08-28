@@ -731,6 +731,7 @@ class ViewerAccessRecoveryTests(TestCase):
         self.assertEqual(allowed_response.data['deactivated'], 2)
 
 
+@override_settings(SITE_ADMIN_PASSWORD='Vr7!Qa')
 class PaymentInvoiceTests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -798,6 +799,14 @@ class PaymentInvoiceTests(TestCase):
             'description': 'Оплата за просмотр фильмов',
             'films': [{'film_id': self.film.film_id, 'series': False}],
         }
+
+    def authenticate_site_admin(self):
+        response = self.client.post(
+            reverse('admin-login'),
+            {'password': 'Vr7!Qa'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
 
     @override_settings(PAID_ACCESS_DURATION_HOURS=1)
     def test_paid_access_default_duration_is_one_hour(self):
@@ -1076,6 +1085,7 @@ class PaymentInvoiceTests(TestCase):
         )
         self.assertEqual(response.status_code, 201)
 
+        self.authenticate_site_admin()
         admin_response = self.client.get(reverse('admin-search-orders'))
         self.assertEqual(admin_response.status_code, 200)
         self.assertEqual(admin_response.data['orders'], [])
@@ -1242,6 +1252,7 @@ class PaymentInvoiceTests(TestCase):
             status='pending',
         )
 
+        self.authenticate_site_admin()
         response = self.client.get(reverse('admin-search-orders'))
 
         self.assertEqual(response.status_code, 200)
