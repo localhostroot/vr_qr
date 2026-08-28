@@ -60,7 +60,7 @@ export function createPaykeeperPayment() {
     globals.set('queueErrorState', '');
 
     const userId = getCurrentUserId();
-    const queue = globals.get('queue');
+    let queue = globals.get('queue');
 
     // Validation
     if (!userId) {
@@ -118,11 +118,26 @@ export function createPaykeeperPayment() {
           }
 
           if (['success', 'checked'].includes(existingData.status)) {
-            globals.set(
-              'queueErrorState',
-              'Предыдущий заказ уже подтверждён. Доступ обновляется автоматически.',
-            );
-            return;
+            // A confirmed order is terminal and must never block the next
+            // purchase. Refresh access first, but preserve the basket the
+            // viewer has just assembled for the new order: a newer token can
+            // legitimately make syncLatestAccessForUser clear the old basket.
+            const selectedQueue = queue;
+            const accessResult = await syncLatestAccessForUser(userId);
+            globals.set('queue', selectedQueue);
+            queue = selectedQueue;
+
+            if (accessResult.pending) {
+              globals.set(
+                'queueErrorState',
+                'Не удалось обновить предыдущую покупку. Повторите через несколько секунд.',
+              );
+              return;
+            }
+
+            localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
+            localStorage.removeItem(LOCAL_STORAGE_KEYS.ORDER_TIME);
+            localStorage.removeItem(LOCAL_STORAGE_KEYS.QUEUE_PENDING_PAYMENT);
           }
 
           localStorage.removeItem(LOCAL_STORAGE_KEYS.PAYKEEPER_ORDER_ID);
