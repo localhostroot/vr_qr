@@ -11,11 +11,77 @@
 	let totalFound = $state(0);
 	let statusMessage = $state('');
 	let tokenStatusText = $state('');
+	let authState = $state('checking');
+	let adminPassword = $state('');
+	let authMessage = $state('');
+	let authLoading = $state(false);
 	let activeSearchQuery = '';
 	let latestRequestId = 0;
 	let foregroundRequestId = 0;
 
 	const AUTO_REFRESH_INTERVAL_MS = 5000;
+
+	function handleUnauthorized(response) {
+		if (response.status !== 401 && response.status !== 403) return false;
+		authState = 'signedOut';
+		orders = [];
+		totalFound = 0;
+		return true;
+	}
+
+	async function checkAdminSession() {
+		try {
+			const response = await fetch(`${PUBLIC_DATABASE}api/admin/session/`, {
+				cache: 'no-store',
+				credentials: 'include'
+			});
+			const data = await response.json();
+			authState = response.ok && data.authenticated ? 'signedIn' : 'signedOut';
+		} catch (error) {
+			authState = 'signedOut';
+			authMessage = `Ошибка подключения: ${error.message}`;
+		}
+		return authState === 'signedIn';
+	}
+
+	async function login() {
+		if (!adminPassword || authLoading) return;
+		authLoading = true;
+		authMessage = '';
+		try {
+			const response = await fetch(`${PUBLIC_DATABASE}api/admin/login/`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({ password: adminPassword })
+			});
+			const data = await response.json();
+			if (!response.ok || !data.authenticated) {
+				authMessage = data.error || 'Не удалось войти.';
+				return;
+			}
+			adminPassword = '';
+			authState = 'signedIn';
+			await searchOrders();
+		} catch (error) {
+			authMessage = `Ошибка подключения: ${error.message}`;
+		} finally {
+			authLoading = false;
+		}
+	}
+
+	async function logout() {
+		try {
+			await fetch(`${PUBLIC_DATABASE}api/admin/logout/`, {
+				method: 'POST',
+				credentials: 'include'
+			});
+		} finally {
+			authState = 'signedOut';
+			orders = [];
+			totalFound = 0;
+		}
+	}
 
 	// Search orders function
 	async function searchOrders({ background = false, keepActiveQuery = false } = {}) {
@@ -38,10 +104,12 @@
 			}
 			
 			const response = await fetch(`${PUBLIC_DATABASE}api/admin/search_orders/?${params}`, {
-				cache: 'no-store'
+				cache: 'no-store',
+				credentials: 'include'
 			});
 			const data = await response.json();
 			if (requestId !== latestRequestId) return;
+			if (handleUnauthorized(response)) return;
 			
 			if (response.ok) {
 				orders = data.orders;
@@ -69,7 +137,7 @@
 	}
 
 	function refreshOrders() {
-		if (!document.hidden) {
+		if (authState === 'signedIn' && !document.hidden) {
 			searchOrders({ background: true, keepActiveQuery: true });
 		}
 	}
@@ -90,10 +158,12 @@
 				headers: {
 					'Content-Type': 'application/json'
 				},
+				credentials: 'include',
 				body: JSON.stringify({ order_id: orderId })
 			});
 
 			const data = await response.json();
+			if (handleUnauthorized(response)) return;
 
 			if (data.success) {
 				if (statusEl) {
@@ -132,10 +202,12 @@
 				headers: {
 					'Content-Type': 'application/json'
 				},
+				credentials: 'include',
 				body: JSON.stringify({ order_id: orderId })
 			});
 
 			const data = await response.json();
+			if (handleUnauthorized(response)) return;
 
 			if (data.success) {
 				if (statusEl) {
@@ -167,7 +239,9 @@
 
 	// Load recent orders on mount
 	onMount(() => {
-		searchOrders();
+		checkAdminSession().then((authenticated) => {
+			if (authenticated) searchOrders();
+		});
 
 		const intervalId = window.setInterval(refreshOrders, AUTO_REFRESH_INTERVAL_MS);
 		window.addEventListener('focus', refreshOrders);
@@ -187,7 +261,31 @@
 	<title>Подтверждение покупок</title>
 </svelte:head>
 
+{#if authState === 'checking'}
+	<div class="auth-status">Проверка доступа...</div>
+{:else if authState === 'signedOut'}
+	<div class="login-card">
+		<h1>Подтверждение покупок</h1>
+		<p>Введите пароль административного раздела.</p>
+		<form onsubmit={(event) => { event.preventDefault(); login(); }}>
+			<input
+				type="password"
+				bind:value={adminPassword}
+				autocomplete="current-password"
+				placeholder="Пароль"
+			/>
+			<button type="submit" disabled={authLoading || !adminPassword}>
+				{authLoading ? 'Вход...' : 'Войти'}
+			</button>
+		</form>
+		{#if authMessage}<div class="auth-error">{authMessage}</div>{/if}
+	</div>
+{:else}
 <div class="admin-container">
+	<div class="admin-toolbar">
+		<h1>Подтверждение покупок</h1>
+		<button onclick={logout} class="logout-button">Выйти</button>
+	</div>
 	
 	<div class="search-section">
 		<div class="search-input-group">
@@ -310,8 +408,73 @@
 		{/if}
 	</div>
 </div>
+{/if}
 
 <style>
+	.auth-status,
+	.login-card {
+		max-width: 480px;
+		margin: 12vh auto 0;
+		padding: 28px;
+		background: white;
+		border-radius: 12px;
+		box-shadow: 0 4px 18px rgba(0, 0, 0, 0.16);
+		font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	}
+
+	.login-card h1,
+	.admin-toolbar h1 {
+		margin: 0;
+	}
+
+	.login-card p {
+		color: #555;
+	}
+
+	.login-card form {
+		display: flex;
+		gap: 10px;
+	}
+
+	.login-card input {
+		flex: 1;
+		min-width: 0;
+		padding: 12px;
+		border: 2px solid #ddd;
+		border-radius: 8px;
+		font-size: 16px;
+	}
+
+	.login-card button,
+	.logout-button {
+		padding: 12px 20px;
+		border: 0;
+		border-radius: 8px;
+		background: #111827;
+		color: white;
+		cursor: pointer;
+	}
+
+	.login-card button:disabled {
+		opacity: 0.55;
+		cursor: default;
+	}
+
+	.auth-error {
+		margin-top: 14px;
+		padding: 10px;
+		border-radius: 6px;
+		background: #ffe6e6;
+		color: #a61b1b;
+	}
+
+	.admin-toolbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 20px;
+		margin-bottom: 24px;
+	}
 	
 	.admin-container {
 		max-width: 1200px;

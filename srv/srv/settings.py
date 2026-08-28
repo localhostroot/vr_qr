@@ -49,6 +49,14 @@ PAID_ACCESS_DURATION_HOURS = max(
 # control server do not communicate directly over loopback.
 CONTROL_SERVER_SHARED_SECRET = os.environ.get('CONTROL_SERVER_SHARED_SECRET', '')
 
+# Manual payment confirmation is protected independently from public viewer
+# APIs. The password lives in the service environment, never in source code.
+SITE_ADMIN_PASSWORD = os.environ.get('SITE_ADMIN_PASSWORD', '')
+SITE_ADMIN_SESSION_SECONDS = max(
+    300,
+    int(os.environ.get('SITE_ADMIN_SESSION_SECONDS', str(8 * 60 * 60))),
+)
+
 # Stats API URL for recording film views
 STAT_API_URL = os.environ.get('STAT_API_URL', 'https://stats.local.vr360.pro/')
 

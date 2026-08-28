@@ -10,6 +10,17 @@ from .serializers import CategorySerializer, MovieSerializer, OrderSerializer
 from .payment_provider import PaymentProviderClient, PaymentProviderError
 from .payment_processor import PaymentProcessor
 from .viewer_identity import normalize_viewer_id
+from .admin_auth import (
+    COOKIE_NAME as SITE_ADMIN_COOKIE_NAME,
+    COOKIE_PATH as SITE_ADMIN_COOKIE_PATH,
+    SiteAdminPermission,
+    clear_login_failures,
+    create_session_cookie_value,
+    has_valid_session,
+    login_is_locked,
+    password_matches,
+    register_login_failure,
+)
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
@@ -730,13 +741,13 @@ class TokenViewSet(viewsets.ViewSet):
         import logging
         logger = logging.getLogger(__name__)
         
-        logger.info(f"ENTER TOKEN REQUEST")
-        logger.info(f"Request data: {request.data}")
-        logger.info(f"Request method: {request.method}")
-        logger.info(f"Content type: {request.content_type}")
-        
         token_string = request.data.get('token')
-        logger.info(f"Извлеченный токен: '{token_string}'")
+        logger.info(
+            "token_enter_requested method=%s content_type=%s token_length=%s",
+            request.method,
+            request.content_type,
+            len(str(token_string or '')),
+        )
         
         if not token_string:
             logger.error("Токен не указан в запросе")
@@ -746,9 +757,13 @@ class TokenViewSet(viewsets.ViewSet):
             }, status=status.HTTP_200_OK)  
             
         try:
-            logger.info(f"Поиск токена в базе данных: {token_string}")
             token = PaymentToken.objects.get(token=token_string)
-            logger.info(f"Токен найден: {token}, expires_at: {token.expires_at}, is_active: {token.is_active}")
+            logger.info(
+                "token_enter_found order_id=%s expires_at=%s is_active=%s",
+                token.order.order_id,
+                token.expires_at.isoformat(),
+                token.is_active,
+            )
             
             if not token.is_valid():
                 logger.warning(f"Токен недействителен: is_active={token.is_active}, expires_at={token.expires_at}")
@@ -805,7 +820,7 @@ class TokenViewSet(viewsets.ViewSet):
             }, status=status.HTTP_200_OK)
                 
         except PaymentToken.DoesNotExist:
-            logger.error(f"Токен {token_string} не найден в базе данных")
+            logger.warning("token_enter_not_found")
             return Response({
                 "valid": False,
                 "error": "Токен не найден"
@@ -1041,7 +1056,62 @@ class TokenViewSet(viewsets.ViewSet):
 
 
 class AdminViewSet(viewsets.ViewSet):
-    permission_classes = [AllowAny]  # TODO: Add proper admin permissions
+    permission_classes = [SiteAdminPermission]
+
+    @action(detail=False, methods=['get'])
+    def session(self, request):
+        return Response({
+            'authenticated': has_valid_session(request),
+            'expires_in': settings.SITE_ADMIN_SESSION_SECONDS,
+        })
+
+    @action(detail=False, methods=['post'])
+    def login(self, request):
+        if not settings.SITE_ADMIN_PASSWORD:
+            logger.error('site_admin_login_unavailable password_not_configured')
+            return Response(
+                {'error': 'Пароль административного раздела не настроен.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        if login_is_locked(request):
+            return Response(
+                {'error': 'Слишком много попыток. Повторите через 15 минут.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        if not password_matches(request.data.get('password', '')):
+            failures = register_login_failure(request)
+            logger.warning('site_admin_login_failed failures=%s', failures)
+            return Response(
+                {'error': 'Неверный пароль.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        clear_login_failures(request)
+        response = Response({
+            'authenticated': True,
+            'expires_in': settings.SITE_ADMIN_SESSION_SECONDS,
+        })
+        response.set_cookie(
+            SITE_ADMIN_COOKIE_NAME,
+            create_session_cookie_value(),
+            max_age=settings.SITE_ADMIN_SESSION_SECONDS,
+            httponly=True,
+            secure=True,
+            samesite='Strict',
+            path=SITE_ADMIN_COOKIE_PATH,
+        )
+        logger.info('site_admin_login_success')
+        return response
+
+    @action(detail=False, methods=['post'])
+    def logout(self, request):
+        response = Response({'authenticated': False})
+        response.delete_cookie(
+            SITE_ADMIN_COOKIE_NAME,
+            path=SITE_ADMIN_COOKIE_PATH,
+            samesite='Strict',
+        )
+        return response
     
     @action(detail=False, methods=['get'])
     def search_orders(self, request):
@@ -1187,7 +1257,12 @@ class AdminViewSet(viewsets.ViewSet):
 
             PaymentProcessor.merge_active_session_films(payment_token)
             
-            logger.info(f"Admin: токен {token_string} создан для заказа {order_id}")
+            logger.info(
+                "admin_token_created order_id=%s viewer_id=%s films=%s",
+                order_id,
+                order.user_id,
+                len(created_films),
+            )
             
             return Response({
                 'success': True,
@@ -1284,7 +1359,12 @@ class AdminViewSet(viewsets.ViewSet):
 
             PaymentProcessor.merge_active_session_films(payment_token)
             
-            logger.info(f"Admin: токен {token_string} создан для заказа {order_id}")
+            logger.info(
+                "admin_token_created order_id=%s viewer_id=%s films=%s",
+                order_id,
+                order.user_id,
+                len(created_films),
+            )
             
             return Response({
                 'success': True,

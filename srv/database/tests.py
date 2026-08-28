@@ -1,10 +1,15 @@
 import json
+import sqlite3
+import tempfile
 import uuid
+from datetime import datetime, timezone as datetime_timezone
 from decimal import Decimal
 from io import StringIO
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 from django.core.management import call_command
+from django.core.cache import cache
 from django.test import SimpleTestCase, TestCase
 from django.test import override_settings
 from django.urls import reverse
@@ -12,6 +17,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from .models import Category, Movie, Order, OrderItem, PaidFilm, PaymentToken
+from .management.commands.backup_database import create_sqlite_backup
 from .payment_provider import PaymentProviderClient, PaymentProviderError
 from .payment_processor import PaymentProcessor
 from .viewer_identity import normalize_viewer_id
@@ -24,6 +30,89 @@ class ViewerIdentityTests(SimpleTestCase):
 
     def test_non_numeric_headset_ids_are_preserved(self):
         self.assertEqual(normalize_viewer_id('CDH/demo'), 'CDH/demo')
+
+    def test_sqlite_backup_is_valid_and_retention_is_count_based(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            source = directory / 'source.sqlite3'
+            destination = directory / 'backups'
+            with sqlite3.connect(source) as database:
+                database.execute('CREATE TABLE sample (value TEXT)')
+                database.execute('INSERT INTO sample VALUES (?)', ('kept',))
+
+            for second in range(3):
+                create_sqlite_backup(
+                    source,
+                    destination,
+                    keep=2,
+                    now=datetime(
+                        2026, 8, 29, 3, 0, second,
+                        tzinfo=datetime_timezone.utc,
+                    ),
+                )
+
+            backups = sorted(destination.glob('qr-db-*.sqlite3'))
+            self.assertEqual(len(backups), 2)
+            self.assertNotIn('030000', backups[0].name)
+            with sqlite3.connect(backups[-1]) as database:
+                self.assertEqual(
+                    database.execute('SELECT value FROM sample').fetchone()[0],
+                    'kept',
+                )
+
+
+@override_settings(
+    SITE_ADMIN_PASSWORD='Vr7!Qa',
+    SITE_ADMIN_SESSION_SECONDS=8 * 60 * 60,
+)
+class SiteAdminAuthTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.client = APIClient()
+
+    def tearDown(self):
+        cache.clear()
+
+    def test_admin_data_requires_login(self):
+        response = self.client.get('/api/admin/search_orders/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_login_cookie_grants_access_and_logout_revokes_it(self):
+        login = self.client.post(
+            '/api/admin/login/',
+            {'password': 'Vr7!Qa'},
+            format='json',
+        )
+        self.assertEqual(login.status_code, 200)
+        self.assertTrue(login.data['authenticated'])
+        cookie = login.cookies['site_admin_session']
+        self.assertTrue(cookie['httponly'])
+        self.assertTrue(cookie['secure'])
+        self.assertEqual(cookie['samesite'], 'Strict')
+
+        session = self.client.get('/api/admin/session/')
+        self.assertEqual(session.status_code, 200)
+        self.assertTrue(session.data['authenticated'])
+        self.assertEqual(
+            self.client.get('/api/admin/search_orders/').status_code,
+            200,
+        )
+
+        logout = self.client.post('/api/admin/logout/', format='json')
+        self.assertEqual(logout.status_code, 200)
+        self.assertEqual(
+            self.client.get('/api/admin/search_orders/').status_code,
+            403,
+        )
+
+    def test_wrong_password_is_rejected(self):
+        response = self.client.post(
+            '/api/admin/login/',
+            {'password': 'wrong'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertNotIn('site_admin_session', response.cookies)
 
 
 class ViewerAccessRecoveryTests(TestCase):
