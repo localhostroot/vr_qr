@@ -123,6 +123,22 @@ class PaymentProcessor:
             order.payment_id = payment_id
             order.save()
             logger.info(f"Payment processor: Order {order.order_id} status updated to 'paid', payment_id: {payment_id}")
+
+            # A visitor may buy more films while the headset lease created by
+            # an earlier purchase is still active.  The follow-up payment is
+            # part of that same browser session, so it must inherit the lease;
+            # otherwise selecting the newly bought film directly in the
+            # headset is incorrectly treated as an unpaid launch.
+            inherit_headset_session = activate_headset_session
+            if order.viewer_session_id is not None and not str(payment_id).startswith('free:'):
+                inherit_headset_session = inherit_headset_session or PaymentToken.objects.filter(
+                    order__user_id=order.user_id,
+                    order__viewer_session_id=order.viewer_session_id,
+                    order__status__in=('paid', 'checked'),
+                    is_active=True,
+                    headset_session_active=True,
+                    expires_at__gt=timezone.now(),
+                ).exclude(order__payment_id__startswith='free:').exists()
             
             # Create payment token
             expires_at = timezone.now() + (
@@ -137,7 +153,7 @@ class PaymentProcessor:
                 token=token_string,
                 order=order,
                 expires_at=expires_at,
-                headset_session_active=activate_headset_session,
+                headset_session_active=inherit_headset_session,
             )
             logger.info(f"Payment processor: Token {token_string} created for order {order.order_id}")
             
@@ -155,6 +171,19 @@ class PaymentProcessor:
                 logger.info(f"Payment processor: Created paid film record {item.film_id} for order {order.order_id}")
                 
             PaymentProcessor.merge_active_session_films(payment_token)
+
+            if inherit_headset_session and not str(payment_id).startswith('free:'):
+                # Keep one active lease token.  The new token already contains
+                # the cumulative film set for this browser session.
+                PaymentToken.objects.filter(
+                    order__user_id=order.user_id,
+                    order__viewer_session_id=order.viewer_session_id,
+                    is_active=True,
+                    headset_session_active=True,
+                    expires_at__gt=timezone.now(),
+                ).exclude(pk=payment_token.pk).exclude(
+                    order__payment_id__startswith='free:',
+                ).update(headset_session_active=False)
 
             logger.info(f"Payment processor: Order {order.order_id} fully processed with token {token_string}")
             return True

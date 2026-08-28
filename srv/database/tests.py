@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from .models import Category, Movie, Order, PaidFilm, PaymentToken
+from .models import Category, Movie, Order, OrderItem, PaidFilm, PaymentToken
 from .payment_provider import PaymentProviderClient, PaymentProviderError
 from .payment_processor import PaymentProcessor
 from .viewer_identity import normalize_viewer_id
@@ -106,6 +106,74 @@ class ViewerAccessRecoveryTests(TestCase):
             set(self.new_token.paid_films.values_list('film_id', flat=True)),
             {'film-b'},
         )
+
+    def test_follow_up_purchase_inherits_active_headset_session(self):
+        follow_up_order = Order.objects.create(
+            user_id=self.viewer_id,
+            viewer_session_id=self.viewer_session_id,
+            amount=100,
+            description='Follow-up purchase',
+            order_id='follow-up-order',
+            status='pending',
+        )
+        OrderItem.objects.create(
+            order=follow_up_order,
+            film_id='film-b',
+            is_series=False,
+            price=100,
+        )
+
+        self.assertTrue(
+            PaymentProcessor.process_successful_payment(
+                follow_up_order,
+                'follow-up-payment',
+            )
+        )
+
+        follow_up_token = follow_up_order.payment_token
+        self.assertTrue(follow_up_token.headset_session_active)
+        self.assertEqual(
+            set(follow_up_token.paid_films.values_list('film_id', flat=True)),
+            {'film-a', 'film-b'},
+        )
+
+        self.old_token.refresh_from_db()
+        self.new_token.refresh_from_db()
+        self.assertFalse(self.old_token.headset_session_active)
+        self.assertFalse(self.new_token.headset_session_active)
+
+        response = self.client.post(
+            reverse('tokens-viewer-film-access'),
+            {'user_id': self.viewer_id, 'film_id': 'film-b'},
+            format='json',
+            REMOTE_ADDR='127.0.0.1',
+        )
+        self.assertTrue(response.data['valid'])
+
+    def test_follow_up_purchase_from_another_browser_stays_suspended(self):
+        follow_up_order = Order.objects.create(
+            user_id=self.viewer_id,
+            viewer_session_id=uuid.uuid4(),
+            amount=100,
+            description='Another visitor purchase',
+            order_id='another-visitor-follow-up',
+            status='pending',
+        )
+        OrderItem.objects.create(
+            order=follow_up_order,
+            film_id='film-b',
+            is_series=False,
+            price=100,
+        )
+
+        self.assertTrue(
+            PaymentProcessor.process_successful_payment(
+                follow_up_order,
+                'another-visitor-payment',
+            )
+        )
+
+        self.assertFalse(follow_up_order.payment_token.headset_session_active)
 
     def test_current_token_can_link_a_new_order_to_legacy_browser_session(self):
         self.old_order.viewer_session_id = None
