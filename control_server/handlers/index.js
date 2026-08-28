@@ -23,6 +23,7 @@ const PAYMENT_CHECK_FAILED_MESSAGE = (
   'Не удалось проверить оплату. Проверьте соединение и повторите попытку.'
 );
 const PAYMENT_BLOCK_FALLBACK_MS = 3_000;
+const UNBLOCK_TRANSITION_PROTECTION_MS = 30_000;
 
 const isVideoIdPresent = (videoId) => (
   videoId !== null && videoId !== undefined && videoId !== ''
@@ -555,7 +556,30 @@ const showPendingPaymentBlock = (client, ws) => {
   return true;
 };
 
+const beginUnblockTransition = (client) => {
+  client.unblockProtectionUntil = Date.now() + UNBLOCK_TRANSITION_PROTECTION_MS;
+  client.pendingPaymentBlock = null;
+  if (client.missingVideoTimer) {
+    clearTimeout(client.missingVideoTimer);
+    client.missingVideoTimer = null;
+  }
+};
+
+const isUnblockTransitionProtected = (client) => (
+  Number.isFinite(client.unblockProtectionUntil)
+  && client.unblockProtectionUntil > Date.now()
+);
+
 const stopVideoBeforePaymentBlock = (client, ws, videoId, message) => {
+  if (isUnblockTransitionProtected(client)) {
+    client.stopRequestedVideoId = videoId;
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'videoStopRequested' }));
+    }
+    console.log(`Фильм ${videoId} остановлен во время разблокировки без возврата на стартовый экран.`);
+    return;
+  }
+
   if (client.pendingPaymentBlock) return;
 
   client.pendingPaymentBlock = { videoId, message };
@@ -890,6 +914,15 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
       normalizeClientQueues(foundClient);
       if (!foundClient.missingVideoTimer) foundClient.missingVideoTimer = null;
       if (!foundClient.userPresent) foundClient.userPresent = false;
+
+      const incomingDetails = payload.params.details || {};
+      if (payload.params.activity === 2 && incomingDetails.unblockAllowed === true) {
+        // The headset's unlock acknowledgement must never be lost behind a
+        // concurrently processed state update. It also cancels any delayed
+        // payment block that was scheduled before the viewer pressed the button.
+        beginUnblockTransition(foundClient);
+        console.log(`Разблокировка клиента ${foundClient.id} подтверждена с приоритетом.`);
+      }
 
       if (!foundClient.isProcessing) {
         foundClient.isProcessing = true;

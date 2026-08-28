@@ -424,7 +424,7 @@ export const finalizePaidPlaybackSession = async (
 
 const copyPlaybackFields = (target, source) => {
   for (const field of (
-    'activePlaybackSession paidAuthorizations queue pendingQueue expiredSessionVideoIds currentVideoId playbackPosition currentVideoDuration isPlaying playbackTimeCounter lastPlaybackPosition stopRequestedVideoId hasDetectedViewer paymentSessionResetPending'
+    'activePlaybackSession paidAuthorizations queue pendingQueue expiredSessionVideoIds currentVideoId playbackPosition currentVideoDuration isPlaying playbackTimeCounter lastPlaybackPosition stopRequestedVideoId hasDetectedViewer paymentSessionResetPending unblockProtectionUntil'
   ).split(' ')) {
     if (source[field] !== undefined) target[field] = source[field];
   }

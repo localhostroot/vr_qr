@@ -296,6 +296,62 @@ test('expired session autoplay is stopped without re-blocking the unlocked main 
   assert.equal(client.activity, 0);
 });
 
+test('unlock acknowledgement is not lost during concurrent processing and prevents an immediate re-block', async () => {
+  const client = createClient({
+    activity: 2,
+    queue: [],
+    isProcessing: true,
+  });
+  const headsetSocket = client.ws;
+  headsetSocket.location = client.location;
+  headsetSocket.userId = client.id;
+
+  await VRHandler.updateState(
+    headsetSocket,
+    { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
+    {
+      params: {
+        activity: 2,
+        userPresent: false,
+        details: { unblockAllowed: true },
+      },
+    },
+    [client],
+    [],
+  );
+
+  assert.ok(client.unblockProtectionUntil > Date.now());
+
+  client.isProcessing = false;
+  await VRHandler.updateState(
+    headsetSocket,
+    { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
+    {
+      params: {
+        activity: 1,
+        userPresent: false,
+        details: { videoId: 'film-unpaid', isPlaying: true, playbackPosition: 0 },
+      },
+    },
+    [client],
+    [],
+  );
+
+  assert.deepEqual(client.ws.messages.map(message => message.type), ['videoStopRequested']);
+  assert.equal(client.pendingPaymentBlock, null);
+
+  await VRHandler.updateState(
+    headsetSocket,
+    { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
+    { params: { activity: 0, userPresent: false, details: {} } },
+    [client],
+    [],
+  );
+
+  assert.equal(client.ws.messages.some(message => message.type === 'resetClient'), false);
+  assert.equal(client.activity, 0);
+});
+
 test('unpaid film selected in the headset shows the payment QR instruction', async () => {
   const client = createClient({ activity: 0, queue: [] });
   const headsetSocket = client.ws;
