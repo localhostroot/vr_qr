@@ -9,7 +9,7 @@
 		"videoRenderScale": 1.6,
     "resetTimeout": 60,
     "blockScreen":{
-			"unlockableStateText": "Для начала просмотра наведите\n и удерживайте красную точку\n на кнопке ниже",
+			"unlockableStateText": "Для начала просмотра наведите\n и удерживайте синюю точку\n на кнопке ниже",
 			"lockedStateText": "Сеанс завершен",
 			"unlockableStateButton": {
 				"label": "Начать просмотр"
