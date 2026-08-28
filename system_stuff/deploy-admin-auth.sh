@@ -2,8 +2,9 @@
 set -eu
 
 CODE_ARCHIVE=${1:?code archive is required}
-PASSWORD_FILE=${2:?password file is required}
-DEPLOY_STAMP=${3:-$(date +%Y%m%d-%H%M%S)}
+FRONTEND_ARCHIVE=${2:?frontend source archive is required}
+PASSWORD_FILE=${3:?password file is required}
+DEPLOY_STAMP=${4:-$(date +%Y%m%d-%H%M%S)}
 
 APP_ROOT=/opt/qr_app
 SRV_DIR=$APP_ROOT/srv
@@ -65,6 +66,7 @@ case "$PASSWORD_FILE" in
   *) echo "Unexpected password path: $PASSWORD_FILE" >&2; exit 1 ;;
 esac
 [ -f "$CODE_ARCHIVE" ]
+[ -f "$FRONTEND_ARCHIVE" ]
 [ -f "$PASSWORD_FILE" ]
 [ -f "$ENV_FILE" ]
 [ -x "$SRV_DIR/venv/bin/python" ]
@@ -87,15 +89,25 @@ tar -tzf "$CODE_ARCHIVE" | while IFS= read -r archive_path; do
 done
 [ "$(tar -tzf "$CODE_ARCHIVE" | wc -l)" -eq 6 ]
 
+tar -tzf "$FRONTEND_ARCHIVE" | while IFS= read -r archive_path; do
+  case "$archive_path" in
+    /*|../*|*/../*)
+      echo "Unsafe path in frontend archive: $archive_path" >&2
+      exit 1
+      ;;
+  esac
+done
+tar -tzf "$FRONTEND_ARCHIVE" | grep '^package.json$' >/dev/null
+tar -tzf "$FRONTEND_ARCHIVE" | grep '^svelte.config.js$' >/dev/null
+tar -tzf "$FRONTEND_ARCHIVE" | grep '^src/routes/+layout.svelte$' >/dev/null
+
 mkdir -p "$BACKUP_DIR" "$WORK_DIR/code" "$WORK_DIR/frontend"
 sqlite3 "$SRV_DIR/db.sqlite3" ".backup '$BACKUP_DIR/srv-db.sqlite3'"
 sqlite3 "$BACKUP_DIR/srv-db.sqlite3" 'PRAGMA quick_check;' | grep '^ok$' >/dev/null
 tar -czf "$BACKUP_DIR/source-files.tar.gz" -C "$APP_ROOT" \
   srv/database/api.py \
   srv/database/tests.py \
-  srv/srv/settings.py \
-  qr2/src/routes/+layout.svelte \
-  qr2/src/routes/site-admin/+page.svelte
+  srv/srv/settings.py
 if [ -f "$SRV_DIR/database/admin_auth.py" ]; then
   cp -a "$SRV_DIR/database/admin_auth.py" "$BACKUP_DIR/admin_auth.py"
   ADMIN_AUTH_EXISTED=1
@@ -105,16 +117,18 @@ tar -czf "$BACKUP_DIR/frontend-build.tar.gz" -C "$FRONTEND_DIR" build
 BACKUP_READY=1
 
 tar -xzf "$CODE_ARCHIVE" -C "$WORK_DIR/code"
-tar -cf - -C "$FRONTEND_DIR" \
-  --exclude=node_modules --exclude=build --exclude=.svelte-kit . | \
-  tar -xf - -C "$WORK_DIR/frontend"
+tar -xzf "$FRONTEND_ARCHIVE" -C "$WORK_DIR/frontend"
 ln -s "$FRONTEND_DIR/node_modules" "$WORK_DIR/frontend/node_modules"
 mkdir -p "$WORK_DIR/frontend/src/routes/site-admin"
 cp -a "$WORK_DIR/code/qr_svelte5/src/routes/+layout.svelte" \
   "$WORK_DIR/frontend/src/routes/+layout.svelte"
 cp -a "$WORK_DIR/code/qr_svelte5/src/routes/site-admin/+page.svelte" \
   "$WORK_DIR/frontend/src/routes/site-admin/+page.svelte"
-(cd "$WORK_DIR/frontend" && npm run build)
+(cd "$WORK_DIR/frontend" && \
+  PUBLIC_DATABASE=https://cinema.local.vr360.pro/ \
+  PUBLIC_BACKEND=wss://cinema.local.vr360.pro/control/api/ \
+  PUBLIC_STAT=https://cinema.local.vr360.pro/ \
+  npm run build)
 [ -f "$WORK_DIR/frontend/build/index.js" ]
 
 INSTALL_STARTED=1
@@ -123,10 +137,6 @@ cp -a "$WORK_DIR/code/srv/database/admin_auth.py" \
 cp -a "$WORK_DIR/code/srv/database/api.py" "$SRV_DIR/database/api.py"
 cp -a "$WORK_DIR/code/srv/database/tests.py" "$SRV_DIR/database/tests.py"
 cp -a "$WORK_DIR/code/srv/srv/settings.py" "$SRV_DIR/srv/settings.py"
-cp -a "$WORK_DIR/code/qr_svelte5/src/routes/+layout.svelte" \
-  "$FRONTEND_DIR/src/routes/+layout.svelte"
-cp -a "$WORK_DIR/code/qr_svelte5/src/routes/site-admin/+page.svelte" \
-  "$FRONTEND_DIR/src/routes/site-admin/+page.svelte"
 
 env_tmp=$(mktemp /etc/qr_app/.srv.env.XXXXXX)
 grep -v '^SITE_ADMIN_PASSWORD=' "$ENV_FILE" > "$env_tmp"
