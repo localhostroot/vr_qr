@@ -2,7 +2,8 @@
 set -eu
 
 CODE_ARCHIVE=${1:?code archive is required}
-DEPLOY_STAMP=${2:-$(date +%Y%m%d-%H%M%S)}
+FRONTEND_ARCHIVE=${2:?frontend archive is required}
+DEPLOY_STAMP=${3:-$(date +%Y%m%d-%H%M%S)}
 
 APP_ROOT=/opt/qr_app
 SRV_DIR=$APP_ROOT/srv
@@ -12,8 +13,15 @@ BACKUP_DIR=$APP_ROOT/backups/viewer-session-$DEPLOY_STAMP
 WORK_DIR=$(mktemp -d "$APP_ROOT/.viewer-session-deploy.XXXXXX")
 
 BACKUP_READY=0
-SOURCE_INSTALLED=0
+SOURCE_INSTALL_STARTED=0
 FRONTEND_SWITCHED=0
+
+cleanup_work() {
+  case "$WORK_DIR" in
+    /opt/qr_app/.viewer-session-deploy.*) rm -rf "$WORK_DIR" ;;
+    *) echo "Refusing to remove unexpected work directory: $WORK_DIR" >&2 ;;
+  esac
+}
 
 rollback() {
   exit_code=$?
@@ -24,13 +32,11 @@ rollback() {
 
   if [ "$BACKUP_READY" -eq 1 ]; then
     systemctl stop qr2.service control_server.service srv.service
-
     cp -a "$BACKUP_DIR/srv-db.sqlite3" "$SRV_DIR/db.sqlite3"
 
-    if [ "$SOURCE_INSTALLED" -eq 1 ]; then
+    if [ "$SOURCE_INSTALL_STARTED" -eq 1 ]; then
       tar -xzf "$BACKUP_DIR/source-files.tar.gz" -C "$APP_ROOT"
       rm -f "$CONTROL_DIR/utils/viewerIdentity.js"
-      rm -f "$FRONTEND_DIR/src/lib/utils/viewerSession.js"
       rm -f "$SRV_DIR/database/viewer_identity.py"
       rm -f "$SRV_DIR/database/migrations/0015_order_viewer_session_id.py"
       rm -f "$SRV_DIR/database/migrations/0016_normalize_numeric_viewer_ids.py"
@@ -47,7 +53,7 @@ rollback() {
     systemctl start srv.service control_server.service qr2.service
   fi
 
-  rm -rf "$WORK_DIR"
+  cleanup_work
   exit "$exit_code"
 }
 trap rollback EXIT HUP INT TERM
@@ -56,13 +62,17 @@ trap rollback EXIT HUP INT TERM
 [ "$SRV_DIR" = /opt/qr_app/srv ]
 [ "$CONTROL_DIR" = /opt/qr_app/control_server ]
 [ "$FRONTEND_DIR" = /opt/qr_app/qr2 ]
+case "$BACKUP_DIR" in
+  /opt/qr_app/backups/viewer-session-*) ;;
+  *) echo "Unexpected backup path: $BACKUP_DIR" >&2; exit 1 ;;
+esac
 [ -f "$CODE_ARCHIVE" ]
-[ -d "$FRONTEND_DIR/node_modules" ]
+[ -f "$FRONTEND_ARCHIVE" ]
 [ -x "$SRV_DIR/venv/bin/python" ]
 
 tar -tzf "$CODE_ARCHIVE" | while IFS= read -r archive_path; do
   case "$archive_path" in
-    control_server/controllers/index.js|control_server/handlers/index.js|control_server/services/paidPlayback.js|control_server/test/paidPlayback.test.js|control_server/test/queue.test.js|control_server/utils/viewerIdentity.js|qr_svelte5/src/lib/constants/localStorageKeys.js|qr_svelte5/src/lib/utils/+paykeeperPayment.svelte.js|qr_svelte5/src/lib/utils/paymentStatusChecker.js|qr_svelte5/src/lib/utils/viewerSession.js|qr_svelte5/src/routes/payment-result/+page.svelte|srv/database/api.py|srv/database/models.py|srv/database/payment_processor.py|srv/database/tests.py|srv/database/viewer_identity.py|srv/database/migrations/0015_order_viewer_session_id.py|srv/database/migrations/0016_normalize_numeric_viewer_ids.py)
+    control_server/controllers/index.js|control_server/handlers/index.js|control_server/services/paidPlayback.js|control_server/test/paidPlayback.test.js|control_server/test/queue.test.js|control_server/utils/viewerIdentity.js|srv/database/api.py|srv/database/models.py|srv/database/payment_processor.py|srv/database/tests.py|srv/database/viewer_identity.py|srv/database/migrations/0015_order_viewer_session_id.py|srv/database/migrations/0016_normalize_numeric_viewer_ids.py)
       ;;
     *)
       echo "Unexpected path in code archive: $archive_path" >&2
@@ -70,6 +80,21 @@ tar -tzf "$CODE_ARCHIVE" | while IFS= read -r archive_path; do
       ;;
   esac
 done
+
+tar -tzf "$FRONTEND_ARCHIVE" | while IFS= read -r archive_path; do
+  case "$archive_path" in
+    build|build/|build/*)
+      case "$archive_path" in
+        /*|*../*|*/..|..) echo "Unsafe frontend archive path: $archive_path" >&2; exit 1 ;;
+      esac
+      ;;
+    *)
+      echo "Unexpected path in frontend archive: $archive_path" >&2
+      exit 1
+      ;;
+  esac
+done
+tar -tzf "$FRONTEND_ARCHIVE" | grep '^build/index.js$' >/dev/null
 
 mkdir -p "$BACKUP_DIR"
 sqlite3 "$SRV_DIR/db.sqlite3" ".backup '$BACKUP_DIR/srv-db.sqlite3'"
@@ -79,10 +104,6 @@ tar -czf "$BACKUP_DIR/source-files.tar.gz" -C "$APP_ROOT" \
   control_server/services/paidPlayback.js \
   control_server/test/paidPlayback.test.js \
   control_server/test/queue.test.js \
-  qr2/src/lib/constants/localStorageKeys.js \
-  qr2/src/lib/utils/+paykeeperPayment.svelte.js \
-  qr2/src/lib/utils/paymentStatusChecker.js \
-  qr2/src/routes/payment-result/+page.svelte \
   srv/database/api.py \
   srv/database/models.py \
   srv/database/payment_processor.py \
@@ -91,7 +112,6 @@ tar -czf "$BACKUP_DIR/source-files.tar.gz" -C "$APP_ROOT" \
 optional_backup_files=
 for optional_path in \
   control_server/utils/viewerIdentity.js \
-  qr2/src/lib/utils/viewerSession.js \
   srv/database/viewer_identity.py \
   srv/database/migrations/0015_order_viewer_session_id.py \
   srv/database/migrations/0016_normalize_numeric_viewer_ids.py
@@ -107,51 +127,13 @@ if [ -n "$optional_backup_files" ]; then
 fi
 BACKUP_READY=1
 
-mkdir -p "$WORK_DIR/code"
+mkdir -p "$WORK_DIR/code" "$WORK_DIR/frontend"
 tar -xzf "$CODE_ARCHIVE" -C "$WORK_DIR/code"
-
-# Build away from the live frontend. Preserve private values embedded in the
-# current production bundle without printing them to deployment logs.
-PRIVATE_CHUNK=$(find "$FRONTEND_DIR/build/server/chunks" -maxdepth 1 -type f -name 'private-*.js' -print -quit)
-[ -n "$PRIVATE_CHUNK" ]
-PRIVATE_STATS_LOGIN=$(sed -n 's/^const PRIVATE_STATS_LOGIN = "\(.*\)";$/\1/p' "$PRIVATE_CHUNK")
-PRIVATE_STATS_PASSWORD=$(sed -n 's/^const PRIVATE_STATS_PASSWORD = "\(.*\)";$/\1/p' "$PRIVATE_CHUNK")
-PRIVATE_STATISTICS_SERVER_URL=$(sed -n 's/^const PRIVATE_STATISTICS_SERVER_URL = "\(.*\)";$/\1/p' "$PRIVATE_CHUNK")
-PRIVATE_STATS_TOKEN=$(sed -n 's/^const PRIVATE_STATS_TOKEN = "\(.*\)";$/\1/p' "$PRIVATE_CHUNK")
-[ -n "$PRIVATE_STATS_LOGIN" ]
-[ -n "$PRIVATE_STATS_PASSWORD" ]
-[ -n "$PRIVATE_STATISTICS_SERVER_URL" ]
-[ -n "$PRIVATE_STATS_TOKEN" ]
-export PRIVATE_STATS_LOGIN PRIVATE_STATS_PASSWORD PRIVATE_STATISTICS_SERVER_URL PRIVATE_STATS_TOKEN
-
-mkdir -p "$WORK_DIR/frontend"
-tar -cf - \
-  --exclude='./build' \
-  --exclude='./node_modules' \
-  --exclude='./.svelte-kit' \
-  -C "$FRONTEND_DIR" . | tar -xf - -C "$WORK_DIR/frontend"
-ln -s "$FRONTEND_DIR/node_modules" "$WORK_DIR/frontend/node_modules"
-mkdir -p \
-  "$WORK_DIR/frontend/src/lib/constants" \
-  "$WORK_DIR/frontend/src/lib/utils" \
-  "$WORK_DIR/frontend/src/routes/payment-result"
-cp -a "$WORK_DIR/code/qr_svelte5/src/lib/constants/localStorageKeys.js" "$WORK_DIR/frontend/src/lib/constants/localStorageKeys.js"
-cp -a "$WORK_DIR/code/qr_svelte5/src/lib/utils/+paykeeperPayment.svelte.js" "$WORK_DIR/frontend/src/lib/utils/+paykeeperPayment.svelte.js"
-cp -a "$WORK_DIR/code/qr_svelte5/src/lib/utils/paymentStatusChecker.js" "$WORK_DIR/frontend/src/lib/utils/paymentStatusChecker.js"
-cp -a "$WORK_DIR/code/qr_svelte5/src/lib/utils/viewerSession.js" "$WORK_DIR/frontend/src/lib/utils/viewerSession.js"
-cp -a "$WORK_DIR/code/qr_svelte5/src/routes/payment-result/+page.svelte" "$WORK_DIR/frontend/src/routes/payment-result/+page.svelte"
-
-(
-  cd "$WORK_DIR/frontend"
-  NODE_ENV=production \
-  PUBLIC_DATABASE=https://cinema.local.vr360.pro/ \
-  PUBLIC_BACKEND=wss://cinema.local.vr360.pro/control/api/ \
-  PUBLIC_STAT=https://stats.local.vr360.pro/api \
-  node node_modules/vite/bin/vite.js build
-)
+tar -xzf "$FRONTEND_ARCHIVE" -C "$WORK_DIR/frontend"
 [ -f "$WORK_DIR/frontend/build/index.js" ]
 
-mkdir -p "$CONTROL_DIR/utils" "$CONTROL_DIR/test" "$FRONTEND_DIR/src/lib/utils"
+mkdir -p "$CONTROL_DIR/utils" "$CONTROL_DIR/test"
+SOURCE_INSTALL_STARTED=1
 cp -a "$WORK_DIR/code/control_server/controllers/index.js" "$CONTROL_DIR/controllers/index.js"
 cp -a "$WORK_DIR/code/control_server/handlers/index.js" "$CONTROL_DIR/handlers/index.js"
 cp -a "$WORK_DIR/code/control_server/services/paidPlayback.js" "$CONTROL_DIR/services/paidPlayback.js"
@@ -165,12 +147,6 @@ cp -a "$WORK_DIR/code/srv/database/tests.py" "$SRV_DIR/database/tests.py"
 cp -a "$WORK_DIR/code/srv/database/viewer_identity.py" "$SRV_DIR/database/viewer_identity.py"
 cp -a "$WORK_DIR/code/srv/database/migrations/0015_order_viewer_session_id.py" "$SRV_DIR/database/migrations/0015_order_viewer_session_id.py"
 cp -a "$WORK_DIR/code/srv/database/migrations/0016_normalize_numeric_viewer_ids.py" "$SRV_DIR/database/migrations/0016_normalize_numeric_viewer_ids.py"
-cp -a "$WORK_DIR/code/qr_svelte5/src/lib/constants/localStorageKeys.js" "$FRONTEND_DIR/src/lib/constants/localStorageKeys.js"
-cp -a "$WORK_DIR/code/qr_svelte5/src/lib/utils/+paykeeperPayment.svelte.js" "$FRONTEND_DIR/src/lib/utils/+paykeeperPayment.svelte.js"
-cp -a "$WORK_DIR/code/qr_svelte5/src/lib/utils/paymentStatusChecker.js" "$FRONTEND_DIR/src/lib/utils/paymentStatusChecker.js"
-cp -a "$WORK_DIR/code/qr_svelte5/src/lib/utils/viewerSession.js" "$FRONTEND_DIR/src/lib/utils/viewerSession.js"
-cp -a "$WORK_DIR/code/qr_svelte5/src/routes/payment-result/+page.svelte" "$FRONTEND_DIR/src/routes/payment-result/+page.svelte"
-SOURCE_INSTALLED=1
 
 (cd "$SRV_DIR" && venv/bin/python manage.py makemigrations --check --dry-run)
 (cd "$SRV_DIR" && venv/bin/python manage.py test database)
@@ -182,7 +158,7 @@ systemctl stop qr2.service control_server.service srv.service
 mv "$FRONTEND_DIR/build" "$BACKUP_DIR/frontend-build"
 FRONTEND_SWITCHED=1
 mv "$WORK_DIR/frontend/build" "$FRONTEND_DIR/build"
-rm -rf "$WORK_DIR"
+cleanup_work
 
 systemctl start srv.service control_server.service qr2.service
 
