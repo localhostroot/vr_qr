@@ -290,6 +290,26 @@ class PaymentInvoiceTests(TestCase):
             'films': [{'film_id': self.film.film_id, 'series': False}],
         }
 
+    @override_settings(PAID_ACCESS_DURATION_HOURS=1)
+    def test_paid_access_default_duration_is_one_hour(self):
+        order = Order.objects.create(
+            user_id='VDNH/30',
+            amount=150,
+            description='Paid access duration test',
+            order_id='paid-duration-test',
+            status='pending',
+        )
+        earliest_expiry = timezone.now() + timezone.timedelta(hours=1)
+
+        self.assertTrue(
+            PaymentProcessor.process_successful_payment(order, 'payment-test')
+        )
+
+        latest_expiry = timezone.now() + timezone.timedelta(hours=1)
+        token = order.payment_token
+        self.assertGreaterEqual(token.expires_at, earliest_expiry)
+        self.assertLessEqual(token.expires_at, latest_expiry)
+
     def bundle_payload(self, films=None):
         return {
             'user_id': 'VDNH/30',

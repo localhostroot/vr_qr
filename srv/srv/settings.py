@@ -38,6 +38,13 @@ FREE_ACCESS_DURATION_HOURS = max(
     int(os.environ.get('FREE_ACCESS_DURATION_HOURS', '168')),
 )
 
+# Paid purchases remain available for this many hours after confirmation.
+# This is intentionally separate from the long-lived free-viewer access.
+PAID_ACCESS_DURATION_HOURS = max(
+    1,
+    int(os.environ.get('PAID_ACCESS_DURATION_HOURS', '1')),
+)
+
 # Optional shared secret for control-server requests when Django and the
 # control server do not communicate directly over loopback.
 CONTROL_SERVER_SHARED_SECRET = os.environ.get('CONTROL_SERVER_SHARED_SECRET', '')

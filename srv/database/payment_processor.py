@@ -4,6 +4,7 @@ Shared payment processing utilities for handling successful payments
 import logging
 import secrets
 from decimal import Decimal
+from django.conf import settings
 from django.utils import timezone
 from .models import Order, OrderItem, PaymentToken, PaidFilm
 
@@ -12,6 +13,11 @@ logger = logging.getLogger(__name__)
 
 class PaymentProcessor:
     """Handles the business logic for processing successful payments"""
+
+    @staticmethod
+    def default_access_duration():
+        """Return the configured access window for paid purchases."""
+        return timezone.timedelta(hours=settings.PAID_ACCESS_DURATION_HOURS)
 
     @staticmethod
     def merge_active_user_films(target_token: PaymentToken) -> int:
@@ -73,7 +79,9 @@ class PaymentProcessor:
             
             # Create payment token
             expires_at = timezone.now() + (
-                access_duration or timezone.timedelta(hours=2)
+                access_duration
+                if access_duration is not None
+                else PaymentProcessor.default_access_duration()
             )
             token_string = secrets.token_hex(32)
             

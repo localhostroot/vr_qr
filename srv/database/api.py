@@ -1002,7 +1002,9 @@ class AdminViewSet(viewsets.ViewSet):
                 logger.info(f"Admin: заказ {order_id} вручную помечен как оплаченный")
             
             # Create new token
-            expires_at = timezone.now() + timezone.timedelta(hours=2)
+            expires_at = (
+                timezone.now() + PaymentProcessor.default_access_duration()
+            )
             token_string = secrets.token_hex(32)
             
             logger.info(f"Admin: создаем токен доступа для заказа {order_id}")
@@ -1096,7 +1098,9 @@ class AdminViewSet(viewsets.ViewSet):
                 pass  # Good, no existing token
             
             # Create new token
-            expires_at = timezone.now() + timezone.timedelta(hours=2)
+            expires_at = (
+                timezone.now() + PaymentProcessor.default_access_duration()
+            )
             token_string = secrets.token_hex(32)
             
             logger.info(f"Admin: создаем токен доступа для заказа {order_id}")
