@@ -501,6 +501,36 @@ class ViewerAccessRecoveryTests(TestCase):
         self.assertEqual(unpaid_response.status_code, 200)
         self.assertFalse(unpaid_response.data['valid'])
 
+    def test_active_browser_session_unlocks_film_from_inactive_follow_up_token(self):
+        self.new_token.headset_session_active = False
+        self.new_token.save(update_fields=('headset_session_active',))
+
+        response = self.client.post(
+            reverse('tokens-viewer-film-access'),
+            {'user_id': self.viewer_id, 'film_id': 'film-b'},
+            format='json',
+            REMOTE_ADDR='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['valid'])
+
+    def test_active_headset_does_not_unlock_another_browser_session(self):
+        self.new_order.viewer_session_id = uuid.uuid4()
+        self.new_order.save(update_fields=('viewer_session_id',))
+        self.new_token.headset_session_active = False
+        self.new_token.save(update_fields=('headset_session_active',))
+
+        response = self.client.post(
+            reverse('tokens-viewer-film-access'),
+            {'user_id': self.viewer_id, 'film_id': 'film-b'},
+            format='json',
+            REMOTE_ADDR='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data['valid'])
+
     @override_settings(CONTROL_SERVER_SHARED_SECRET='test-control-secret')
     def test_forwarded_session_reset_requires_control_server_secret(self):
         reset_url = reverse('tokens-end-viewer-session')

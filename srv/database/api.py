@@ -3,6 +3,7 @@ import secrets
 import uuid
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 import requests
 from .models import Category, Movie, Order, OrderItem, PaidFilm, PaymentToken
 from rest_framework import viewsets, permissions, status
@@ -829,13 +830,29 @@ class TokenViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        active_browser_sessions = PaymentToken.objects.filter(
+            order__user_id=user_id,
+            order__status__in=('paid', 'checked'),
+            order__viewer_session_id__isnull=False,
+            is_active=True,
+            headset_session_active=True,
+            expires_at__gt=timezone.now(),
+        ).values('order__viewer_session_id')
+
+        # The lease belongs to the visitor/browser session, not to one order.
+        # A later purchase in the same session may still be represented by an
+        # inactive token until the phone is used again.  Its films must remain
+        # available while another token from that exact session owns the
+        # active headset lease.
         access_exists = PaidFilm.objects.filter(
             token__order__user_id=user_id,
             token__order__status__in=('paid', 'checked'),
             token__is_active=True,
-            token__headset_session_active=True,
             token__expires_at__gt=timezone.now(),
             film_id=film_id,
+        ).filter(
+            Q(token__headset_session_active=True)
+            | Q(token__order__viewer_session_id__in=active_browser_sessions)
         ).exists()
 
         return Response({
