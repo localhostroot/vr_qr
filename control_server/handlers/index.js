@@ -31,6 +31,11 @@ const PAYMENT_CHECK_FAILED_MESSAGE = (
 );
 const PAYMENT_BLOCK_FALLBACK_MS = 3_000;
 const UNBLOCK_TRANSITION_PROTECTION_MS = 30_000;
+const DEBUG_STATE_LOGS = process.env.CONTROL_DEBUG_STATE === 'true';
+
+const debugState = (...values) => {
+  if (DEBUG_STATE_LOGS) console.log(...values);
+};
 
 const isVideoIdPresent = (videoId) => (
   videoId !== null && videoId !== undefined && videoId !== ''
@@ -840,7 +845,7 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
         client.lastPlaybackPosition = 0;
     }
     client.currentVideoId = currentVideoId;
-    console.log(`Теперь воспроизводится фильм ${currentVideoId}`);
+    debugState(`Теперь воспроизводится фильм ${currentVideoId}`);
   };
   
   const handlePlayback = (client, details, playbackPosition) => {
@@ -856,13 +861,13 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
 
     updatePaidPlaybackSession(client, details);
 
-    console.log(`${details.isPlaying}`);
+    debugState(`${details.isPlaying}`);
     if (details.isPlaying) {
       client.playbackTimeCounter += 1;
       client.lastPlaybackPosition = playbackPosition;
-      console.log(`playbackTimeCounter iувеличен: ${client.playbackTimeCounter}`);
+      debugState(`playbackTimeCounter увеличен: ${client.playbackTimeCounter}`);
     } else {
-      console.log("видео не играет");
+      debugState("видео не играет");
     }
   };
   
@@ -881,9 +886,9 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
 
     if (client.currentVideoId) {
         console.log(`Фильм ${client.currentVideoId} завершен.`);
-        console.log(`playbackTimeCounter: ${client.playbackTimeCounter}`);
+        debugState(`playbackTimeCounter: ${client.playbackTimeCounter}`);
         const isInQueue = queueHasVideo(client.queue, client.currentVideoId);
-        console.log(`isInQueue: ${isInQueue}`);
+        debugState(`isInQueue: ${isInQueue}`);
         if (isInQueue) {
             console.log(`Удаляем фильм ${client.currentVideoId} из очереди.`);
             client.queue = removeVideoFromQueue(client.queue, client.currentVideoId);
@@ -906,8 +911,8 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
   
   const onUpdateState = async (ws, req, payload, clients, ids, presenceHistory) => {
     const ipv4 = req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    console.log(`updateState: запрос от клиента с IP ${ipv4}`);
-    console.log("Полученные параметры:", payload.params);
+    debugState(`updateState: запрос от клиента с IP ${ipv4}`);
+    debugState("Полученные параметры:", payload.params);
     let foundClient = null;
     for (const client of clients) {
       if (client.location === ws.location && client.id === ws.userId) {
@@ -916,12 +921,12 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
       }
     }
 
-    console.log("Нашли клиента:");
-    console.log(foundClient?.ip);
-    console.log(`${foundClient?.location}:${foundClient?.id}`);
+    debugState("Нашли клиента:");
+    debugState(foundClient?.ip);
+    debugState(`${foundClient?.location}:${foundClient?.id}`);
 
     if (foundClient) {
-      console.log(`Найден клиент с location: ${foundClient.location} и ID: ${foundClient.id}`);
+      debugState(`Найден клиент с location: ${foundClient.location} и ID: ${foundClient.id}`);
       if (!foundClient.params) foundClient.params = {};
       if (!foundClient.playbackTimeCounter) foundClient.playbackTimeCounter = 0;
       if (!foundClient.lastPlaybackPosition) foundClient.lastPlaybackPosition = 0;
@@ -950,7 +955,7 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
           foundClient.activity = currentActivity;
           foundClient.userPresent = payload.params.userPresent;
           foundClient.lastSeenAt = Date.now();
-          console.log(`Обновлен activity клиента ${foundClient.id}: ${currentActivity}, userPresent: ${foundClient.userPresent}`);
+          debugState(`Обновлен activity клиента ${foundClient.id}: ${currentActivity}, userPresent: ${foundClient.userPresent}`);
 
           if (currentActivity !== 1 && foundClient.pendingPaymentBlock) {
               await handleEndVideo(foundClient);

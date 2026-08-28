@@ -5,5 +5,8 @@ After=srv.service
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/qr_app/srv
+EnvironmentFile=/etc/qr_app/srv.env
+Nice=10
+IOSchedulingClass=idle
+ExecStart=/opt/qr_app/srv/venv/bin/python manage.py backup_database --destination /opt/qr_app/backups/daily-db --keep 14
 ExecStart=/opt/qr_app/srv/venv/bin/python manage.py cleanup_access_state
-

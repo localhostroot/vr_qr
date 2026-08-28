@@ -172,7 +172,12 @@ class PaymentProcessor:
                 expires_at=expires_at,
                 headset_session_active=inherit_headset_session,
             )
-            logger.info(f"Payment processor: Token {token_string} created for order {order.order_id}")
+            logger.info(
+                "payment_token_created order_id=%s viewer_id=%s expires_at=%s",
+                order.order_id,
+                order.user_id,
+                expires_at.isoformat(),
+            )
             
             # Process order items and create paid films
             order_items = OrderItem.objects.filter(order=order)
@@ -202,7 +207,13 @@ class PaymentProcessor:
                     order__payment_id__startswith='free:',
                 ).update(headset_session_active=False)
 
-            logger.info(f"Payment processor: Order {order.order_id} fully processed with token {token_string}")
+            logger.info(
+                "payment_processed order_id=%s viewer_id=%s films=%s headset_session_active=%s",
+                order.order_id,
+                order.user_id,
+                order_items.count(),
+                inherit_headset_session,
+            )
             return True
             
         except Exception as e:

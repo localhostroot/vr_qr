@@ -45,6 +45,18 @@ const finiteNonNegative = (value, fallback = 0) => {
   return Number.isFinite(number) && number >= 0 ? number : fallback;
 };
 
+const logAccessDecision = ({ viewerId, filmId, channel, decision, reason }) => {
+  console.log(JSON.stringify({
+    timestamp: new Date().toISOString(),
+    event: 'access_decision',
+    viewer_id: viewerId || null,
+    film_id: filmId === null || filmId === undefined ? null : String(filmId),
+    channel,
+    decision,
+    reason,
+  }));
+};
+
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 export const verifyPaidAccess = async (
@@ -72,10 +84,36 @@ export const verifyPaidAccess = async (
         user_id: viewerId,
       }),
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      logAccessDecision({
+        viewerId,
+        filmId: videoId,
+        channel: 'phone',
+        decision: 'denied',
+        reason: `payment_api_http_${response.status}`,
+      });
+      return null;
+    }
 
     const data = await response.json();
-    if (!data.valid || !data.film_valid || !data.payment_confirmed) return null;
+    if (!data.valid || !data.film_valid || !data.payment_confirmed) {
+      logAccessDecision({
+        viewerId,
+        filmId: videoId,
+        channel: 'phone',
+        decision: 'denied',
+        reason: 'payment_not_confirmed',
+      });
+      return null;
+    }
+
+    logAccessDecision({
+      viewerId: data.viewer_id || viewerId,
+      filmId: videoId,
+      channel: 'phone',
+      decision: 'allowed',
+      reason: 'paid_token',
+    });
 
     return {
       verifiedAt: Date.now(),
@@ -83,6 +121,13 @@ export const verifyPaidAccess = async (
     };
   } catch (error) {
     console.error('Не удалось проверить оплату перед запуском:', error);
+    logAccessDecision({
+      viewerId,
+      filmId: videoId,
+      channel: 'phone',
+      decision: 'error',
+      reason: 'payment_api_unavailable',
+    });
     return null;
   }
 };
@@ -112,6 +157,13 @@ export const checkViewerFilmAccess = async (
     });
 
     if (!response.ok) {
+      logAccessDecision({
+        viewerId: buildViewerId(client.location, client.id),
+        filmId,
+        channel: 'headset',
+        decision: 'error',
+        reason: `access_api_http_${response.status}`,
+      });
       return { available: false, paid: false, freeAccess: false, authorization: null };
     }
 
@@ -119,6 +171,17 @@ export const checkViewerFilmAccess = async (
     const valid = data.success === true && data.valid === true;
     const freeAccess = valid && data.free_access === true;
     const paid = valid && !freeAccess && data.paid !== false;
+    logAccessDecision({
+      viewerId: data.viewer_id || buildViewerId(client.location, client.id),
+      filmId,
+      channel: 'headset',
+      decision: freeAccess ? 'allowed' : 'denied',
+      reason: freeAccess
+        ? 'free_config'
+        : paid
+          ? 'phone_start_required'
+          : 'payment_required',
+    });
     return {
       available: true,
       paid,
@@ -129,6 +192,13 @@ export const checkViewerFilmAccess = async (
     };
   } catch (error) {
     console.error('Не удалось проверить оплату фильма для очков:', error);
+    logAccessDecision({
+      viewerId: buildViewerId(client.location, client.id),
+      filmId,
+      channel: 'headset',
+      decision: 'error',
+      reason: 'access_api_unavailable',
+    });
     return { available: false, paid: false, freeAccess: false, authorization: null };
   }
 };
