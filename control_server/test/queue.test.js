@@ -340,7 +340,7 @@ test('headset lock clears one launch but the phone can launch the paid film agai
 });
 
 test('inactive stale headset film state does not re-block the unlocked main screen', async () => {
-  const client = createClient({ activity: 0, queue: [] });
+  const client = createClient({ activity: 2, userPresent: false, queue: [] });
   const headsetSocket = client.ws;
   headsetSocket.location = client.location;
   headsetSocket.userId = client.id;
@@ -350,8 +350,22 @@ test('inactive stale headset film state does not re-block the unlocked main scre
     { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
     {
       params: {
+        activity: 2,
+        userPresent: false,
+        details: { unblockAllowed: true },
+      },
+    },
+    [client],
+    [],
+  );
+
+  await VRHandler.updateState(
+    headsetSocket,
+    { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
+    {
+      params: {
         activity: 1,
-        userPresent: true,
+        userPresent: false,
         details: { videoId: 'stale-film', isPlaying: false, playbackPosition: 0 },
       },
     },
@@ -365,7 +379,7 @@ test('inactive stale headset film state does not re-block the unlocked main scre
     {
       params: {
         activity: 0,
-        userPresent: true,
+        userPresent: false,
         details: {},
       },
     },
@@ -375,9 +389,48 @@ test('inactive stale headset film state does not re-block the unlocked main scre
 
   assert.deepEqual(client.queue, []);
   assert.deepEqual(client.ws.messages, []);
-  assert.equal(client.pendingPaymentBlock, undefined);
+  assert.equal(client.pendingPaymentBlock, null);
   assert.equal(client.currentVideoId, null);
   assert.equal(client.activity, 0);
+});
+
+test('inactive unpaid selection from the main menu still shows the payment instruction', async () => {
+  const client = createClient({ activity: 0, queue: [] });
+  const headsetSocket = client.ws;
+  headsetSocket.location = client.location;
+  headsetSocket.userId = client.id;
+
+  await VRHandler.updateState(
+    headsetSocket,
+    { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
+    {
+      params: {
+        activity: 1,
+        userPresent: true,
+        details: { videoId: 'film-unpaid', isPlaying: false, playbackPosition: 0 },
+      },
+    },
+    [client],
+    [],
+  );
+
+  assert.deepEqual(client.ws.messages.map(message => message.type), ['videoStopRequested']);
+
+  await VRHandler.updateState(
+    headsetSocket,
+    { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
+    { params: { activity: 0, userPresent: true, details: {} } },
+    [client],
+    [],
+  );
+
+  const blockMessage = client.ws.messages.find(message => message.type === 'resetClient');
+  assert.equal(
+    blockMessage.data.text,
+    'Оплатите фильм по QR-коду, нанесенному на очки,\n' +
+      'затем нажмите «Смотреть» на телефоне.',
+  );
+  assert.equal(client.pendingPaymentBlock, null);
 });
 
 test('unlock acknowledgement is not lost during concurrent processing and prevents an immediate re-block', async () => {

@@ -754,7 +754,7 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
 };
 
 
-  const handleStartVideo = async (client, currentVideoId, details, ws) => {
+  const handleStartVideo = async (client, currentVideoId, details, ws, previousActivity = null) => {
     const playbackPosition = details.playbackPosition || 0;
 
     normalizeClientQueues(client);
@@ -766,11 +766,17 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
 
     if (!queueHasVideo(client.queue, currentVideoId)) {
       // Some headset builds briefly report the previously selected video while
-      // returning from the lock screen.  Do not treat that inactive snapshot as
-      // a new viewing attempt; the normal access check still runs as soon as the
-      // headset explicitly reports playback.
-      if (details.isPlaying === false) {
-        console.log(`Неактивное состояние фильма ${currentVideoId} без очереди пропущено до фактического запуска.`);
+      // returning directly from the lock screen. Suppress only that transition
+      // snapshot. Once the headset has reported the main menu (activity 0), an
+      // activity 0 -> 1 transition is a real selection even when the player
+      // refuses to start it and reports isPlaying=false; it must show the access
+      // instruction instead of failing silently.
+      if (
+        details.isPlaying === false
+        && isUnblockTransitionProtected(client)
+        && previousActivity !== 0
+      ) {
+        console.log(`Неактивное переходное состояние фильма ${currentVideoId} после разблокировки пропущено.`);
         return;
       }
 
@@ -938,6 +944,7 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
         foundClient.isProcessing = true;
 
         try {
+          const previousActivity = foundClient.activity;
           const currentActivity = payload.params.activity;
           const details = payload.params.details || {};
           foundClient.activity = currentActivity;
@@ -972,7 +979,7 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
 
           } else if (currentActivity === 1) {
               const currentVideoId = details.videoId;
-              await handleStartVideo(foundClient, currentVideoId, details, ws);
+              await handleStartVideo(foundClient, currentVideoId, details, ws, previousActivity);
           } else {
               await handleEndVideo(foundClient);
           }
