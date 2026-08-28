@@ -11,7 +11,7 @@ PRODUCTION_CATEGORY_PRICES = {
     'geo_02': 300,
     'kb_00': 150,
     'russia': 300,
-    'tv_00': 300,
+    'tyva': 300,
     'volga': 300,
 }
 
@@ -194,4 +194,3 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f'Цены восстановлены из снимка: {snapshot_path}',
         ))
-

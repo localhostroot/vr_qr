@@ -3,8 +3,8 @@ from django.db import models
 import uuid
 
 class Category(models.Model):
-    film_id = models.CharField(max_length=100, default='russia')
-    cat_id = models.CharField(max_length=100, default='tuva')
+    film_id = models.CharField(max_length=100, unique=True)
+    cat_id = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=100, unique=True)
     year = models.CharField(max_length=100)
     format = models.CharField(max_length=100)
@@ -28,7 +28,7 @@ class Category(models.Model):
 
 
 class Movie(models.Model):
-    film_id = models.CharField(max_length=100)
+    film_id = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=200)
     name_short = models.CharField(max_length=200)
     description = models.CharField(max_length=500)

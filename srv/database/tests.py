@@ -33,7 +33,7 @@ class ViewerAccessRecoveryTests(TestCase):
         for suffix in ('a', 'b'):
             Category.objects.create(
                 film_id=f'film-{suffix}',
-                cat_id='test',
+                cat_id=f'test-{suffix}',
                 name=f'Film {suffix.upper()}',
                 year='2026',
                 format='VR',
