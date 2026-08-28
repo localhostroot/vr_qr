@@ -718,6 +718,23 @@ const onLogin = async (ws, req, payload, clients, ids, presenceHistory) => {
     }
 
     if (!queueHasVideo(client.queue, currentVideoId)) {
+      if (queueHasVideo(client.expiredSessionVideoIds, currentVideoId)) {
+        if (details.isPlaying !== false) {
+          client.expiredSessionVideoIds = removeVideoFromQueue(
+            client.expiredSessionVideoIds,
+            currentVideoId,
+          );
+          client.stopRequestedVideoId = currentVideoId;
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'videoStopRequested' }));
+          }
+          console.log(`Запоздалый автозапуск фильма ${currentVideoId} из завершенного сеанса остановлен без повторной блокировки.`);
+        } else {
+          console.log(`Неактивное состояние фильма ${currentVideoId} из завершенного сеанса пропущено.`);
+        }
+        return;
+      }
+
       // Some headset builds briefly report the previously selected video while
       // returning from the lock screen.  Do not treat that inactive snapshot as
       // a new viewing attempt; the normal access check still runs as soon as the

@@ -255,6 +255,47 @@ test('inactive stale headset film state does not re-block the unlocked main scre
   assert.equal(client.activity, 0);
 });
 
+test('expired session autoplay is stopped without re-blocking the unlocked main screen', async () => {
+  const client = createClient({
+    activity: 0,
+    queue: [],
+    expiredSessionVideoIds: ['film-expired'],
+  });
+  const headsetSocket = client.ws;
+  headsetSocket.location = client.location;
+  headsetSocket.userId = client.id;
+
+  await VRHandler.updateState(
+    headsetSocket,
+    { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
+    {
+      params: {
+        activity: 1,
+        userPresent: false,
+        details: { videoId: 'film-expired', isPlaying: true, playbackPosition: 0 },
+      },
+    },
+    [client],
+    [],
+  );
+
+  assert.deepEqual(client.ws.messages.map(message => message.type), ['videoStopRequested']);
+  assert.deepEqual(client.expiredSessionVideoIds, []);
+  assert.equal(client.pendingPaymentBlock, undefined);
+
+  await VRHandler.updateState(
+    headsetSocket,
+    { connection: { remoteAddress: '127.0.0.1' }, headers: {} },
+    { params: { activity: 0, userPresent: false, details: {} } },
+    [client],
+    [],
+  );
+
+  assert.equal(client.ws.messages.some(message => message.type === 'resetClient'), false);
+  assert.equal(client.stopRequestedVideoId, null);
+  assert.equal(client.activity, 0);
+});
+
 test('unpaid film selected in the headset shows the payment QR instruction', async () => {
   const client = createClient({ activity: 0, queue: [] });
   const headsetSocket = client.ws;

@@ -126,6 +126,7 @@ test('presence timeout starts only after a viewer was detected', async () => {
   assert.equal(resets, 1);
   assert.deepEqual(client.queue, []);
   assert.deepEqual(client.pendingQueue, []);
+  assert.deepEqual(client.expiredSessionVideoIds, ['film-1', 'film-2']);
   assert.equal(client.paymentSessionResetPending, false);
 });
 

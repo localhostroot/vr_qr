@@ -182,6 +182,13 @@ export const checkViewerFilmAccess = async (
 };
 
 const clearViewerSessionState = async (client) => {
+  const expiredVideoIds = [
+    ...(Array.isArray(client.queue) ? client.queue : []),
+    ...(Array.isArray(client.pendingQueue) ? client.pendingQueue : []),
+    client.currentVideoId,
+  ].filter((videoId) => videoId !== null && videoId !== undefined && videoId !== '');
+  client.expiredSessionVideoIds = [...new Set(expiredVideoIds.map(String))];
+
   try {
     client.ws?.send?.(JSON.stringify({ type: 'videoStopRequested' }));
   } catch (error) {
@@ -417,7 +424,7 @@ export const finalizePaidPlaybackSession = async (
 
 const copyPlaybackFields = (target, source) => {
   for (const field of (
-    'activePlaybackSession paidAuthorizations queue pendingQueue currentVideoId playbackPosition currentVideoDuration isPlaying playbackTimeCounter lastPlaybackPosition stopRequestedVideoId hasDetectedViewer paymentSessionResetPending'
+    'activePlaybackSession paidAuthorizations queue pendingQueue expiredSessionVideoIds currentVideoId playbackPosition currentVideoDuration isPlaying playbackTimeCounter lastPlaybackPosition stopRequestedVideoId hasDetectedViewer paymentSessionResetPending'
   ).split(' ')) {
     if (source[field] !== undefined) target[field] = source[field];
   }
