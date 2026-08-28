@@ -1,8 +1,10 @@
 import json
 import uuid
 from decimal import Decimal
+from io import StringIO
 from unittest.mock import Mock, patch
 
+from django.core.management import call_command
 from django.test import SimpleTestCase, TestCase
 from django.test import override_settings
 from django.urls import reverse
@@ -844,6 +846,137 @@ class PaymentInvoiceTests(TestCase):
 
         self.assertTrue(enabled_response.data['free_access'])
         self.assertFalse(other_response.data['free_access'])
+
+    @override_settings(FREE_VIEWER_IDS=frozenset({'vdnh/30'}))
+    def test_free_viewer_has_direct_catalog_access_without_token(self):
+        response = self.client.post(
+            reverse('tokens-viewer-film-access'),
+            {'user_id': 'VDNH/30', 'film_id': self.film.film_id},
+            format='json',
+            REMOTE_ADDR='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['valid'])
+        self.assertTrue(response.data['free_access'])
+        self.assertFalse(response.data['paid'])
+        self.assertFalse(PaymentToken.objects.exists())
+
+    @override_settings(FREE_VIEWER_IDS=frozenset({'vdnh/30'}))
+    def test_free_viewer_cannot_start_unknown_catalog_film(self):
+        response = self.client.post(
+            reverse('tokens-viewer-film-access'),
+            {'user_id': 'VDNH/30', 'film_id': 'unknown-film'},
+            format='json',
+            REMOTE_ADDR='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data['valid'])
+        self.assertFalse(response.data['free_access'])
+
+    @override_settings(FREE_VIEWER_IDS=frozenset())
+    def test_legacy_free_token_does_not_keep_removed_viewer_free(self):
+        order = Order.objects.create(
+            user_id='VDNH/30',
+            amount=0,
+            description='Legacy free access',
+            order_id='legacy-free-order',
+            status='checked',
+            payment_id='free:legacy-free-order',
+        )
+        token = PaymentToken.objects.create(
+            token='legacy-free-token',
+            order=order,
+            expires_at=timezone.now() + timezone.timedelta(days=7),
+        )
+        PaidFilm.objects.create(
+            token=token,
+            film_id=self.film.film_id,
+            is_series=False,
+            price=0,
+        )
+
+        response = self.client.post(
+            reverse('tokens-viewer-film-access'),
+            {'user_id': 'VDNH/30', 'film_id': self.film.film_id},
+            format='json',
+            REMOTE_ADDR='127.0.0.1',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data['valid'])
+        self.assertFalse(response.data['free_access'])
+        self.assertFalse(response.data['paid'])
+
+    def test_access_cleanup_deactivates_only_legacy_free_and_expired_tokens(self):
+        def create_token(order_id, payment_id, expires_at):
+            order = Order.objects.create(
+                user_id='VDNH/40',
+                amount=0 if payment_id.startswith('free:') else 100,
+                description=order_id,
+                order_id=order_id,
+                status='checked',
+                payment_id=payment_id,
+            )
+            return PaymentToken.objects.create(
+                token=f'{order_id}-token',
+                order=order,
+                expires_at=expires_at,
+                is_active=True,
+                headset_session_active=True,
+            )
+
+        legacy_free = create_token(
+            'cleanup-free',
+            'free:cleanup-free',
+            timezone.now() + timezone.timedelta(days=7),
+        )
+        expired_paid = create_token(
+            'cleanup-expired-paid',
+            'bank-payment-expired',
+            timezone.now() - timezone.timedelta(seconds=1),
+        )
+        active_paid = create_token(
+            'cleanup-active-paid',
+            'bank-payment-active',
+            timezone.now() + timezone.timedelta(hours=1),
+        )
+
+        output = StringIO()
+        call_command('cleanup_access_state', stdout=output)
+
+        legacy_free.refresh_from_db()
+        expired_paid.refresh_from_db()
+        active_paid.refresh_from_db()
+        self.assertFalse(legacy_free.is_active)
+        self.assertFalse(legacy_free.headset_session_active)
+        self.assertFalse(expired_paid.is_active)
+        self.assertFalse(expired_paid.headset_session_active)
+        self.assertTrue(active_paid.is_active)
+        self.assertTrue(active_paid.headset_session_active)
+        self.assertIn('legacy_free=1, expired_paid=1', output.getvalue())
+
+    def test_access_cleanup_dry_run_does_not_change_tokens(self):
+        order = Order.objects.create(
+            user_id='VDNH/40',
+            amount=0,
+            description='Dry run free token',
+            order_id='cleanup-dry-run',
+            status='checked',
+            payment_id='free:cleanup-dry-run',
+        )
+        token = PaymentToken.objects.create(
+            token='cleanup-dry-run-token',
+            order=order,
+            expires_at=timezone.now() + timezone.timedelta(days=7),
+        )
+
+        call_command('cleanup_access_state', '--dry-run', stdout=StringIO())
+
+        token.refresh_from_db()
+        self.assertTrue(token.is_active)
+        self.assertTrue(token.headset_session_active)
 
     @override_settings(FREE_VIEWER_IDS=frozenset({'vdnh/30'}))
     def test_free_orders_are_hidden_from_recent_manual_approvals(self):

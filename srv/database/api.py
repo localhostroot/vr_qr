@@ -25,6 +25,15 @@ import ipaddress
 
 logger = logging.getLogger('database')
 
+
+def is_free_viewer(user_id):
+    normalized = normalize_viewer_id(user_id).casefold()
+    return normalized in {
+        normalize_viewer_id(configured_id).casefold()
+        for configured_id in settings.FREE_VIEWER_IDS
+    }
+
+
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     permission_classes = {
@@ -44,11 +53,7 @@ class PaymentViewSet(viewsets.ViewSet):
 
     @staticmethod
     def _is_free_viewer(user_id):
-        normalized = normalize_viewer_id(user_id).casefold()
-        return normalized in {
-            normalize_viewer_id(configured_id).casefold()
-            for configured_id in settings.FREE_VIEWER_IDS
-        }
+        return is_free_viewer(user_id)
 
     @action(detail=False, methods=['get'])
     def free_access_status(self, request):
@@ -829,6 +834,23 @@ class TokenViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        film_exists = (
+            Category.objects.filter(film_id=film_id).exists()
+            or Movie.objects.filter(film_id=film_id).exists()
+        )
+        if is_free_viewer(user_id):
+            # Free headsets are an operational property of the headset, not a
+            # temporary purchase.  The configured list is therefore the only
+            # source of truth: no phone, order or renewable token is required.
+            return Response({
+                "success": True,
+                "valid": film_exists,
+                "free_access": film_exists,
+                "paid": False,
+                "viewer_id": user_id,
+                "film_id": film_id,
+            })
+
         entitlements = PaidFilm.objects.filter(
             token__order__user_id=user_id,
             token__order__status__in=('paid', 'checked'),
@@ -836,17 +858,14 @@ class TokenViewSet(viewsets.ViewSet):
             token__expires_at__gt=timezone.now(),
             film_id=film_id,
         )
-        free_access = entitlements.filter(
-            token__order__payment_id__startswith='free:',
-        ).exists()
         paid_access = entitlements.exclude(
             token__order__payment_id__startswith='free:',
         ).exists()
 
         return Response({
             "success": True,
-            "valid": free_access or paid_access,
-            "free_access": free_access,
+            "valid": paid_access,
+            "free_access": False,
             "paid": paid_access,
             "viewer_id": user_id,
             "film_id": film_id,

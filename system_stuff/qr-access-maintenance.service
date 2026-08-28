@@ -1,0 +1,9 @@
+[Unit]
+Description=4neba QR access-state maintenance
+After=srv.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/qr_app/srv
+ExecStart=/opt/qr_app/srv/venv/bin/python manage.py cleanup_access_state
+
