@@ -397,7 +397,8 @@ test('unblockAllowed metadata does not suppress the payment instruction', async 
   assert.equal(client.activity, 0);
   assert.equal(
     client.ws.messages[1].data.text,
-    'Оплатите фильм по QR-коду, нанесенному на очки,\n' +
+    'Оплатите фильм по QR-коду,\n' +
+      'нанесенному на очки,\n' +
       'затем нажмите «Смотреть» на телефоне.',
   );
 });
@@ -435,7 +436,8 @@ test('inactive unpaid selection from the main menu still shows the payment instr
   const blockMessage = client.ws.messages.find(message => message.type === 'resetClient');
   assert.equal(
     blockMessage.data.text,
-    'Оплатите фильм по QR-коду, нанесенному на очки,\n' +
+    'Оплатите фильм по QR-коду,\n' +
+      'нанесенному на очки,\n' +
       'затем нажмите «Смотреть» на телефоне.',
   );
   assert.equal(client.pendingPaymentBlock, null);
@@ -496,7 +498,8 @@ test('unblockAllowed metadata does not create a grace period during concurrent p
   const blockMessage = client.ws.messages.find(message => message.type === 'resetClient');
   assert.equal(
     blockMessage.data.text,
-    'Оплатите фильм по QR-коду, нанесенному на очки,\n' +
+    'Оплатите фильм по QR-коду,\n' +
+      'нанесенному на очки,\n' +
       'затем нажмите «Смотреть» на телефоне.',
   );
   assert.equal(client.activity, 0);
@@ -546,7 +549,8 @@ test('real unpaid selection immediately after unlock still shows the payment ins
   const blockMessage = client.ws.messages.find(message => message.type === 'resetClient');
   assert.equal(
     blockMessage.data.text,
-    'Оплатите фильм по QR-коду, нанесенному на очки,\n' +
+    'Оплатите фильм по QR-коду,\n' +
+      'нанесенному на очки,\n' +
       'затем нажмите «Смотреть» на телефоне.',
   );
   assert.equal(client.pendingPaymentBlock, null);
@@ -592,7 +596,8 @@ test('unpaid film selected in the headset shows the payment QR instruction', asy
   const blockMessage = client.ws.messages.find(message => message.type === 'resetClient');
   assert.equal(
     blockMessage.data.text,
-    'Оплатите фильм по QR-коду, нанесенному на очки,\n' +
+    'Оплатите фильм по QR-коду,\n' +
+      'нанесенному на очки,\n' +
       'затем нажмите «Смотреть» на телефоне.',
   );
   assert.equal(client.pendingPaymentBlock, null);
