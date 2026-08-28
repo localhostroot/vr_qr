@@ -175,6 +175,62 @@ class ViewerAccessRecoveryTests(TestCase):
 
         self.assertFalse(follow_up_order.payment_token.headset_session_active)
 
+    def test_first_paid_purchase_claims_idle_headset(self):
+        PaymentToken.objects.filter(
+            order__user_id=self.viewer_id,
+        ).update(headset_session_active=False)
+        first_order = Order.objects.create(
+            user_id=self.viewer_id,
+            viewer_session_id=uuid.uuid4(),
+            amount=100,
+            description='First visitor on idle headset',
+            order_id='idle-headset-order',
+            status='pending',
+        )
+        OrderItem.objects.create(
+            order=first_order,
+            film_id='film-b',
+            is_series=False,
+            price=100,
+        )
+
+        self.assertTrue(
+            PaymentProcessor.process_successful_payment(
+                first_order,
+                'idle-headset-payment',
+            )
+        )
+
+        self.assertTrue(first_order.payment_token.headset_session_active)
+
+    def test_expired_headset_lease_does_not_block_new_purchase(self):
+        PaymentToken.objects.filter(
+            order__user_id=self.viewer_id,
+        ).update(expires_at=timezone.now() - timezone.timedelta(seconds=1))
+        next_order = Order.objects.create(
+            user_id=self.viewer_id,
+            viewer_session_id=uuid.uuid4(),
+            amount=100,
+            description='Purchase after expired lease',
+            order_id='expired-lease-order',
+            status='pending',
+        )
+        OrderItem.objects.create(
+            order=next_order,
+            film_id='film-b',
+            is_series=False,
+            price=100,
+        )
+
+        self.assertTrue(
+            PaymentProcessor.process_successful_payment(
+                next_order,
+                'expired-lease-payment',
+            )
+        )
+
+        self.assertTrue(next_order.payment_token.headset_session_active)
+
     def test_current_token_can_link_a_new_order_to_legacy_browser_session(self):
         self.old_order.viewer_session_id = None
         self.old_order.save(update_fields=('viewer_session_id',))
@@ -647,7 +703,7 @@ class PaymentInvoiceTests(TestCase):
         token = order.payment_token
         self.assertGreaterEqual(token.expires_at, earliest_expiry)
         self.assertLessEqual(token.expires_at, latest_expiry)
-        self.assertFalse(token.headset_session_active)
+        self.assertTrue(token.headset_session_active)
 
     def bundle_payload(self, films=None):
         return {

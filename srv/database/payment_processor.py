@@ -130,15 +130,32 @@ class PaymentProcessor:
             # otherwise selecting the newly bought film directly in the
             # headset is incorrectly treated as an unpaid launch.
             inherit_headset_session = activate_headset_session
-            if order.viewer_session_id is not None and not str(payment_id).startswith('free:'):
-                inherit_headset_session = inherit_headset_session or PaymentToken.objects.filter(
+            if not str(payment_id).startswith('free:'):
+                active_headset_sessions = PaymentToken.objects.filter(
                     order__user_id=order.user_id,
-                    order__viewer_session_id=order.viewer_session_id,
                     order__status__in=('paid', 'checked'),
                     is_active=True,
                     headset_session_active=True,
                     expires_at__gt=timezone.now(),
-                ).exclude(order__payment_id__startswith='free:').exists()
+                ).exclude(order__payment_id__startswith='free:')
+
+                # A paid purchase may claim idle glasses immediately. This is
+                # what lets a visitor pay on the phone and then select the
+                # film inside the headset without sending a second command
+                # from the phone. An active lease owned by another browser is
+                # never replaced here.
+                headset_is_idle = not active_headset_sessions.exists()
+                same_browser_owns_headset = (
+                    order.viewer_session_id is not None
+                    and active_headset_sessions.filter(
+                        order__viewer_session_id=order.viewer_session_id,
+                    ).exists()
+                )
+                inherit_headset_session = (
+                    inherit_headset_session
+                    or headset_is_idle
+                    or same_browser_owns_headset
+                )
             
             # Create payment token
             expires_at = timezone.now() + (
