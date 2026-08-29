@@ -2,6 +2,14 @@
 
 Этот журнал фиксирует только подтверждённые действия. План, patch или commit без фактического размещения сюда не записывается как deploy.
 
+## 2026-08-29 — удаление платёжной аналитики из `/stats`
+
+- Тип: frontend-only.
+- Backup: `/opt/qr_app/backups/stats-frontend-20260829-223506`.
+- Изменение: удалены карточки Total Revenue и Success Rate, а также весь блок Payment Analytics; загрузка `/stats` больше не выполняет запрос `/api/payments`.
+- Не затронуто: платёжный API, банковская интеграция, Django, control server и конфиги плееров.
+- Проверка: production build Svelte прошёл; `qr2.service` active; локальный health-check и внешний `https://cinema.local.vr360.pro/stats` вернули HTTP 200; в production build отсутствуют удалённые подписи.
+
 ## 2026-08-29 — канонизация статистики фильмов и очистка площадок
 
 - Тип: statistics Django + frontend + SQLite data migration.

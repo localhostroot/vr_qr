@@ -28,7 +28,6 @@
   let locationStats = $state(null);
   let videoStats = $state(null);
   let deviceStats = $state(null);
-  let paymentStats = $state(null);
   let selectedLocation = $state(null);
   let isLoadingStats = $state(false);
   let statsError = $state('');
@@ -116,7 +115,6 @@
     locationStats = null;
     videoStats = null;
     deviceStats = null;
-    paymentStats = null;
     selectedLocation = null;
     currentSection = 'overview';
     selectedLocationName = 'VDNH';
@@ -150,8 +148,7 @@
       await Promise.all([
         loadOverviewStats(),
         loadLocationStats(),
-        loadVideoStats(),
-        loadPaymentStats()
+        loadVideoStats()
       ]);
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -203,17 +200,6 @@
       }
     } catch (error) {
       console.error('Device stats error:', error);
-    }
-  }
-
-  async function loadPaymentStats() {
-    try {
-      const response = await fetch('/api/payments');
-      if (response.ok) {
-        paymentStats = await response.json();
-      }
-    } catch (error) {
-      console.error('Payment stats error:', error);
     }
   }
 
@@ -366,46 +352,10 @@
                   <div class="metric-label">Просмотренные сегодня</div>
                 </div>
               {/if}
-              {#if paymentStats}
-                <div class="metric-card">
-                  <div class="metric-value">{paymentStats.analytics?.total_revenue || 0}₽</div>
-                  <div class="metric-label">Total Revenue</div>
-                </div>
-                <div class="metric-card">
-                  <div class="metric-value">{paymentStats.analytics?.success_rate || 0}%</div>
-                  <div class="metric-label">Success Rate</div>
-                </div>
-              {/if}
             </div>
             
             <!-- Charts Row -->
             <div class="charts-row">
-              {#if paymentStats}
-                <div class="chart-card">
-                  <h3>Payment Analytics</h3>
-                  <div class="payment-analytics">
-                    <div class="payment-stats">
-                      <div class="payment-stat">
-                        <span class="stat-label">Successful:</span>
-                        <span class="stat-value successful">{paymentStats.analytics?.successful_payments || 0}</span>
-                      </div>
-                      <div class="payment-stat">
-                        <span class="stat-label">Failed:</span>
-                        <span class="stat-value failed">{paymentStats.analytics?.failed_payments || 0}</span>
-                      </div>
-                      <div class="payment-stat">
-                        <span class="stat-label">Pending:</span>
-                        <span class="stat-value pending">{paymentStats.analytics?.pending_payments || 0}</span>
-                      </div>
-                      <div class="payment-stat">
-                        <span class="stat-label">Canceled:</span>
-                        <span class="stat-value canceled">{paymentStats.analytics?.canceled_payments || 0}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              {/if}
-              
               <div class="chart-card">
                 <h3>Локации по оплаченным запускам</h3>
                 <div class="location-chart">
@@ -996,49 +946,6 @@
     color: var(--color-white-90, #e5e5e5);
     border-bottom: 1px solid var(--color-white-20, #333);
     padding-bottom: 0.5rem;
-  }
-
-  .payment-analytics {
-    padding: 1rem 0;
-  }
-
-  .payment-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-  }
-
-  .payment-stat {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem;
-    background: var(--color-dark-primary, #0f0f0f);
-    border-radius: 4px;
-  }
-
-  .payment-stat .stat-label {
-    color: var(--color-white-70, #b3b3b3);
-  }
-
-  .payment-stat .stat-value {
-    font-weight: bold;
-  }
-
-  .payment-stat .stat-value.successful {
-    color: #28a745;
-  }
-
-  .payment-stat .stat-value.failed {
-    color: #dc3545;
-  }
-
-  .payment-stat .stat-value.pending {
-    color: #ffc107;
-  }
-
-  .payment-stat .stat-value.canceled {
-    color: #6c757d;
   }
 
   .location-chart {
