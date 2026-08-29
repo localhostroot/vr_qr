@@ -48,6 +48,14 @@ test('overview separates waiting, watching and offline glasses', async () => {
         window: { timezone: 'Europe/Moscow' },
       };
     },
+    async getConnectionHealth() {
+      return [{
+        location: 'CDH',
+        id: '75',
+        isOnline: false,
+        disconnectCount: 2,
+      }];
+    },
   };
 
   await APIHandler.getVrOverview(socket, {}, {}, clients, [], presenceHistory);
@@ -57,6 +65,7 @@ test('overview separates waiting, watching and offline glasses', async () => {
   assert.deepEqual(socket.messages[0].waiting.map((client) => client.id), ['73']);
   assert.deepEqual(socket.messages[0].watching.map((client) => client.id), ['74', '76']);
   assert.deepEqual(socket.messages[0].offline.map((client) => client.id), ['75']);
+  assert.equal(socket.messages[0].connectionHealth[0].disconnectCount, 2);
   assert.equal(socket.messages[0].watching[0].currentVideoId, 'film-1');
   assert.equal(socket.messages[0].watching[0].playbackPosition, 90);
   assert.equal(socket.messages[0].watching[1].currentVideoId, 'film-2');

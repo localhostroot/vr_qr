@@ -5,6 +5,7 @@ import { normalizeHeadsetId } from '../utils/viewerIdentity.js';
 const SERVICE_WINDOW_START_HOUR = 8;
 const SERVICE_WINDOW_END_HOUR = 22;
 const RETENTION_DAYS = 7;
+const SIGNIFICANT_DISCONNECT_SECONDS = 30;
 
 const clientKey = (location, id) => `${location}:${normalizeHeadsetId(id)}`;
 
@@ -16,6 +17,36 @@ const timestampValue = (value) => {
 const latestTimestamp = (...values) => values
   .filter(Boolean)
   .sort((first, second) => timestampValue(second) - timestampValue(first))[0] || null;
+
+const localDateKey = (date) => [
+  date.getFullYear(),
+  String(date.getMonth() + 1).padStart(2, '0'),
+  String(date.getDate()).padStart(2, '0'),
+].join('-');
+
+const createConnectionStats = (date) => ({
+  dateKey: localDateKey(date),
+  disconnectCount: 0,
+  significantDisconnectCount: 0,
+  continuousSince: null,
+  lastDisconnectAt: null,
+  lastDisconnectDurationSeconds: null,
+  lastDisconnectWasSignificant: false,
+  lastReconnectAt: null,
+});
+
+const normalizeConnectionStats = (stats, date) => {
+  if (!stats || stats.dateKey !== localDateKey(date)) {
+    return createConnectionStats(date);
+  }
+
+  return {
+    ...createConnectionStats(date),
+    ...stats,
+    disconnectCount: Math.max(0, Number(stats.disconnectCount) || 0),
+    significantDisconnectCount: Math.max(0, Number(stats.significantDisconnectCount) || 0),
+  };
+};
 
 const normalizePersistedRecord = (record) => ({
   ...record,
@@ -113,11 +144,39 @@ export class PresenceHistory {
     const key = clientKey(client.location, client.id);
     const previous = this.records.get(key) || {};
     const window = getServiceWindow(at);
+    const connectionStats = normalizeConnectionStats(previous.connectionStats, at);
+    const previousOfflineSince = previous.offlineSince;
+
+    if (previousOfflineSince) {
+      const disconnectDurationSeconds = Math.max(
+        0,
+        Math.round((at.getTime() - timestampValue(previousOfflineSince)) / 1000),
+      );
+      const belongsToCurrentShift = connectionStats.lastDisconnectAt
+        && timestampValue(connectionStats.lastDisconnectAt) === timestampValue(previousOfflineSince);
+
+      connectionStats.lastReconnectAt = at.toISOString();
+      connectionStats.continuousSince = at.toISOString();
+
+      if (belongsToCurrentShift) {
+        const isSignificant = disconnectDurationSeconds >= SIGNIFICANT_DISCONNECT_SECONDS;
+        connectionStats.lastDisconnectDurationSeconds = disconnectDurationSeconds;
+        connectionStats.lastDisconnectWasSignificant = isSignificant;
+
+        if (isSignificant) {
+          connectionStats.significantDisconnectCount += 1;
+        }
+      }
+    } else if (!connectionStats.continuousSince) {
+      connectionStats.continuousSince = at.toISOString();
+    }
+
     const record = {
       ...previous,
       ...snapshotClient(client),
       lastSeenAt: at.toISOString(),
       offlineSince: null,
+      connectionStats,
     };
 
     if (isInsideServiceWindow(at, window)) {
@@ -135,11 +194,21 @@ export class PresenceHistory {
     const key = clientKey(client.location, client.id);
     const previous = this.records.get(key) || {};
     const window = getServiceWindow(at);
+    const connectionStats = normalizeConnectionStats(previous.connectionStats, at);
+
+    if (isInsideServiceWindow(at, window)) {
+      connectionStats.disconnectCount += 1;
+      connectionStats.lastDisconnectAt = at.toISOString();
+      connectionStats.lastDisconnectDurationSeconds = null;
+      connectionStats.lastDisconnectWasSignificant = false;
+    }
+
     const record = {
       ...previous,
       ...snapshotClient(client),
       lastSeenAt: at.toISOString(),
       offlineSince: at.toISOString(),
+      connectionStats,
     };
 
     if (isInsideServiceWindow(at, window)) {
@@ -181,6 +250,94 @@ export class PresenceHistory {
         timezone: window.timezone,
       },
     };
+  }
+
+  async getConnectionHealth(onlineClients, now = new Date()) {
+    await this.readyPromise;
+
+    const window = getServiceWindow(now);
+    const onlineByKey = new Map(
+      onlineClients.map((client) => [clientKey(client.location, client.id), client]),
+    );
+    const keys = new Set([...this.records.keys(), ...onlineByKey.keys()]);
+    const health = [];
+
+    for (const key of keys) {
+      const client = onlineByKey.get(key) || null;
+      const record = this.records.get(key) || (client ? snapshotClient(client) : null);
+      if (!record) continue;
+
+      const lastSeenInWindow = record.lastSeenInServiceWindowAt
+        ? new Date(record.lastSeenInServiceWindowAt)
+        : null;
+      const seenInCurrentWindow = lastSeenInWindow
+        && lastSeenInWindow.getTime() >= window.start.getTime()
+        && lastSeenInWindow.getTime() <= window.effectiveEnd.getTime();
+
+      if (!client && !seenInCurrentWindow) continue;
+
+      const connectionStats = normalizeConnectionStats(record.connectionStats, now);
+      const clientConnectedAt = client?.connectionTimestamp || null;
+      const latestConnectionStart = latestTimestamp(
+        connectionStats.continuousSince,
+        clientConnectedAt,
+      );
+      const continuousStartTimestamp = client
+        ? Math.max(timestampValue(latestConnectionStart), window.start.getTime())
+        : 0;
+      const offlineSince = client ? null : record.offlineSince;
+      const offlineDurationSeconds = offlineSince
+        ? Math.max(0, Math.round((now.getTime() - timestampValue(offlineSince)) / 1000))
+        : null;
+      const currentDisconnectIsSignificant = Boolean(
+        offlineSince
+        && connectionStats.lastDisconnectAt
+        && timestampValue(connectionStats.lastDisconnectAt) === timestampValue(offlineSince)
+        && !connectionStats.lastDisconnectWasSignificant
+        && offlineDurationSeconds >= SIGNIFICANT_DISCONNECT_SECONDS
+      );
+      const rawLastSeenAt = client?.lastSeenAt || record.lastSeenAt || null;
+
+      health.push({
+        location: record.location || client?.location || null,
+        id: normalizeHeadsetId(record.id || client?.id) || null,
+        isOnline: Boolean(client),
+        continuousSince: continuousStartTimestamp
+          ? new Date(continuousStartTimestamp).toISOString()
+          : null,
+        continuousSeconds: continuousStartTimestamp
+          ? Math.max(0, Math.round((now.getTime() - continuousStartTimestamp) / 1000))
+          : null,
+        disconnectCount: connectionStats.disconnectCount,
+        significantDisconnectCount: connectionStats.significantDisconnectCount
+          + (currentDisconnectIsSignificant ? 1 : 0),
+        lastDisconnectAt: connectionStats.lastDisconnectAt,
+        lastDisconnectDurationSeconds: offlineSince
+          && timestampValue(connectionStats.lastDisconnectAt) === timestampValue(offlineSince)
+          ? offlineDurationSeconds
+          : connectionStats.lastDisconnectDurationSeconds,
+        lastReconnectAt: connectionStats.lastReconnectAt,
+        lastSeenAt: rawLastSeenAt ? new Date(rawLastSeenAt).toISOString() : null,
+        lastDataAgeSeconds: rawLastSeenAt
+          ? Math.max(0, Math.round((now.getTime() - timestampValue(rawLastSeenAt)) / 1000))
+          : null,
+        offlineSince,
+        offlineDurationSeconds,
+      });
+    }
+
+    return health.sort((first, second) => {
+      if (first.isOnline !== second.isOnline) return first.isOnline ? 1 : -1;
+      if (first.disconnectCount !== second.disconnectCount) {
+        return second.disconnectCount - first.disconnectCount;
+      }
+
+      return `${first.location}:${first.id}`.localeCompare(
+        `${second.location}:${second.id}`,
+        undefined,
+        { numeric: true },
+      );
+    });
   }
 
   prune(now = new Date()) {

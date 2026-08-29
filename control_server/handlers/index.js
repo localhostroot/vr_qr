@@ -214,6 +214,9 @@ const onGetVrOverview = async (ws, req, payload, clients, ids, presenceHistory) 
   const offlineResult = presenceHistory
     ? await presenceHistory.getOfflineForCurrentWindow(clients)
     : { offline: [], window: null };
+  const connectionHealth = presenceHistory
+    ? await presenceHistory.getConnectionHealth(clients)
+    : [];
 
   ws.send(JSON.stringify({
     type: 'vrOverview',
@@ -222,6 +225,7 @@ const onGetVrOverview = async (ws, req, payload, clients, ids, presenceHistory) 
     waiting: sortClients(waiting),
     watching: sortClients(watching),
     offline: offlineResult.offline,
+    connectionHealth,
   }));
 };
 

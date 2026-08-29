@@ -162,3 +162,102 @@ test('merges persisted zero-padded aliases into one canonical headset', async ()
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('tracks connection continuity and disconnects without changing heartbeat state', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'vr-presence-'));
+  const filePath = path.join(directory, 'presence-history.json');
+
+  try {
+    const history = new PresenceHistory(filePath);
+    const connectedAt = atLocalTime(0, 9);
+    const client = {
+      location: 'VDNH',
+      id: '11',
+      activity: 2,
+      connectionTimestamp: connectedAt.getTime(),
+      lastSeenAt: connectedAt.getTime(),
+    };
+
+    await history.markOnline(client, connectedAt);
+    const heartbeatAt = atLocalTime(0, 9, 5);
+    client.lastSeenAt = heartbeatAt.getTime();
+    await history.markOnline(client, heartbeatAt);
+
+    const uninterrupted = await history.getConnectionHealth(
+      [client],
+      atLocalTime(0, 9, 10),
+    );
+    assert.equal(uninterrupted.length, 1);
+    assert.equal(uninterrupted[0].disconnectCount, 0);
+    assert.equal(uninterrupted[0].continuousSeconds, 10 * 60);
+    assert.equal(uninterrupted[0].lastDataAgeSeconds, 5 * 60);
+
+    const disconnectedAt = atLocalTime(0, 9, 10);
+    await history.markOffline(client, disconnectedAt);
+    const whileOffline = await history.getConnectionHealth([], atLocalTime(0, 9, 11));
+    assert.equal(whileOffline[0].isOnline, false);
+    assert.equal(whileOffline[0].disconnectCount, 1);
+    assert.equal(whileOffline[0].significantDisconnectCount, 1);
+    assert.equal(whileOffline[0].lastDisconnectDurationSeconds, 60);
+
+    const reconnectedAt = atLocalTime(0, 9, 12);
+    client.connectionTimestamp = reconnectedAt.getTime();
+    client.lastSeenAt = reconnectedAt.getTime();
+    await history.markOnline(client, reconnectedAt);
+    const reconnected = await history.getConnectionHealth(
+      [client],
+      atLocalTime(0, 9, 13),
+    );
+    assert.equal(reconnected[0].disconnectCount, 1);
+    assert.equal(reconnected[0].significantDisconnectCount, 1);
+    assert.equal(reconnected[0].lastDisconnectDurationSeconds, 2 * 60);
+    assert.equal(reconnected[0].continuousSeconds, 60);
+
+    history.dispose();
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('does not count disconnects outside the service window and resets daily counters', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'vr-presence-'));
+  const filePath = path.join(directory, 'presence-history.json');
+
+  try {
+    const history = new PresenceHistory(filePath);
+    const client = { location: 'VDNH', id: '12', activity: 2 };
+
+    await history.markOnline(client, atLocalTime(0, 7));
+    await history.markOffline(client, atLocalTime(0, 7, 15));
+    await history.markOnline(client, atLocalTime(0, 9));
+    await history.markOffline(client, atLocalTime(0, 10));
+    await history.markOnline(client, atLocalTime(0, 10, 1));
+
+    const today = await history.getConnectionHealth(
+      [{
+        ...client,
+        connectionTimestamp: atLocalTime(0, 10, 1).getTime(),
+        lastSeenAt: atLocalTime(0, 10, 1).getTime(),
+      }],
+      atLocalTime(0, 12),
+    );
+    assert.equal(today[0].disconnectCount, 1);
+    assert.equal(today[0].significantDisconnectCount, 1);
+
+    await history.markOnline(client, atLocalTime(1, 9));
+    const nextDay = await history.getConnectionHealth(
+      [{
+        ...client,
+        connectionTimestamp: atLocalTime(1, 9).getTime(),
+        lastSeenAt: atLocalTime(1, 9).getTime(),
+      }],
+      atLocalTime(1, 12),
+    );
+    assert.equal(nextDay[0].disconnectCount, 0);
+    assert.equal(nextDay[0].significantDisconnectCount, 0);
+
+    history.dispose();
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
