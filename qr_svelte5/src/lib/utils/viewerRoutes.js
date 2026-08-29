@@ -1,6 +1,7 @@
 // @ts-nocheck
 
 import { getSubfolder } from '$lib/utils/+helpers.svelte';
+import { formatHeadsetId } from '$lib/utils/viewerIdentity.js';
 
 export function getViewerBasePath(client) {
   const location = client?.location;
@@ -8,7 +9,7 @@ export function getViewerBasePath(client) {
 
   if (!location || !id) return getSubfolder();
 
-  return `${getSubfolder()}/${encodeURIComponent(location)}/${encodeURIComponent(id)}`;
+  return `${getSubfolder()}/${encodeURIComponent(location)}/${encodeURIComponent(formatHeadsetId(id))}`;
 }
 
 export function getViewerRoute(client, section, routeId = null) {

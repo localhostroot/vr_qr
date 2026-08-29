@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from .viewer_identity import normalize_headset_id
 
 
 class Category(models.Model):
@@ -71,6 +72,10 @@ class Device(models.Model):
 
     def __str__(self):
         return f"{self.client_id} - {self.location.name}"
+
+    def save(self, *args, **kwargs):
+        self.client_id = normalize_headset_id(self.client_id)
+        return super().save(*args, **kwargs)
 
 
 class PlaybackSession(models.Model):

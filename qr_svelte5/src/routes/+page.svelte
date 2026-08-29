@@ -6,6 +6,7 @@
   import { PUBLIC_DATABASE } from '$env/static/public';
   import Header from '$lib/components/widgets/Header.svelte';
   import { getSubfolder } from '$lib/utils/+helpers.svelte';
+  import { formatHeadsetId, normalizeViewerClient } from '$lib/utils/viewerIdentity.js';
 
   let overview = $derived(globals.get('vrOverview'));
   let legacyClients = $derived(globals.get('clients'));
@@ -17,9 +18,9 @@
   let contentById = $state({});
 
   function selectClient(location, id) {
-    const client = { location, id };
+    const client = normalizeViewerClient({ location, id });
     globals.set('currentClient', client);
-    goto(`${getSubfolder()}/${location}/${id}`);
+    goto(`${getSubfolder()}/${encodeURIComponent(client.location)}/${encodeURIComponent(formatHeadsetId(client.id))}`);
   }
 
   function formatDuration(seconds) {
@@ -148,8 +149,8 @@
           <div class="vr-grid">
             {#each waiting as client}
               <button class="vr-card waiting-card" onclick={() => selectClient(client.location, client.id)}>
-                <span class="client-number">{client.location}:{client.id}</span>
-                <span class="status waiting-status">В ожидании</span>
+                <span class="client-number">{client.location}:{formatHeadsetId(client.id)}</span>
+                <span class="status waiting-status">Ожидание</span>
                 {#if client.currentUptime}
                   <span class="meta">Онлайн {client.currentUptime}</span>
                 {/if}
@@ -174,9 +175,9 @@
           <div class="vr-grid">
             {#each watching as client}
               <article class="vr-card watching-card">
-                <span class="client-number">{client.location}:{client.id}</span>
+                <span class="client-number">{client.location}:{formatHeadsetId(client.id)}</span>
                 <span class="status watching-status">
-                  {client.activity !== 1 ? 'Запускается' : client.isPlaying ? 'Идёт просмотр' : 'Видео на паузе'}
+                  {client.activity !== 1 ? 'Запускается' : client.isPlaying ? 'Просмотр' : 'Пауза'}
                 </span>
                 <strong class="content-title">{getContentTitle(client)}</strong>
                 <span class="timing">
@@ -207,7 +208,7 @@
           <div class="vr-grid">
             {#each offline as client}
               <article class="vr-card offline-card">
-                <span class="client-number">{client.location}:{client.id}</span>
+                <span class="client-number">{client.location}:{formatHeadsetId(client.id)}</span>
                 <span class="status offline-status">Не в сети</span>
                 <span class="meta">Последний раз в смене: {formatServerTime(client.lastSeenInServiceWindowAt)}</span>
                 {#if client.currentVideoId}
@@ -309,6 +310,7 @@
   }
 
   .vr-card {
+    position: relative;
     min-width: 0;
     padding: 16px;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -336,10 +338,14 @@
   .client-number { font-size: 17px; font-weight: 700; }
 
   .status {
+    position: absolute;
+    top: 16px;
+    right: 16px;
     padding: 4px 8px;
     border-radius: 999px;
     font-size: 11px;
     font-weight: 700;
+    white-space: nowrap;
   }
 
   .waiting-status { color: #72dc98; background: rgba(80, 200, 120, 0.12); }
@@ -369,6 +375,7 @@
     .status-section { padding: 15px; }
     .vr-grid { grid-template-columns: 1fr 1fr; gap: 9px; }
     .vr-card { padding: 13px; }
+    .status { top: 13px; right: 13px; }
   }
 
   @media (max-width: 430px) {

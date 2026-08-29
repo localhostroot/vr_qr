@@ -6,6 +6,7 @@
   import { login, logout } from '$lib/utils/auth.js';
   import { Chart, registerables } from 'chart.js';
   import 'chartjs-adapter-date-fns';
+  import { formatHeadsetId } from '$lib/utils/viewerIdentity.js';
   
   if (browser) {
     Chart.register(...registerables);
@@ -503,7 +504,7 @@
                   <div class="device-list">
                     {#each deviceStats as device}
                       <div class="device-item">
-                        <div class="device-name">Очки № {device.client_id}</div>
+                        <div class="device-name">Очки № {formatHeadsetId(device.client_id)}</div>
                         <div class="device-views">
                           {device.launches || 0} запусков · {device.abandoned || 0} брошено · {device.viewed || 0} просмотрено
                         </div>

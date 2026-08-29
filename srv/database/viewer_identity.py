@@ -1,3 +1,6 @@
+import re
+
+
 def normalize_viewer_id(value):
     """Return one stable database/control-server id for a headset route.
 
@@ -12,6 +15,6 @@ def normalize_viewer_id(value):
     location, headset_id = viewer_id.rsplit('/', 1)
     location = location.strip()
     headset_id = headset_id.strip()
-    if headset_id.isdecimal():
-        headset_id = str(int(headset_id))
+    if re.fullmatch(r'[0-9]+', headset_id):
+        headset_id = re.sub(r'^0+(?=\d)', '', headset_id)
     return f'{location}/{headset_id}'

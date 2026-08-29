@@ -34,7 +34,7 @@ const saveUptime = async (location, id, uptime) => {
       console.log('Creating new uptime.json file');
     }
     
-    const clientKey = `${location}_${id}`;
+    const clientKey = `${location}_${normalizeHeadsetId(id)}`;
     if (!uptimeData[clientKey]) {
       uptimeData[clientKey] = [];
     }

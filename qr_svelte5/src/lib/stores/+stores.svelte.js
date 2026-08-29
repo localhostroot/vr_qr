@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { browser } from '$app/environment';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
+import { normalizeViewerClient } from '$lib/utils/viewerIdentity.js';
 
 // Helper functions for localStorage
 const loadFromLocalStorage = (key, defaultValue = null) => {
@@ -37,7 +38,7 @@ const persistedClients = loadFromLocalStorage(LOCAL_STORAGE_KEYS.CLIENTS, []);
 // Token is handled by tokenReducer pattern - load directly from localStorage
 const persistedToken = browser ? localStorage.getItem(LOCAL_STORAGE_KEYS.PAYMENT_TOKEN) : null;
 const persistedTokenExpiry = browser ? localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN_EXPIRY) : null;
-const persistedClient = loadFromLocalStorage(LOCAL_STORAGE_KEYS.CLIENT, null);
+const persistedClient = normalizeViewerClient(loadFromLocalStorage(LOCAL_STORAGE_KEYS.CLIENT, null));
 
 let globalStorage = $state({
 
@@ -90,6 +91,9 @@ function getGlobals() {
 
   function update(item, handler) {
   globalStorage[item] = handler(globalStorage[item]);
+  if (item === 'currentClient') {
+    globalStorage[item] = normalizeViewerClient(globalStorage[item]);
+  }
   
   // Auto-persist to localStorage for specific items
   if (item === 'queue') {
@@ -128,6 +132,9 @@ function getGlobals() {
   },
 
   set(item, value) {
+    if (item === 'currentClient') {
+      value = normalizeViewerClient(value);
+    }
     globalStorage[item] = value;
     
     // Auto-persist to localStorage for specific items

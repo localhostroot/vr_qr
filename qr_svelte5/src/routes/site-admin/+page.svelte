@@ -4,6 +4,7 @@
 
 	import { onMount } from 'svelte';
 	import { PUBLIC_DATABASE } from '$env/static/public';
+	import { formatViewerId } from '$lib/utils/viewerIdentity.js';
 
 	let searchQuery = $state('');
 	let orders = $state([]);
@@ -323,7 +324,7 @@
 					<div class="order-card" data-order={order.order_id}>
 						<div class="order-header">
 							<div class="order-heading">
-								<h3>Пользователь <span class="viewer-id">{order.user_id}</span></h3>
+								<h3>Пользователь <span class="viewer-id">{formatViewerId(order.user_id)}</span></h3>
 								<div class="order-identifiers">
 									<span title={order.order_id}>
 										<strong>ID заказа:</strong> <code>{order.order_id}</code>

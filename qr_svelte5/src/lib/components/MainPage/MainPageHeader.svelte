@@ -3,13 +3,15 @@
   import { globals } from "$lib/stores/+stores.svelte";
   import { getSubfolder } from "$lib/utils/+helpers.svelte";
   import { page } from '$app/stores';
+  import { formatHeadsetId, normalizeHeadsetId } from '$lib/utils/viewerIdentity.js';
+  import { getViewerBasePath } from '$lib/utils/viewerRoutes.js';
 
   let currentClient = $derived(globals.get('currentClient'));
   let clientLocation = $derived($page.params.location || currentClient?.location || null);
-  let clientId = $derived($page.params.id || currentClient?.id || null);
+  let clientId = $derived(normalizeHeadsetId($page.params.id || currentClient?.id || null));
   let homePath = $derived(
     clientLocation && clientId
-      ? `${getSubfolder()}/${encodeURIComponent(clientLocation)}/${encodeURIComponent(clientId)}`
+      ? getViewerBasePath({ location: clientLocation, id: clientId })
       : `${getSubfolder()}/`
   );
 </script>
@@ -21,7 +23,7 @@
       <div class="name">4 Neba VR</div>
     </a>
 
-    <div class="client-name">Очки <b>№ {clientLocation ?? ''}/{clientId ?? ''}</b></div>
+    <div class="client-name">Очки <b>№ {clientLocation ?? ''}/{formatHeadsetId(clientId)}</b></div>
   </div>
 </div>
 

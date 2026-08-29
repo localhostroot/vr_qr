@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Category, Video, Location, Device
 from django.contrib.auth import authenticate
+from .viewer_identity import normalize_headset_id
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -66,6 +67,9 @@ class StatisticsSerializer(serializers.Serializer):
     duration = serializers.FloatField(required=False, allow_null=True, min_value=0)
     played_seconds = serializers.FloatField(required=False, min_value=0, default=0)
     end_reason = serializers.CharField(required=False, allow_blank=True, max_length=64, default='')
+
+    def validate_client_id(self, value):
+        return normalize_headset_id(value)
 
 
 class LoginSerializer(serializers.Serializer):

@@ -5,6 +5,8 @@
   import { page } from '$app/stores';
   import { icons } from '$lib/icons/icons.js';
   import { getSubfolder } from '$lib/utils/+helpers.svelte';
+  import { normalizeHeadsetId } from '$lib/utils/viewerIdentity.js';
+  import { getViewerBasePath } from '$lib/utils/viewerRoutes.js';
 
   let currentPath = $derived($page.url.pathname);
   let currentClient = $derived(globals.get('currentClient'));
@@ -12,11 +14,11 @@
   let queue = $derived(globals.get('queue'));
   let isViewerRoute = $derived($page.route.id?.startsWith('/[location]/[id]'));
   let clientLocation = $derived(isViewerRoute ? $page.params.location : currentClient?.location || null);
-  let clientId = $derived(isViewerRoute ? $page.params.id : currentClient?.id || null);
+  let clientId = $derived(normalizeHeadsetId(isViewerRoute ? $page.params.id : currentClient?.id || null));
 
   let clientBasePath = $derived(
     clientLocation && clientId
-      ? `${getSubfolder()}/${encodeURIComponent(clientLocation)}/${encodeURIComponent(clientId)}`
+      ? getViewerBasePath({ location: clientLocation, id: clientId })
       : null
   );
   let homePath = $derived(clientBasePath || '#');

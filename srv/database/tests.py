@@ -27,6 +27,10 @@ class ViewerIdentityTests(SimpleTestCase):
     def test_numeric_headset_ids_ignore_leading_zeroes(self):
         self.assertEqual(normalize_viewer_id('VDNH/02'), 'VDNH/2')
         self.assertEqual(normalize_viewer_id('VDNH/2'), 'VDNH/2')
+        self.assertEqual(
+            normalize_viewer_id('VDNH/000900719925474099312345'),
+            'VDNH/900719925474099312345',
+        )
 
     def test_non_numeric_headset_ids_are_preserved(self):
         self.assertEqual(normalize_viewer_id('CDH/demo'), 'CDH/demo')

@@ -10,6 +10,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte';
   import { PUBLIC_DATABASE } from '$env/static/public';
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { setViewerSessionId } from '$lib/utils/viewerSession.js';
+  import { formatHeadsetId } from '$lib/utils/viewerIdentity.js';
 
   let status = $state('loading');
   let retryCount = $state(0);
@@ -245,7 +246,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte';
       {#if orderId}
         <p>Произошла ошибка при обработке платежа. Если оплата прошла успешно, обратитесь к администратору.</p>
         <div class="order-info">
-          <strong>ID заказа для администратора:</strong> <span class="order-id">{orderIdShort}({currentClient.location}:{currentClient.id})</span>
+          <strong>ID заказа для администратора:</strong> <span class="order-id">{orderIdShort}({currentClient.location}:{formatHeadsetId(currentClient.id)})</span>
           {#if orderTime}
             <div style="margin-top: 8px;">
               <strong>Время заказа:</strong> {orderTime}
@@ -271,7 +272,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte';
       <p>Ваш заказ находится в обработке. Администратор активирует доступ в ближайшее время.</p>
       {#if orderId}
         <div class="order-info">
-          <strong>ID заказа для администратора:</strong> <span class="order-id">{orderIdShort}({currentClient.location}:{currentClient.id})</span>
+          <strong>ID заказа для администратора:</strong> <span class="order-id">{orderIdShort}({currentClient.location}:{formatHeadsetId(currentClient.id)})</span>
           {#if orderTime}
             <div style="margin-top: 8px;">
               <strong>Время заказа:</strong> {orderTime}

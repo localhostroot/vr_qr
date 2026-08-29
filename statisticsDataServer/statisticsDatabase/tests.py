@@ -98,3 +98,14 @@ class PlaybackStatisticsTests(TestCase):
 
         self.assertTrue(response.data['created'])
         self.assert_counters(launches=1, abandoned=0, viewed=1)
+
+    def test_zero_padded_aliases_share_one_device(self):
+        first = self.post_event('start', client_id='08', session_id='session-08')
+        second = self.post_event('start', client_id='8', session_id='session-8')
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        devices = Device.objects.filter(location__name='CDH', client_id='8')
+        self.assertEqual(devices.count(), 1)
+        self.assertEqual(devices.get().playback_sessions.count(), 2)
+        self.assertEqual(devices.get().launches, 2)

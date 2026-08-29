@@ -4,8 +4,12 @@ import { PUBLIC_DATABASE } from '$env/static/public';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 import axios from 'axios';
 import { getSubfolder } from './+helpers.svelte';
+import { normalizeViewerClient, sameHeadsetId } from './viewerIdentity.js';
 
 export async function initializeMainPageData(location, id) {
+  const routeClient = normalizeViewerClient({ location, id });
+  location = routeClient.location;
+  id = routeClient.id;
   const clients = globals.get('clients');
   const isClientsLoading = globals.get('isClientsLoading');
   const library = globals.get('library');
@@ -20,14 +24,15 @@ export async function initializeMainPageData(location, id) {
 
     const storedClient = localStorage.getItem(LOCAL_STORAGE_KEYS.CLIENT);
     if (storedClient) {
-      const client = JSON.parse(storedClient);
-      if (client.location === location && client.id === id) {
+      const client = normalizeViewerClient(JSON.parse(storedClient));
+      if (client.location === location && sameHeadsetId(client.id, id)) {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CLIENT, JSON.stringify(client));
         return true;
       }
     }
 
     const clientExistsInRedux = clients.some(
-      client => client.location === location && client.id === id
+      client => client.location === location && sameHeadsetId(client.id, id)
     );
     
     if (clientExistsInRedux) {

@@ -9,9 +9,10 @@
   import StartScreen from '$lib/components/widgets/StartScreen.svelte';
   import MainPageHeader from '$lib/components/MainPage/MainPageHeader.svelte';
   import { setCookie } from '$lib/utils/+helpers.svelte.js';
+  import { normalizeHeadsetId } from '$lib/utils/viewerIdentity.js';
 
   let location = $derived($page.params.location);
-  let id = $derived($page.params.id);
+  let id = $derived(normalizeHeadsetId($page.params.id));
   let library = $derived(globals.get('library'));
   let isLibraryLoading = $derived(globals.get('isLibraryLoading'));
   let isClientsLoading = $derived(globals.get('isClientsLoading'));

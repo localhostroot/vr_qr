@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -115,6 +115,49 @@ test('frequent heartbeats do not postpone the pending disk write', async () => {
     assert.equal(result.offline[0].id, '77');
 
     restored.dispose();
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('merges persisted zero-padded aliases into one canonical headset', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'vr-presence-'));
+  const filePath = path.join(directory, 'presence-history.json');
+
+  try {
+    const earlier = atLocalTime(0, 9).toISOString();
+    const later = atLocalTime(0, 11).toISOString();
+    await writeFile(filePath, JSON.stringify([
+      {
+        location: 'VDNH',
+        id: '01',
+        lastSeenAt: earlier,
+        lastSeenInServiceWindowAt: earlier,
+        offlineSince: earlier,
+        currentVideoId: 'old-film',
+      },
+      {
+        location: 'VDNH',
+        id: '1',
+        lastSeenAt: later,
+        lastSeenInServiceWindowAt: later,
+        offlineSince: later,
+        currentVideoId: 'latest-film',
+      },
+    ]));
+
+    const history = new PresenceHistory(filePath);
+    const result = await history.getOfflineForCurrentWindow([], atLocalTime(0, 12));
+    assert.equal(result.offline.length, 1);
+    assert.equal(result.offline[0].id, '1');
+    assert.equal(result.offline[0].currentVideoId, 'latest-film');
+
+    const online = await history.getOfflineForCurrentWindow(
+      [{ location: 'VDNH', id: '01' }],
+      atLocalTime(0, 12),
+    );
+    assert.equal(online.offline.length, 0);
+    history.dispose();
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

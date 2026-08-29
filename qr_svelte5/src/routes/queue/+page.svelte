@@ -12,13 +12,15 @@ import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 import { getCookie } from '$lib/utils/+helpers.svelte.js';
   import { createPaykeeperPayment } from '$lib/utils/+paykeeperPayment.svelte.js';
   import { getSubfolder } from '$lib/utils/+helpers.svelte';
+  import { formatHeadsetId, normalizeViewerClient } from '$lib/utils/viewerIdentity.js';
+  import { getViewerBasePath } from '$lib/utils/viewerRoutes.js';
 
   let queue = $derived(globals.get('queue'));
 
   let storedCurrentClient = $derived(globals.get('currentClient'));
   let routeClient = $derived(
     $page.params.location && $page.params.id
-      ? { location: $page.params.location, id: $page.params.id }
+      ? normalizeViewerClient({ location: $page.params.location, id: $page.params.id })
       : null
   );
   let currentClient = $derived(routeClient ?? storedCurrentClient);
@@ -37,7 +39,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
       if (storedClient) {
         try {
           const parsed = JSON.parse(storedClient);
-          globals.set('currentClient', parsed);
+          globals.set('currentClient', normalizeViewerClient(parsed));
         } catch (error) {
           console.error('Error parsing stored client data:', error);
         }
@@ -51,7 +53,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
     const id = currentClient?.id || null;
 
     if (clLocation && id) {
-      goto(`${getSubfolder()}/${clLocation}/${id}`);
+      goto(getViewerBasePath({ location: clLocation, id }));
     } else {
       // No valid client found - show error or redirect to error page
       console.error('No valid client found for navigation');
@@ -89,7 +91,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
         </div>
       </div>
       {#if currentClient}
-        <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{currentClient?.id ?? ''}</b></div>
+        <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{formatHeadsetId(currentClient?.id)}</b></div>
       {/if}
       <div class="queue">
         {#each queue as item}
@@ -113,7 +115,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
         </div>
       </div>  
       {#if currentClient}
-        <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{currentClient?.id ?? ''}</b></div>
+        <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{formatHeadsetId(currentClient?.id)}</b></div>
       {/if}
       <div class="empty-queue">
         <div class="empty-icon">

@@ -7,6 +7,7 @@
 	import { useWebSocket } from '$lib/utils/websocket.js';
 	import { startPaymentStatusMonitor } from '$lib/utils/paymentStatusChecker.js';
 	import { setCookie } from '$lib/utils/+helpers.svelte.js';
+	import { formatHeadsetId, normalizeHeadsetId, sameHeadsetId } from '$lib/utils/viewerIdentity.js';
 	import { PUBLIC_DATABASE, PUBLIC_BACKEND, PUBLIC_STAT } from '$env/static/public';
 	import FixedNavigation from '$lib/components/widgets/FixedNavigation.svelte';
 	import Footer from '$lib/components/widgets/Footer.svelte';
@@ -23,10 +24,10 @@
 	let isViewerRoute = $derived($page.route.id?.startsWith('/[location]/[id]'));
 	let isMonitorRoute = $derived($page.route.id === '/');
 	let clientLocation = $derived(isViewerRoute ? $page.params.location : currentClient?.location || null);
-	let clientId = $derived(isViewerRoute ? $page.params.id : currentClient?.id || null);
+	let clientId = $derived(normalizeHeadsetId(isViewerRoute ? $page.params.id : currentClient?.id || null));
 	let viewerUserId = $derived(
-		isViewerRoute && $page.params.location && $page.params.id
-			? `${$page.params.location}/${$page.params.id}`
+		isViewerRoute && clientLocation && clientId
+			? `${clientLocation}/${clientId}`
 			: null
 	);
 	let browserTitle = $derived(
@@ -35,7 +36,7 @@
 			: $page.route.id === '/'
 				? 'Мониторинг'
 				: showFixedNavigation && clientLocation && clientId
-					? `${clientLocation}:${clientId}`
+					? `${clientLocation}:${formatHeadsetId(clientId)}`
 					: '4nebaVR'
 	);
 
@@ -44,7 +45,7 @@
 	// pages use currentClient for labels or control requests.
 	$effect.pre(() => {
 		if (!browser || !viewerUserId || !clientLocation || !clientId) return;
-		if (currentClient?.location === clientLocation && currentClient?.id === clientId) return;
+		if (currentClient?.location === clientLocation && sameHeadsetId(currentClient?.id, clientId)) return;
 
 		const routeClient = { location: clientLocation, id: clientId };
 		globals.set('currentClient', routeClient);

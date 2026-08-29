@@ -9,6 +9,8 @@
   import ContentCardPaid from '$lib/components/ContentCardPaid.svelte';
 import { getSubfolder, getCookie } from '$lib/utils/+helpers.svelte.js';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
+import { formatHeadsetId, normalizeViewerClient, sameHeadsetId } from '$lib/utils/viewerIdentity.js';
+import { getViewerBasePath } from '$lib/utils/viewerRoutes.js';
 
   let paidFilms = $derived(globals.get('paidFilms'));
 
@@ -17,7 +19,7 @@ import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
   let storedCurrentClient = $derived(globals.get('currentClient'));
   let routeClient = $derived(
     $page.params.location && $page.params.id
-      ? { location: $page.params.location, id: $page.params.id }
+      ? normalizeViewerClient({ location: $page.params.location, id: $page.params.id })
       : null
   );
   let currentClient = $derived(routeClient ?? storedCurrentClient);
@@ -47,7 +49,7 @@ import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
       // Find client data from the clients array
       if (clients && Array.isArray(clients)) {
         clientData = clients.find(client => 
-          client.location === clLocation && client.id === id
+          client.location === clLocation && sameHeadsetId(client.id, id)
         ) || null;
       }
     }
@@ -55,7 +57,7 @@ import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 
   const handleClick = () => {
     if (currentClient?.location && currentClient?.id) {
-      goto(`${getSubfolder()}/${currentClient.location}/${currentClient.id}`);
+      goto(getViewerBasePath(currentClient));
     } else {
       console.error('No valid client found for navigation');
       alert('Ошибка: не найдена информация о VR устройстве. Отсканируйте QR код заново.');
@@ -97,7 +99,7 @@ import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
       if (storedClient) {
         try {
           const parsed = JSON.parse(storedClient);
-          globals.set('currentClient', parsed);
+          globals.set('currentClient', normalizeViewerClient(parsed));
         } catch (error) {
           console.error('Error parsing stored client data:', error);
         }
@@ -127,7 +129,7 @@ import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
   <div class="queuePage">
     <!-- Empty state similar to React -->
 
-    <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{currentClient?.id ?? ''}</b></div>
+    <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{formatHeadsetId(currentClient?.id)}</b></div>
 
     <div class="info">
       <div class="pageName">
@@ -158,7 +160,7 @@ import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
       </div>
     </div>
 
-    <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{currentClient?.id ?? ''}</b></div>
+    <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{formatHeadsetId(currentClient?.id)}</b></div>
     
     <!-- Films queue -->
     <div class="queue">

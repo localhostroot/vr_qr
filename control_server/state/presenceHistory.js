@@ -1,11 +1,46 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { normalizeHeadsetId } from '../utils/viewerIdentity.js';
 
 const SERVICE_WINDOW_START_HOUR = 8;
 const SERVICE_WINDOW_END_HOUR = 22;
 const RETENTION_DAYS = 7;
 
-const clientKey = (location, id) => `${location}:${id}`;
+const clientKey = (location, id) => `${location}:${normalizeHeadsetId(id)}`;
+
+const timestampValue = (value) => {
+  const timestamp = value ? new Date(value).getTime() : Number.NaN;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
+const latestTimestamp = (...values) => values
+  .filter(Boolean)
+  .sort((first, second) => timestampValue(second) - timestampValue(first))[0] || null;
+
+const normalizePersistedRecord = (record) => ({
+  ...record,
+  id: normalizeHeadsetId(record.id),
+  offlineSince: record.offlineSince || record.lastSeenAt || null,
+});
+
+const mergePersistedRecords = (first, second) => {
+  if (!first) return second;
+
+  const latest = timestampValue(second.lastSeenAt) >= timestampValue(first.lastSeenAt)
+    ? second
+    : first;
+
+  return {
+    ...latest,
+    id: normalizeHeadsetId(latest.id),
+    lastSeenAt: latestTimestamp(first.lastSeenAt, second.lastSeenAt),
+    lastSeenInServiceWindowAt: latestTimestamp(
+      first.lastSeenInServiceWindowAt,
+      second.lastSeenInServiceWindowAt,
+    ),
+    offlineSince: latest.offlineSince || latest.lastSeenAt || null,
+  };
+};
 
 const getServiceWindow = (now = new Date()) => {
   const start = new Date(now);
@@ -29,7 +64,7 @@ const isInsideServiceWindow = (date, window) => (
 
 const snapshotClient = (client) => ({
   location: client.location || null,
-  id: client.id || null,
+  id: normalizeHeadsetId(client.id) || null,
   activity: Number.isFinite(client.activity) ? client.activity : null,
   userPresent: Boolean(client.userPresent),
   currentVideoId: client.currentVideoId || null,
@@ -57,10 +92,12 @@ export class PresenceHistory {
           // If Node.js stopped before WebSocket close handlers ran, an online
           // record has no offlineSince. On the next start it is offline until
           // the headset reconnects, so use the last heartbeat as the boundary.
-          this.records.set(clientKey(record.location, record.id), {
-            ...record,
-            offlineSince: record.offlineSince || record.lastSeenAt || null,
-          });
+          const normalizedRecord = normalizePersistedRecord(record);
+          const key = clientKey(normalizedRecord.location, normalizedRecord.id);
+          this.records.set(
+            key,
+            mergePersistedRecords(this.records.get(key), normalizedRecord),
+          );
         }
       }
     } catch (error) {

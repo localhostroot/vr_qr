@@ -3,6 +3,7 @@ db_dumps
 .venv/
 __pycache__/
 *.pyc
+.codex-temp/
 
 # macOS
 .DS_Store

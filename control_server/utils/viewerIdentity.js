@@ -1,8 +1,16 @@
 export const normalizeHeadsetId = (value) => {
   const headsetId = String(value ?? '').trim();
-  return /^\d+$/.test(headsetId)
-    ? String(Number.parseInt(headsetId, 10))
-    : headsetId;
+  if (!/^\d+$/.test(headsetId)) return headsetId;
+
+  // Keep identifiers as strings. Number.parseInt() would collapse distinct
+  // values above Number.MAX_SAFE_INTEGER, while removing leading zeroes is
+  // sufficient for identity matching.
+  return headsetId.replace(/^0+(?=\d)/, '');
+};
+
+export const formatHeadsetId = (value) => {
+  const headsetId = normalizeHeadsetId(value);
+  return /^[1-9]$/.test(headsetId) ? `0${headsetId}` : headsetId;
 };
 
 export const sameHeadsetId = (first, second) => (
