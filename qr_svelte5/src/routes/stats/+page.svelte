@@ -71,7 +71,7 @@
 
   async function handleLogin() {
     if (!username.trim() || !password.trim()) {
-      loginError = 'Please enter both username and password';
+      loginError = 'Введите имя пользователя и пароль';
       return;
     }
     
@@ -90,10 +90,12 @@
         password = '';
         await loadAllStats();
       } else {
-        loginError = result.message || 'Login failed';
+        loginError = result.message === 'Invalid credentials'
+          ? 'Неверное имя пользователя или пароль'
+          : 'Не удалось войти';
       }
     } catch (error) {
-      loginError = 'Network error occurred';
+      loginError = 'Ошибка сети. Попробуйте ещё раз';
     } finally {
       isLoggingIn = false;
     }
@@ -152,7 +154,7 @@
       ]);
     } catch (error) {
       console.error('Error loading stats:', error);
-      statsError = 'Failed to load some statistics';
+      statsError = 'Не удалось загрузить часть статистики';
     } finally {
       isLoadingStats = false;
     }
@@ -234,37 +236,37 @@
   {#if isCheckingAuth}
     <div class="loading-screen">
       <div class="loader"></div>
-      <p>Checking authentication...</p>
+      <p>Проверяем доступ...</p>
     </div>
   {:else if !isAuthenticated && showLoginModal}
     <!-- Login Modal -->
     <div class="modal-overlay">
       <div class="modal-content">
         <div class="modal-header">
-          <h2>Statistics Dashboard</h2>
-          <p>Please login to access statistics</p>
+          <h2>Статистика</h2>
+          <p>Войдите, чтобы открыть статистику</p>
         </div>
         
         <form on:submit|preventDefault={handleLogin} class="login-form">
           <div class="form-group">
-            <label for="username">Username</label>
+            <label for="username">Имя пользователя</label>
             <input
               id="username"
               type="text"
               bind:value={username}
-              placeholder="Enter username"
+              placeholder="Введите имя пользователя"
               disabled={isLoggingIn}
               required
             />
           </div>
           
           <div class="form-group">
-            <label for="password">Password</label>
+            <label for="password">Пароль</label>
             <input
               id="password"
               type="password"
               bind:value={password}
-              placeholder="Enter password"
+              placeholder="Введите пароль"
               disabled={isLoggingIn}
               required
             />
@@ -277,49 +279,49 @@
           <button type="submit" disabled={isLoggingIn} class="login-button">
             {#if isLoggingIn}
               <span class="spinner"></span>
-              Logging in...
+              Входим...
             {:else}
-              Login
+              Войти
             {/if}
           </button>
         </form>
       </div>
     </div>
   {:else if isAuthenticated}
-    <!-- Statistics Dashboard -->
+    <!-- Панель статистики -->
     <div class="dashboard">
-      <!-- Left Navigation -->
+      <!-- Верхняя навигация -->
       <nav class="dashboard-nav">
         <div class="nav-header">
-          <h2>Dashboard</h2>
+          <h2>Статистика</h2>
         </div>
         <ul class="nav-menu">
           <li class="nav-item" class:active={currentSection === 'overview'}>
             <button on:click={() => navigateToSection('overview')} class="nav-button">
-              📊 Overview
+              📊 Обзор
             </button>
           </li>
           <li class="nav-item" class:active={currentSection === 'locations'}>
             <button on:click={() => navigateToSection('locations')} class="nav-button">
-              📍 Locations
+              📍 Локации
             </button>
           </li>
         </ul>
         <div class="nav-footer">
-          <button on:click={handleLogout} class="logout-button">Logout</button>
+          <button on:click={handleLogout} class="logout-button">Выйти</button>
         </div>
       </nav>
       
       <!-- Main Content -->
       <main class="dashboard-main">
         <div class="dashboard-header">
-          <h1>{currentSection === 'overview' ? 'Analytics Overview' : `Location: ${selectedLocationName}`}</h1>
+          <h1>{currentSection === 'overview' ? 'Общая статистика' : `Локация: ${selectedLocationName}`}</h1>
         </div>
         
         {#if isLoadingStats}
           <div class="loading-stats">
             <div class="loader"></div>
-            <p>Loading statistics...</p>
+            <p>Загружаем статистику...</p>
           </div>
         {:else if currentSection === 'overview'}
           <!-- Overview Section -->
@@ -387,7 +389,7 @@
                 {#if videoStats}
                   {#each videoStats as video}
                     <div class="table-row">
-                      <div class="video-title">{video.title || 'Untitled'}</div>
+                      <div class="video-title">{video.title || 'Без названия'}</div>
                       <div class="video-views">{video.launches || 0}</div>
                       <div class="video-views">{video.abandoned || 0} ({percentage(video.abandoned, video.launches)})</div>
                       <div class="video-views">{video.viewed || 0} ({percentage(video.viewed, video.launches)})</div>
@@ -402,7 +404,7 @@
           <div class="locations-section">
             <!-- Location Selector -->
             <div class="location-selector">
-              <h3>Select Location:</h3>
+              <h3>Выберите локацию:</h3>
               <div class="location-buttons">
                 {#if locationStats}
                   {#each locationStats as location}
@@ -474,7 +476,7 @@
                     {#if videoStats}
                       {#each videoStats as video}
                         <div class="video-item">
-                          <div class="video-name">{video.title || 'Untitled'}</div>
+                          <div class="video-name">{video.title || 'Без названия'}</div>
                           <div class="video-metrics">
                             <div>Запуски: {video.launches || 0}</div>
                             <div>Брошено: {video.abandoned || 0}</div>
@@ -649,38 +651,48 @@
 
   .dashboard {
     display: flex;
+    flex-direction: column;
     min-height: 100vh;
     background: var(--color-dark-primary, #0f0f0f);
   }
 
   .dashboard-nav {
-    width: 250px;
+    width: 100%;
     background: var(--color-dark-secondary, #1e1e1e);
     display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--color-white-20, #333);
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 1.25rem;
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--color-white-20, #333);
+    overflow-x: auto;
   }
 
   .nav-header {
-    padding: 2rem 1.5rem 1rem;
-    border-bottom: 1px solid var(--color-white-20, #333);
+    padding: 0;
+    flex-shrink: 0;
   }
 
   .nav-header h2 {
     margin: 0;
     color: var(--color-white-90, #e5e5e5);
-    font-size: 1.5rem;
+    font-size: 1.1rem;
   }
 
   .nav-menu {
     list-style: none;
     padding: 0;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
     flex: 1;
   }
 
   .nav-item {
     margin: 0;
+    flex-shrink: 0;
   }
 
   .nav-item.active .nav-button {
@@ -689,12 +701,13 @@
   }
 
   .nav-button {
-    width: 100%;
+    width: auto;
     background: transparent;
     border: none;
     color: var(--color-white-70, #b3b3b3);
-    padding: 1rem 1.5rem;
-    text-align: left;
+    padding: 0.65rem 0.9rem;
+    border-radius: 7px;
+    text-align: center;
     font-family: inherit;
     font-size: 1rem;
     cursor: pointer;
@@ -710,13 +723,15 @@
   }
 
   .nav-footer {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--color-white-20, #333);
+    padding: 0;
+    flex-shrink: 0;
   }
 
   .dashboard-main {
     flex: 1;
-    padding: 2rem;
+    width: 100%;
+    padding: 1.5rem 2rem 2rem;
+    box-sizing: border-box;
     overflow-y: auto;
   }
 
@@ -737,7 +752,7 @@
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.2s;
-    width: 100%;
+    width: auto;
   }
 
   .logout-button:hover {
@@ -1132,23 +1147,16 @@
   }
 
   @media (max-width: 768px) {
-    .dashboard {
-      flex-direction: column;
-    }
-
     .dashboard-nav {
-      width: 100%;
-      height: auto;
+      padding: 0.55rem 0.75rem;
     }
 
-    .nav-menu {
-      display: flex;
-      flex-direction: row;
-      overflow-x: auto;
+    .nav-header {
+      display: none;
     }
 
-    .nav-item {
-      flex-shrink: 0;
+    .nav-button {
+      padding: 0.55rem 0.7rem;
     }
 
     .dashboard-main {
