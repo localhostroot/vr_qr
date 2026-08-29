@@ -1,22 +1,18 @@
 <script>
   import { page } from '$app/stores';
   import { icons } from '$lib/icons/icons.js';
-  import { globals } from '$lib/stores/+stores.svelte.js';
 
   let currentPath = $derived($page.url.pathname);
   let hideNavAndFooter = $derived(currentPath === '/');
-  let version = $derived(globals.get('version'));
 </script>
 
 {#if !hideNavAndFooter}
 <footer class="footer">
   <div class="info">
-      <div>ООО "4 НЕБА ВР"</div>
-      <div>+7 926 263 16 19</div>
+      <div>ООО "4 НЕБА ВР", ИНН 7720942745</div>
   </div>
   <div class="info">
-      <div class="address">г. Москва, вн. тер. г. Муниципальный Округ Новокосино, ул. Новокосинская, д. 23 111673</div>
-      <div>ИНН 7720942745</div>
+      <div class="address">г. Москва, вн. тер. г. Муниципальный Округ Новокосино, ул. Новокосинская, д. 23 111673, <span class="phone">+7 926 263 16 19</span></div>
   </div>
   <div class="logos">
       {@html icons.paykeeper}
@@ -25,7 +21,6 @@
       <!-- Note: the original project had мир.svg and сбп.svg files, but they seem to be missing. -->
       <!-- You may need to add them to the icons.js file when available -->
   </div>
-  <div class="version">v{version}</div>
 </footer>
 {/if}
 
@@ -58,6 +53,13 @@
     text-align: center;
   }
 
+  .phone,
+  .phone :global(a),
+  .footer :global(a[x-apple-data-detectors]) {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+
   .logos {
     display: flex;
     justify-content: center;
@@ -72,10 +74,4 @@
     width: auto;
   }
 
-  .version {
-    font-size: 2.5vw;
-    color: var(--color-white-37);
-    text-align: center;
-    margin-top: var(--spacing-10);
-  }
 </style>

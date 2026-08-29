@@ -309,7 +309,6 @@
     <div class="afisha">
       <img class="paidAfisha" src={PUBLIC_DATABASE + item.queueImg} alt="покупки" />
       <div class="afishaInfo">
-        <div class="format">{item.format}</div>
         <div class="afishaBottomInfo">
           <div class="time">{item.time}</div>
         </div>
@@ -428,21 +427,6 @@
 
     padding: var(--spacing-3);
     box-sizing: border-box;
-  }
-
-  .format {
-    font-weight: 600;
-    color: var(--color-white-90);
-    background: var(--color-dark-50);
-    border-radius: var(--radius-5);
-    height: fit-content;
-    width: fit-content;
-    padding: 4px 4px;
-    font-size: var(--font-9);
-
-    backdrop-filter: blur(5px);
-
-    border: 1px solid var(--color-white-10);
   }
 
   .afishaBottomInfo {

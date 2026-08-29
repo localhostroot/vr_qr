@@ -165,6 +165,7 @@
 
 <svelte:head>
 	<title>{browserTitle}</title>
+	<meta name="format-detection" content="telephone=no" />
 </svelte:head>
 
 {#if isMonitorRoute && monitorAuthState !== 'signedIn'}

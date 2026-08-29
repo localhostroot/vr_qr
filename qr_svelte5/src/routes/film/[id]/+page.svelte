@@ -81,7 +81,6 @@
     <SingleMovieItem 
       {item} 
       list={filmsList} 
-      itemRouteId={item.cat_id.route_id} 
     />
   {:else}
     <div class="not-found">

@@ -9,7 +9,7 @@
   import Loader from '$lib/components/widgets/Loader.svelte';
   import { getViewerBasePath, getViewerRoute } from '$lib/utils/viewerRoutes.js';
 
-  let { item, list, itemRouteId } = $props();
+  let { item, list } = $props();
 
   let imageLoading = $state(true);
 
@@ -49,10 +49,6 @@
     if (nextItem) {
       goto(getViewerRoute(currentClient, 'film', nextItem.route_id));
     }
-  }
-
-  function handleClickReturn() {
-    goto(getViewerRoute(currentClient, 'content', itemRouteId));
   }
 
   function handleVrClick() {
@@ -105,13 +101,6 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="btn-reverse" onclick={handleReverseClick}>
           {@html icons.arrow}
-        </div>
-      {/if}
-      {#if item.series && !item.serial}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="btn-return" onclick={handleClickReturn}>
-          {@html icons.vector}
         </div>
       {/if}
     </div>
@@ -186,25 +175,6 @@
   }
 
   .btn-reverse:hover {
-    background: var(--color-white-20);
-  }
-
-  .btn-return {
-    position: absolute;
-    width: 9.4527vw;
-    height: 9.4527vw;
-    bottom: 2.4875vw;
-    right: 2.4875vw;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: var(--color-white-10);
-    border-radius: var(--radius-full);
-    cursor: pointer;
-    transition: var(--transition-100);
-  }
-
-  .btn-return:hover {
     background: var(--color-white-20);
   }
 

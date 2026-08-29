@@ -6,7 +6,6 @@
   import { page } from '$app/stores';
   import { globals } from '$lib/stores/+stores.svelte.js';
   import { icons } from '$lib/icons/icons.js';
-  import Header from '$lib/components/widgets/Header.svelte';
   import ContentCardBig from '$lib/components/Queue/ContentCardBig.svelte';
 import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
 import { getCookie } from '$lib/utils/+helpers.svelte.js';
@@ -75,7 +74,6 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
 
 <div class="queue-page">
 
-  <Header />
   <div class="specificHeader">
     <!-- <button class="inst" onclick={handleOpenModal}>
       {@html icons.plus}
@@ -91,7 +89,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
         </div>
       </div>
       {#if currentClient}
-        <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{formatHeadsetId(currentClient?.id)}</b></div>
+        <div class="client-name">Очки: <b>{currentClient?.location ?? ''}/{formatHeadsetId(currentClient?.id)}</b></div>
       {/if}
       <div class="queue">
         {#each queue as item}
@@ -115,7 +113,7 @@ import { getCookie } from '$lib/utils/+helpers.svelte.js';
         </div>
       </div>  
       {#if currentClient}
-        <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{formatHeadsetId(currentClient?.id)}</b></div>
+        <div class="client-name">Очки: <b>{currentClient?.location ?? ''}/{formatHeadsetId(currentClient?.id)}</b></div>
       {/if}
       <div class="empty-queue">
         <div class="empty-icon">

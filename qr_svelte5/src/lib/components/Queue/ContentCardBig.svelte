@@ -36,10 +36,6 @@
     style="background-image: url({item.queueImg || item.backImg || item.image})"
   >
     <div class="afishaInfo">
-      <div class="format">
-        {item.format || 'VR'}
-      </div>
-      
       <div
         class="removeFromQueueBtn"
         onclick={handleRemoveFromQueue}
@@ -85,25 +81,10 @@
     display: flex;
     position: absolute;
     top: 0;
-    justify-content: space-between;
+    justify-content: flex-end;
 
     padding: var(--spacing-3);
     box-sizing: border-box;
-  }
-
-  .format {
-    font-weight: 600;
-    color: var(--color-white-90);
-    background: var(--color-dark-50);
-    border-radius: var(--radius-5);
-    height: fit-content;
-    width: fit-content;
-    padding: 4px 4px;
-    font-size: var(--font-9);
-
-    backdrop-filter: blur(5px);
-
-    border: 1px solid var(--color-white-10);
   }
 
   .afishaBottomInfo {
@@ -161,7 +142,9 @@
     width: 40px;
     height: 40px;
 
-    background: var(--color-dark-50);
+    color: var(--color-red);
+    background: var(--color-error-20);
+    border: 1px solid var(--color-error-30);
     border-radius: var(--radius-5);
 
     display: flex;
@@ -169,5 +152,9 @@
     align-items: center;
 
     backdrop-filter: blur(5px);
+  }
+
+  .removeFromQueueBtn :global(path) {
+    stroke: var(--color-red);
   }
 </style>

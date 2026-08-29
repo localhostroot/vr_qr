@@ -129,7 +129,7 @@ import { getViewerBasePath } from '$lib/utils/viewerRoutes.js';
   <div class="queuePage">
     <!-- Empty state similar to React -->
 
-    <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{formatHeadsetId(currentClient?.id)}</b></div>
+    <div class="client-name">Очки: <b>{currentClient?.location ?? ''}/{formatHeadsetId(currentClient?.id)}</b></div>
 
     <div class="info">
       <div class="pageName">
@@ -160,7 +160,7 @@ import { getViewerBasePath } from '$lib/utils/viewerRoutes.js';
       </div>
     </div>
 
-    <div class="client-name">Очки: <b>№ {currentClient?.location ?? ''}/{formatHeadsetId(currentClient?.id)}</b></div>
+    <div class="client-name">Очки: <b>{currentClient?.location ?? ''}/{formatHeadsetId(currentClient?.id)}</b></div>
     
     <!-- Films queue -->
     <div class="queue">

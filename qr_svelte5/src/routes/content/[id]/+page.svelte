@@ -134,7 +134,6 @@ import LOCAL_STORAGE_KEYS from '$lib/constants/localStorageKeys.js';
     <SingleMovieItem 
       {item} 
       list={filmsList} 
-      itemRouteId={item.id} 
     />
   {:else}
     <div class="not-found">
