@@ -105,19 +105,6 @@
 		}
 	}
 
-	async function logoutFromMonitor() {
-		try {
-			await fetch(`${PUBLIC_DATABASE}api/admin/logout/`, {
-				method: 'POST',
-				credentials: 'include'
-			});
-		} finally {
-			if (webSocketManager) webSocketManager.disconnect();
-			webSocketManager = null;
-			monitorAuthState = 'signedOut';
-		}
-	}
-
 	onMount(() => {
 		let monitorSessionIntervalId;
 		if (isMonitorRoute) {
@@ -205,9 +192,6 @@
 	</div>
 {:else}
 	<div class="App">
-		{#if isMonitorRoute}
-			<button class="monitor-logout" onclick={logoutFromMonitor}>Выйти</button>
-		{/if}
 		<div class="content-wrapper">
 			<slot />
 		</div>
@@ -249,8 +233,7 @@
 		border-radius: 8px;
 		font-size: 16px;
 	}
-	.monitor-login-card button,
-	.monitor-logout {
+	.monitor-login-card button {
 		padding: 12px 20px;
 		border: 0;
 		border-radius: 8px;
@@ -265,12 +248,5 @@
 		border-radius: 6px;
 		background: #ffe6e6;
 		color: #a61b1b;
-	}
-	.monitor-logout {
-		position: fixed;
-		top: 20px;
-		right: 20px;
-		z-index: 20;
-		background: rgba(255, 255, 255, 0.14);
 	}
 </style>

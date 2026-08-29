@@ -4,7 +4,6 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { PUBLIC_DATABASE } from '$env/static/public';
-  import Header from '$lib/components/widgets/Header.svelte';
   import { getSubfolder } from '$lib/utils/+helpers.svelte';
   import { formatHeadsetId, normalizeViewerClient } from '$lib/utils/viewerIdentity.js';
 
@@ -145,8 +144,6 @@
 </script>
 
 <div class="wrapper">
-  <Header />
-
   <main class="overview">
     <div class="overview-heading">
       <div>
@@ -312,7 +309,7 @@
   .overview {
     width: min(1180px, calc(100% - 32px));
     margin: 0 auto;
-    padding: 92px 0 48px;
+    padding: 24px 0 48px;
     font-family: 'Montserrat', sans-serif;
   }
 
@@ -447,7 +444,7 @@
   @media (max-width: 640px) {
     .overview {
       width: min(100% - 20px, 1180px);
-      padding-top: 78px;
+      padding-top: 16px;
     }
 
     .overview-heading { flex-direction: column; gap: 8px; }
