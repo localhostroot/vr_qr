@@ -1007,7 +1007,8 @@ class PaymentInvoiceTests(TestCase):
         self.assertFalse(response.data['free_access'])
         self.assertFalse(response.data['paid'])
 
-    def test_access_cleanup_deactivates_only_legacy_free_and_expired_tokens(self):
+    @override_settings(FREE_VIEWER_IDS=frozenset())
+    def test_access_cleanup_deactivates_only_obsolete_free_and_expired_tokens(self):
         def create_token(order_id, payment_id, expires_at):
             order = Order.objects.create(
                 user_id='VDNH/40',
@@ -1053,7 +1054,62 @@ class PaymentInvoiceTests(TestCase):
         self.assertFalse(expired_paid.headset_session_active)
         self.assertTrue(active_paid.is_active)
         self.assertTrue(active_paid.headset_session_active)
-        self.assertIn('legacy_free=1, expired_paid=1', output.getvalue())
+        self.assertIn(
+            'free_kept=0, obsolete_free=1, expired_paid=1',
+            output.getvalue(),
+        )
+
+    @override_settings(FREE_VIEWER_IDS=frozenset({'vdnh/10', 'VDNH/50'}))
+    def test_access_cleanup_keeps_current_free_viewer_tokens(self):
+        def create_free_token(order_id, user_id, expires_at):
+            order = Order.objects.create(
+                user_id=user_id,
+                amount=0,
+                description=order_id,
+                order_id=order_id,
+                status='checked',
+                payment_id=f'free:{order_id}',
+            )
+            return PaymentToken.objects.create(
+                token=f'{order_id}-token',
+                order=order,
+                expires_at=expires_at,
+                is_active=True,
+                headset_session_active=True,
+            )
+
+        current_free = create_free_token(
+            'cleanup-current-free',
+            'VDNH/010',
+            timezone.now() + timezone.timedelta(days=7),
+        )
+        removed_free = create_free_token(
+            'cleanup-removed-free',
+            'VDNH/09',
+            timezone.now() + timezone.timedelta(days=7),
+        )
+        expired_free = create_free_token(
+            'cleanup-expired-free',
+            'VDNH/50',
+            timezone.now() - timezone.timedelta(seconds=1),
+        )
+
+        output = StringIO()
+        call_command('cleanup_access_state', stdout=output)
+
+        current_free.refresh_from_db()
+        removed_free.refresh_from_db()
+        expired_free.refresh_from_db()
+        self.assertTrue(current_free.is_active)
+        self.assertTrue(current_free.headset_session_active)
+        self.assertFalse(removed_free.is_active)
+        self.assertFalse(removed_free.headset_session_active)
+        self.assertFalse(expired_free.is_active)
+        self.assertFalse(expired_free.headset_session_active)
+        self.assertIn(
+            'free_kept=1, obsolete_free=2, expired_paid=0',
+            output.getvalue(),
+        )
 
     def test_access_cleanup_dry_run_does_not_change_tokens(self):
         order = Order.objects.create(
