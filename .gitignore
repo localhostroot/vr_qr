@@ -4,6 +4,9 @@ db_dumps
 __pycache__/
 *.pyc
 .codex-temp/
+.local-secrets/
+.deploy-connection-monitoring-*/
+.pnpm-store/
 
 # macOS
 .DS_Store
