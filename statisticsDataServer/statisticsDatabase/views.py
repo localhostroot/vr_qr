@@ -9,6 +9,7 @@ from .serializers import CategorySerializer, VideoSerializer, LocationSerializer
 from rest_framework.authtoken.models import Token
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
+from .video_identity import canonical_video_title
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -48,7 +49,9 @@ class VideoList(generics.ListAPIView):
         category = self.request.query_params.get('category')
         title = self.request.query_params.get('title')
 
-        queryset = Video.objects.all()
+        queryset = Video.objects.filter(
+            playback_sessions__isnull=False,
+        ).distinct().order_by('id')
         if category:
             queryset = queryset.filter(category__name=category)
 
@@ -113,7 +116,10 @@ def update_statistics(request):
         with transaction.atomic():
             location, _ = Location.objects.get_or_create(name=location_name)
             device, _ = Device.objects.get_or_create(client_id=client_id, location=location)
-            video, _ = Video.objects.get_or_create(video_id=video_id, defaults={'title': video_id})
+            video, _ = Video.objects.get_or_create(
+                video_id=video_id,
+                defaults={'title': canonical_video_title(video_id)},
+            )
 
             playback_session, created = PlaybackSession.objects.select_for_update().get_or_create(
                 session_id=session_id,

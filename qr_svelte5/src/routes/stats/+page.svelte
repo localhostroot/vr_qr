@@ -35,7 +35,7 @@
   
   // Navigation state
   let currentSection = $state('overview');
-  let selectedLocationName = $state('CDH');
+  let selectedLocationName = $state('VDNH');
   
   // Chart references
   let overviewChart = null;
@@ -119,7 +119,7 @@
     paymentStats = null;
     selectedLocation = null;
     currentSection = 'overview';
-    selectedLocationName = 'CDH';
+    selectedLocationName = 'VDNH';
     destroyAllCharts();
   }
 
@@ -220,15 +220,8 @@
   function navigateToSection(section) {
     currentSection = section;
     if (section === 'locations' && locationStats && locationStats.length > 0) {
-      // Find CDH location or default to first
-      const cdhLocation = locationStats.find(loc => loc.name === 'CDH');
-      if (cdhLocation) {
-        selectedLocationName = 'CDH';
-        loadDeviceStats(cdhLocation.id);
-      } else {
-        selectedLocationName = locationStats[0].name;
-        loadDeviceStats(locationStats[0].id);
-      }
+      selectedLocationName = locationStats[0].name;
+      loadDeviceStats(locationStats[0].id);
     }
   }
 
@@ -442,7 +435,7 @@
                   <div>Просмотренные</div>
                 </div>
                 {#if videoStats}
-                  {#each videoStats.slice(0, 10) as video}
+                  {#each videoStats as video}
                     <div class="table-row">
                       <div class="video-title">{video.title || 'Untitled'}</div>
                       <div class="video-views">{video.launches || 0}</div>
@@ -504,12 +497,23 @@
                   <div class="device-list">
                     {#each deviceStats as device}
                       <div class="device-item">
-                        <div class="device-name">Очки № {formatHeadsetId(device.client_id)}</div>
-                        <div class="device-views">
-                          {device.launches || 0} запусков · {device.abandoned || 0} брошено · {device.viewed || 0} просмотрено
+                        <div class="device-name">{Number.parseInt(formatHeadsetId(device.client_id), 10)}</div>
+                        <div class="device-metrics">
+                          <div>Запуски: {device.launches || 0}</div>
+                          <div>Брошено: {device.abandoned || 0}</div>
+                          <div>Просмотрено: {device.viewed || 0}</div>
                         </div>
                       </div>
                     {/each}
+                  </div>
+                  <div class="statistics-legend">
+                    <strong>Как формируется статистика.</strong>
+                    Очки появляются здесь после первого запуска, полученного сервером статистики.
+                    «Запуски» — все созданные сеансы. «Просмотрено» — достигнуто не менее 50% фильма.
+                    «Брошено» — просмотрено более 20 секунд, но менее 50%. Сеансы до 20 секунд,
+                    ещё не завершённые и сеансы без достаточных данных входят в запуски, но не входят
+                    в «Брошено» или «Просмотрено». Поэтому сумма двух последних показателей может быть
+                    меньше числа запусков.
                   </div>
                 </div>
                 
@@ -518,11 +522,13 @@
                   <h3>Общие показатели фильмов</h3>
                   <div class="location-videos">
                     {#if videoStats}
-                      {#each videoStats.slice(0, 8) as video}
+                      {#each videoStats as video}
                         <div class="video-item">
                           <div class="video-name">{video.title || 'Untitled'}</div>
-                          <div class="video-views">
-                            {video.launches || 0} запусков · {video.abandoned || 0} брошено · {video.viewed || 0} просмотрено
+                          <div class="video-metrics">
+                            <div>Запуски: {video.launches || 0}</div>
+                            <div>Брошено: {video.abandoned || 0}</div>
+                            <div>Просмотрено: {video.viewed || 0}</div>
                           </div>
                         </div>
                       {/each}
@@ -839,9 +845,15 @@
     font-size: 0.9rem;
   }
 
-  .location-list, .video-list, .device-list {
+  .location-list, .video-list {
     display: flex;
     flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .device-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
     gap: 0.75rem;
   }
 
@@ -853,6 +865,19 @@
     background: var(--color-dark-primary, #0f0f0f);
     border-radius: 6px;
     transition: background-color 0.2s;
+  }
+
+  .video-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .device-item {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 0.5rem;
   }
 
   .location-item {
@@ -871,6 +896,38 @@
   .location-views, .video-views {
     color: var(--color-primary, #007bff);
     font-size: 0.9rem;
+  }
+
+  .video-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    color: var(--color-primary, #007bff);
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+
+  .device-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    color: var(--color-primary, #007bff);
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+
+  .statistics-legend {
+    margin-top: 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--color-white-10, #2a2f38);
+    border-radius: 6px;
+    color: var(--color-white-70, #b8bec8);
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .statistics-legend strong {
+    color: var(--color-white-90, #e5e5e5);
   }
 
   .device-views {

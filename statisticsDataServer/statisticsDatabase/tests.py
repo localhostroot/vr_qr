@@ -12,7 +12,7 @@ class PlaybackStatisticsTests(TestCase):
         self.base_payload = {
             'session_id': 'session-1',
             'client_id': '30',
-            'location_name': 'CDH',
+            'location_name': 'VDNH',
             'video_id': 'film-1',
         }
 
@@ -25,7 +25,7 @@ class PlaybackStatisticsTests(TestCase):
 
     def assert_counters(self, launches, abandoned, viewed):
         for instance in (
-            Location.objects.get(name='CDH'),
+            Location.objects.get(name='VDNH'),
             Device.objects.get(client_id='30'),
             Video.objects.get(video_id='film-1'),
         ):
@@ -105,7 +105,60 @@ class PlaybackStatisticsTests(TestCase):
 
         self.assertEqual(first.status_code, 200)
         self.assertEqual(second.status_code, 200)
-        devices = Device.objects.filter(location__name='CDH', client_id='8')
+        devices = Device.objects.filter(location__name='VDNH', client_id='8')
         self.assertEqual(devices.count(), 1)
         self.assertEqual(devices.get().playback_sessions.count(), 2)
         self.assertEqual(devices.get().launches, 2)
+
+    def test_legacy_volga_id_is_recorded_under_canonical_video(self):
+        legacy = self.post_event(
+            'start',
+            session_id='legacy-volga',
+            video_id='volga_2',
+        )
+        canonical = self.post_event(
+            'start',
+            session_id='canonical-volga',
+            video_id='volga',
+        )
+
+        self.assertEqual(legacy.status_code, 200)
+        self.assertEqual(canonical.status_code, 200)
+        self.assertFalse(Video.objects.filter(video_id='volga_2').exists())
+        video = Video.objects.get(video_id='volga')
+        self.assertEqual(video.title, 'Течет река Волга')
+        self.assertEqual(video.playback_sessions.count(), 2)
+        self.assertEqual(video.launches, 2)
+
+    def test_legacy_geography_ids_are_recorded_under_current_ids(self):
+        aliases = {
+            'geo_01_01': ('geo_02_01', 'Александр Колчак'),
+            'geo_01_02': ('geo_02_02', 'Пётр Козлов'),
+            'geo_01_03': ('geo_02_03', 'Николай Миклухо-Маклай'),
+            'geo_01_04': ('geo_02_04', 'Константин Романов'),
+            'geo_01_05': ('geo_02_06', 'Юлий Шокальский'),
+            'geo_01_06': ('geo_02_05', 'Пётр Семёнов Тян-Шанский'),
+        }
+
+        for index, (legacy_id, (current_id, title)) in enumerate(aliases.items()):
+            with self.subTest(legacy_id=legacy_id):
+                response = self.post_event(
+                    'start',
+                    session_id=f'legacy-geography-{index}',
+                    video_id=legacy_id,
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertFalse(Video.objects.filter(video_id=legacy_id).exists())
+                video = Video.objects.get(video_id=current_id)
+                self.assertEqual(video.title, title)
+                self.assertEqual(video.launches, 1)
+
+    def test_obsolete_location_is_rejected_and_not_recreated(self):
+        response = self.post_event(
+            'start',
+            session_id='obsolete-location',
+            location_name='CDH',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Location.objects.filter(name='CDH').exists())

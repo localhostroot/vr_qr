@@ -2,6 +2,10 @@ from rest_framework import serializers
 from .models import Category, Video, Location, Device
 from django.contrib.auth import authenticate
 from .viewer_identity import normalize_headset_id
+from .video_identity import normalize_video_id
+
+
+ACTIVE_LOCATION_NAME = 'VDNH'
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -70,6 +74,17 @@ class StatisticsSerializer(serializers.Serializer):
 
     def validate_client_id(self, value):
         return normalize_headset_id(value)
+
+    def validate_location_name(self, value):
+        location_name = str(value or '').strip().upper()
+        if location_name != ACTIVE_LOCATION_NAME:
+            raise serializers.ValidationError(
+                'Статистика принимается только для действующей площадки VDNH.',
+            )
+        return ACTIVE_LOCATION_NAME
+
+    def validate_video_id(self, value):
+        return normalize_video_id(value)
 
 
 class LoginSerializer(serializers.Serializer):
