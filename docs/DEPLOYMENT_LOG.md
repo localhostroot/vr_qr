@@ -2,6 +2,14 @@
 
 Этот журнал фиксирует только подтверждённые действия. План, patch или commit без фактического размещения сюда не записывается как deploy.
 
+## 2026-08-30 — инвентаризация и ротация веб-реквизитов
+
+- Тип: production authentication data, без изменения кода и конфигурации плееров.
+- Backup: `/opt/qr_app/backups/web-credentials-reset-20260830-144620` — SQLite backup основного Django и `adminDataServer`, созданный через SQLite backup API до смены паролей.
+- Изменение: существующие реквизиты monitoring/site-admin и `/stats` сохранены; пароли единственных активных superuser основного Django-каталога и старой панели управления очками заменены на новые.
+- Локальное хранение: полная карта четырёх интерфейсов сохранена в gitignored `.local-secrets/web-credentials.json`; ACL разрешает доступ только текущему пользователю Windows и `SYSTEM`. Значения в Git и документацию не добавлялись.
+- Проверка: HTTP-вход monitoring/site-admin и `/stats` успешен; `authenticate()` обеих Django-учётных записей успешен; шесть production-служб active; внешние `/`, `/site-admin`, `/stats`, `/admin/` и `admin.local.vr360.pro` отвечают ожидаемыми HTTP 200/302.
+
 ## 2026-08-29 — унификация мобильного интерфейса зрителя
 
 - Тип: frontend-only.
