@@ -22,6 +22,12 @@ export async function GET({ url, cookies }) {
 			case 'devices':
 				const locationId = url.searchParams.get('location');
 				return await getDeviceStats(locationId);
+			case 'daily':
+				return await getDailyVideoStats(
+					url.searchParams.get('location') || 'VDNH',
+					url.searchParams.get('start_date'),
+					url.searchParams.get('end_date')
+				);
 			default:
 				return json({ error: 'Invalid stats type' }, { status: 400 });
 		}
@@ -97,5 +103,28 @@ async function getDeviceStats(locationId) {
 	} catch (error) {
 		console.error('Device stats error:', error);
 		return json({ error: 'Failed to fetch device stats' }, { status: 500 });
+	}
+}
+
+async function getDailyVideoStats(location, startDate, endDate) {
+	if (!startDate || !endDate) {
+		return json({ error: 'Date range required' }, { status: 400 });
+	}
+
+	try {
+		const response = await axios.get(`${PRIVATE_STATISTICS_SERVER_URL}/api/daily_video_stats/`, {
+			headers: {
+				'Authorization': `Token ${PRIVATE_STATS_TOKEN}`
+			},
+			params: {
+				location,
+				start_date: startDate,
+				end_date: endDate
+			}
+		});
+		return json(response.data);
+	} catch (error) {
+		console.error('Daily video stats error:', error);
+		return json({ error: 'Failed to fetch daily video stats' }, { status: 500 });
 	}
 }

@@ -9,5 +9,6 @@ urlpatterns = [
     path('update_statistics/', views.update_statistics, name='update-statistics'),
     path('login/', views.login_view, name='login'),
     path('total_stats/', views.get_total_stats, name='total-stats'),
+    path('daily_video_stats/', views.get_daily_video_stats, name='daily-video-stats'),
     path('create_video_with_category/', views.create_video_with_category, name='create-video-with-category'),
 ]

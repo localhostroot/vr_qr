@@ -28,6 +28,7 @@
   let locationStats = $state(null);
   let videoStats = $state(null);
   let deviceStats = $state(null);
+  let dailyVideoStats = $state(null);
   let selectedLocation = $state(null);
   let isLoadingStats = $state(false);
   let statsError = $state('');
@@ -117,6 +118,7 @@
     locationStats = null;
     videoStats = null;
     deviceStats = null;
+    dailyVideoStats = null;
     selectedLocation = null;
     currentSection = 'overview';
     selectedLocationName = 'VDNH';
@@ -150,7 +152,8 @@
       await Promise.all([
         loadOverviewStats(),
         loadLocationStats(),
-        loadVideoStats()
+        loadVideoStats(),
+        loadDailyVideoStats()
       ]);
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -218,9 +221,37 @@
     loadDeviceStats(location.id);
   }
 
+  async function loadDailyVideoStats() {
+    try {
+      const params = new URLSearchParams({
+        type: 'daily',
+        location: 'VDNH',
+        start_date: '2026-08-28',
+        end_date: '2026-08-30'
+      });
+      const response = await fetch(`/api/stats?${params.toString()}`);
+      if (response.ok) {
+        dailyVideoStats = await response.json();
+      }
+    } catch (error) {
+      console.error('Daily video stats error:', error);
+    }
+  }
+
   function percentage(part, total) {
     if (!total) return '0%';
     return `${((part || 0) / total * 100).toFixed(1)}%`;
+  }
+
+  function formatEventDate(dateString) {
+    return new Intl.DateTimeFormat('ru-RU', {
+      day: 'numeric',
+      month: 'long'
+    }).format(new Date(`${dateString}T12:00:00+03:00`));
+  }
+
+  function metricTriplet(metrics) {
+    return `${metrics?.launches || 0} / ${metrics?.abandoned || 0} / ${metrics?.viewed || 0}`;
   }
 
   function handleKeydown(event) {
@@ -442,6 +473,52 @@
                     <div class="metric-label">Просмотренные</div>
                   </div>
                 </div>
+
+                {#if dailyVideoStats}
+                  <div class="daily-stats-card">
+                    <div class="daily-stats-heading">
+                      <h3>По дням показа</h3>
+                      <span>28–30 августа 2026 · московское время</span>
+                    </div>
+                    <div class="daily-table-scroll">
+                      <table class="daily-table">
+                        <thead>
+                          <tr>
+                            <th scope="col">Фильм</th>
+                            {#each dailyVideoStats.days as day}
+                              <th scope="col">{formatEventDate(day.date)}</th>
+                            {/each}
+                            <th scope="col">Итого</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {#each dailyVideoStats.videos as video}
+                            <tr>
+                              <th scope="row">{video.title || 'Без названия'}</th>
+                              {#each dailyVideoStats.days as day}
+                                <td>{metricTriplet(video.days?.[day.date])}</td>
+                              {/each}
+                              <td class="daily-total-cell">{metricTriplet(video.total)}</td>
+                            </tr>
+                          {/each}
+                          <tr class="daily-total-row">
+                            <th scope="row">Все фильмы</th>
+                            {#each dailyVideoStats.days as day}
+                              <td>{metricTriplet(day)}</td>
+                            {/each}
+                            <td>{metricTriplet(dailyVideoStats.total)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div class="statistics-legend daily-legend">
+                      <strong>В ячейке: запуски / брошено / просмотрено.</strong>
+                      Запуск — созданный сервером сеанс; брошено — более 20 секунд, но менее 50%
+                      фильма; просмотрено — не менее 50%. Короткие и незавершённые сеансы входят
+                      только в запуски. Предпоказовые тесты 27 августа в эту таблицу не входят.
+                    </div>
+                  </div>
+                {/if}
                 
                 <!-- Device List -->
                 <div class="device-list-card">
@@ -1126,14 +1203,14 @@
     gap: 1rem;
   }
 
-  .device-list-card, .location-videos-card {
+  .device-list-card, .location-videos-card, .daily-stats-card {
     background: var(--color-dark-secondary, #1e1e1e);
     padding: 1.5rem;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
-  .device-list-card h3, .location-videos-card h3 {
+  .device-list-card h3, .location-videos-card h3, .daily-stats-card h3 {
     margin: 0 0 1rem;
     color: var(--color-white-90, #e5e5e5);
     border-bottom: 1px solid var(--color-white-20, #333);
@@ -1144,6 +1221,82 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 0.75rem;
+  }
+
+  .daily-stats-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid var(--color-white-20, #333);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .daily-stats-heading h3 {
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+
+  .daily-stats-heading span {
+    color: var(--color-white-70, #b3b3b3);
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .daily-table-scroll {
+    overflow-x: auto;
+  }
+
+  .daily-table {
+    width: 100%;
+    min-width: 850px;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  .daily-table th,
+  .daily-table td {
+    padding: 0.7rem 0.8rem;
+    border-bottom: 1px solid var(--color-white-10, #2a2f38);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .daily-table th:first-child {
+    text-align: left;
+    white-space: normal;
+    min-width: 220px;
+  }
+
+  .daily-table thead th {
+    color: var(--color-white-90, #e5e5e5);
+    background: var(--color-dark-primary, #0f0f0f);
+  }
+
+  .daily-table tbody td {
+    color: var(--color-primary, #007bff);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .daily-table tbody tr:hover {
+    background: var(--color-white-05, #1a1a1a);
+  }
+
+  .daily-total-cell,
+  .daily-total-row {
+    font-weight: 700;
+  }
+
+  .daily-total-row th,
+  .daily-total-row td {
+    border-top: 2px solid var(--color-white-20, #333);
+    border-bottom: 0;
+  }
+
+  .daily-legend {
+    margin-top: 0.85rem;
   }
 
   @media (max-width: 768px) {
@@ -1173,6 +1326,12 @@
 
     .location-buttons {
       flex-direction: column;
+    }
+
+    .daily-stats-heading {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 0.25rem;
     }
 
     .modal-content {

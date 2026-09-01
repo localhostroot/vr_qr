@@ -3,13 +3,21 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.db import transaction
-from django.db.models import F
+from django.db.models import Count, F, Q
+from django.db.models.functions import TruncDate
 from .models import Category, Video, Location, Device, PlaybackSession
 from .serializers import CategorySerializer, VideoSerializer, LocationSerializer, DeviceSerializer, StatisticsSerializer, LoginSerializer, CreateVideoWithCategorySerializer
 from rest_framework.authtoken.models import Token
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from rest_framework.exceptions import ValidationError
 from .video_identity import canonical_video_title
+from datetime import datetime, time, timedelta, timezone as datetime_timezone
+from zoneinfo import ZoneInfo
+
+
+REPORT_TIME_ZONE = ZoneInfo('Europe/Moscow')
+MAX_DAILY_REPORT_DAYS = 31
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -34,6 +42,105 @@ def get_total_stats(request):
         # Compatibility for clients which have not switched to the new names yet.
         'total_views': total_viewed,
         'todays_views': todays_viewed,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_daily_video_stats(request):
+    start_date = parse_date(request.query_params.get('start_date', ''))
+    end_date = parse_date(request.query_params.get('end_date', ''))
+    location_name = str(request.query_params.get('location', 'VDNH')).strip().upper()
+
+    if start_date is None or end_date is None:
+        return Response(
+            {'error': 'Укажите start_date и end_date в формате YYYY-MM-DD.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if end_date < start_date:
+        return Response(
+            {'error': 'end_date не может быть раньше start_date.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if (end_date - start_date).days + 1 > MAX_DAILY_REPORT_DAYS:
+        return Response(
+            {'error': f'Период не может превышать {MAX_DAILY_REPORT_DAYS} день.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if location_name != 'VDNH':
+        return Response(
+            {'error': 'Доступна статистика только для действующей площадки VDNH.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    start_at = datetime.combine(start_date, time.min, tzinfo=REPORT_TIME_ZONE)
+    end_at = datetime.combine(
+        end_date + timedelta(days=1),
+        time.min,
+        tzinfo=REPORT_TIME_ZONE,
+    )
+    sessions = PlaybackSession.objects.filter(
+        location__name=location_name,
+        started_at__gte=start_at.astimezone(datetime_timezone.utc),
+        started_at__lt=end_at.astimezone(datetime_timezone.utc),
+    )
+    grouped = sessions.annotate(
+        report_day=TruncDate('started_at', tzinfo=REPORT_TIME_ZONE),
+    ).values(
+        'report_day',
+        'video_id',
+        'video__video_id',
+        'video__title',
+    ).annotate(
+        launches=Count('id'),
+        abandoned=Count('id', filter=Q(status=PlaybackSession.Status.ABANDONED)),
+        viewed=Count('id', filter=Q(status=PlaybackSession.Status.VIEWED)),
+    ).order_by('video_id', 'report_day')
+
+    day_keys = []
+    day_totals = {}
+    cursor = start_date
+    while cursor <= end_date:
+        day_key = cursor.isoformat()
+        day_keys.append(day_key)
+        day_totals[day_key] = {'launches': 0, 'abandoned': 0, 'viewed': 0}
+        cursor += timedelta(days=1)
+
+    videos_by_id = {}
+    grand_total = {'launches': 0, 'abandoned': 0, 'viewed': 0}
+    for row in grouped:
+        day_key = row['report_day'].isoformat()
+        metrics = {
+            'launches': row['launches'],
+            'abandoned': row['abandoned'],
+            'viewed': row['viewed'],
+        }
+        video = videos_by_id.setdefault(row['video_id'], {
+            'video_id': row['video__video_id'],
+            'title': row['video__title'],
+            'days': {
+                key: {'launches': 0, 'abandoned': 0, 'viewed': 0}
+                for key in day_keys
+            },
+            'total': {'launches': 0, 'abandoned': 0, 'viewed': 0},
+        })
+        video['days'][day_key] = metrics
+        for field in grand_total:
+            video['total'][field] += metrics[field]
+            day_totals[day_key][field] += metrics[field]
+            grand_total[field] += metrics[field]
+
+    return Response({
+        'location': location_name,
+        'timezone': str(REPORT_TIME_ZONE),
+        'start_date': start_date.isoformat(),
+        'end_date': end_date.isoformat(),
+        'days': [
+            {'date': day_key, **day_totals[day_key]}
+            for day_key in day_keys
+        ],
+        'videos': list(videos_by_id.values()),
+        'total': grand_total,
     })
 
 

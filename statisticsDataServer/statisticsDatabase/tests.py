@@ -1,3 +1,6 @@
+from datetime import datetime, timezone as datetime_timezone
+
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -162,3 +165,98 @@ class PlaybackStatisticsTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertFalse(Location.objects.filter(name='CDH').exists())
+
+
+class DailyVideoStatisticsTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        user = get_user_model().objects.create_user('stats-reader', password='test-only')
+        self.client.force_authenticate(user=user)
+        self.location = Location.objects.create(name='VDNH')
+        self.device = Device.objects.create(client_id='11', location=self.location)
+        self.russia = Video.objects.create(video_id='russia', title='Россия')
+        self.volga = Video.objects.create(video_id='volga', title='Течет река Волга')
+        self.url = reverse('daily-video-stats')
+
+    def create_session(self, session_id, video, status, started_at):
+        session = PlaybackSession.objects.create(
+            session_id=session_id,
+            location=self.location,
+            device=self.device,
+            video=video,
+            status=status,
+        )
+        PlaybackSession.objects.filter(pk=session.pk).update(started_at=started_at)
+
+    def test_groups_three_event_days_in_moscow_time(self):
+        self.create_session(
+            'day-1-viewed',
+            self.russia,
+            PlaybackSession.Status.VIEWED,
+            datetime(2026, 8, 27, 22, 30, tzinfo=datetime_timezone.utc),
+        )
+        self.create_session(
+            'day-2-abandoned',
+            self.russia,
+            PlaybackSession.Status.ABANDONED,
+            datetime(2026, 8, 28, 21, 30, tzinfo=datetime_timezone.utc),
+        )
+        self.create_session(
+            'day-3-short',
+            self.volga,
+            PlaybackSession.Status.SHORT,
+            datetime(2026, 8, 30, 20, 59, tzinfo=datetime_timezone.utc),
+        )
+        self.create_session(
+            'outside-period',
+            self.volga,
+            PlaybackSession.Status.VIEWED,
+            datetime(2026, 8, 30, 21, 0, tzinfo=datetime_timezone.utc),
+        )
+
+        response = self.client.get(self.url, {
+            'location': 'VDNH',
+            'start_date': '2026-08-28',
+            'end_date': '2026-08-30',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['timezone'], 'Europe/Moscow')
+        self.assertEqual(
+            response.data['days'],
+            [
+                {'date': '2026-08-28', 'launches': 1, 'abandoned': 0, 'viewed': 1},
+                {'date': '2026-08-29', 'launches': 1, 'abandoned': 1, 'viewed': 0},
+                {'date': '2026-08-30', 'launches': 1, 'abandoned': 0, 'viewed': 0},
+            ],
+        )
+        self.assertEqual(
+            response.data['total'],
+            {'launches': 3, 'abandoned': 1, 'viewed': 1},
+        )
+        videos = {video['video_id']: video for video in response.data['videos']}
+        self.assertEqual(videos['russia']['total'], {
+            'launches': 2,
+            'abandoned': 1,
+            'viewed': 1,
+        })
+        self.assertEqual(videos['volga']['days']['2026-08-30'], {
+            'launches': 1,
+            'abandoned': 0,
+            'viewed': 0,
+        })
+
+    def test_rejects_invalid_or_excessive_period(self):
+        missing = self.client.get(self.url)
+        reversed_period = self.client.get(self.url, {
+            'start_date': '2026-08-30',
+            'end_date': '2026-08-28',
+        })
+        excessive = self.client.get(self.url, {
+            'start_date': '2026-08-01',
+            'end_date': '2026-09-01',
+        })
+
+        self.assertEqual(missing.status_code, 400)
+        self.assertEqual(reversed_period.status_code, 400)
+        self.assertEqual(excessive.status_code, 400)
