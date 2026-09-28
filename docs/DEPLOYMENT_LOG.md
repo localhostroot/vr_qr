@@ -2,6 +2,16 @@
 
 Этот журнал фиксирует только подтверждённые действия. План, patch или commit без фактического размещения сюда не записывается как deploy.
 
+## 2026-09-22 — статический PHP-host `tours.360.polylog.site`
+
+- Тип: Nginx virtual host + PHP-FPM + Let's Encrypt; без изменения VR-приложения, его БД и конфигурации плееров.
+- Webroot: `/www/pano/www/tours.360.polylog.site/`. Путь использует существующую VMware share `www`; корень mount `/www/pano` из гостевой VM недоступен для создания каталогов.
+- Backup: `/opt/qr_app/backups/nginx-tours-20260922-065407` — снимок `domains.txt` и полного `nginx -T` до успешного размещения.
+- Изменение: добавлены HTTP→HTTPS redirect, выдача статических файлов, обработка существующих `.php` через upstream `php`, отдельные access/error logs и запрет доступа к скрытым файлам кроме ACME challenge.
+- SSL: dehydrated выпустил сертификат Let's Encrypt для `tours.360.polylog.site` со сроком до 21 декабря 2026; домен добавлен в `/etc/dehydrated/domains.txt` и будет обрабатываться существующим `/etc/cron.weekly/dehydrated`.
+- Проверка: `nginx -t` успешен; внешний HTTP возвращает 301 на HTTPS; внешний HTTPS возвращает 200 с успешной проверкой сертификата; статика и временный PHP health-check успешно отданы локально через vhost, после чего PHP-check удалён; `nginx`, `srv`, `stats`, `control_server` и `qr2` active; существующий `cinema.local.vr360.pro` возвращает 200.
+- Rollback-проверки: две предварительные неуспешные попытки автоматически восстановили Nginx и `domains.txt`; действующие домены не прерывались.
+
 ## 2026-09-01 — разбивка статистики по трём дням показа
 
 - Тип: statistics Django API + frontend `/stats`; без изменения платежей, control server, основной БД и конфигурации плееров.

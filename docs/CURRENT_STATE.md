@@ -1,6 +1,6 @@
 # Текущее состояние production
 
-Последняя production-сверка и health-check: **1 сентября 2026, 12:30 Europe/Moscow**.
+Последняя production-сверка и health-check: **22 сентября 2026, 06:55 Europe/Moscow**.
 
 Этот документ — короткий оперативный снимок. При расхождении с работающим сервером сначала проверяется сервер, затем обновляется этот файл.
 
@@ -13,6 +13,14 @@
 - Активные службы: `srv.service`, `stats.service`, `control_server.service`, `qr2.service`, `nginx.service`.
 - Основной домен: `https://cinema.local.vr360.pro`.
 - Runtime-каталоги на сервере не являются Git checkout. Состояние production подтверждается файлами, environment, БД, systemd, тестами и внешним поведением, а не одним commit hash.
+
+### Дополнительный статический web-host
+
+- Домен: `https://tours.360.polylog.site`.
+- Фактический webroot: `/www/pano/www/tours.360.polylog.site/`. Дополнительный сегмент `www` обусловлен тем, что `/www/pano` является корнем VMware Shared Folders, а доступная для записи share называется `www`.
+- Nginx раздаёт обычные статические файлы и `.php` через существующий upstream `php` (`php7.4-dk-fpm.sock`). Proxy, Node/React и база данных для этого домена не используются.
+- HTTP перенаправляется на HTTPS. Сертификат Let's Encrypt хранится в `/etc/dehydrated/certs/tours.360.polylog.site/`; домен добавлен в `/etc/dehydrated/domains.txt` и входит в существующее еженедельное обновление dehydrated.
+- В webroot находится временная стартовая страница `index.html`; проверочный PHP-файл после health-check удалён.
 
 ## Режимы очков
 
